@@ -11,3 +11,8 @@ next-env.d.ts
 public/data/waterways.geojson
 public/data/gauges-meta.json
 .cache/
+
+# Per-gauge NHD/NWPS cache. Untracked by default so it doesn't bloat the
+# repo. Commit this directory if you want Docker image builds to skip the
+# ~3-minute network fetch step (it'll be COPYed into the build context).
+data-cache/

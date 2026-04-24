@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Props {
   // null = "live"; otherwise ISO of the selected historical moment.
@@ -14,8 +14,15 @@ const WINDOW_HOURS = 24 * 7;     // 7 days back
 const STEP_MINUTES = 15;         // 15-min grain matches USGS IV cadence
 const STEPS = (WINDOW_HOURS * 60) / STEP_MINUTES;
 
+// Playback: at 1× speed we want 1 hour of gauge data to advance per 5 s of
+// wall time → 4 steps (4 × 15 min) per 5 s → 1.25 s per step. Higher speed
+// multipliers shorten the per-step interval proportionally.
+const PLAYBACK_BASE_MS_PER_STEP = 1250;
+const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16] as const;
+type Speed = (typeof SPEEDS)[number];
+
 function stepToIso(step: number, nowMs: number): string | null {
-  if (step === STEPS) return null; // rightmost = live
+  if (step >= STEPS) return null; // rightmost = live
   const minutesBack = (STEPS - step) * STEP_MINUTES;
   return new Date(nowMs - minutesBack * 60_000).toISOString();
 }
@@ -39,17 +46,45 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
   // they drag. Refreshed when they click Live.
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [step, setStep] = useState(() => isoToStep(value, Date.now()));
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState<Speed>(1);
+  // Latest committed step in a ref so the playback interval doesn't have to
+  // be recreated every tick — it reads from here and writes back via setStep.
+  const stepRef = useRef(step);
+  useEffect(() => { stepRef.current = step; }, [step]);
 
   // Keep the local step in sync when the parent resets to Live.
   useEffect(() => { setStep(isoToStep(value, nowMs)); }, [value, nowMs]);
 
+  // Stop playback automatically if we've reached Live.
+  useEffect(() => { if (step >= STEPS && playing) setPlaying(false); }, [step, playing]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const intervalMs = Math.max(50, PLAYBACK_BASE_MS_PER_STEP / speed);
+    const id = window.setInterval(() => {
+      const next = stepRef.current + 1;
+      if (next >= STEPS) {
+        setStep(STEPS);
+        onChange(null);
+        setPlaying(false);
+        return;
+      }
+      setStep(next);
+      onChange(stepToIso(next, nowMs));
+    }, intervalMs);
+    return () => window.clearInterval(id);
+  }, [playing, speed, nowMs, onChange]);
+
   const label = useMemo(() => formatLabel(stepToIso(step, nowMs)), [step, nowMs]);
-  const atLive = step === STEPS;
+  const atLive = step >= STEPS;
 
   const onSlide = (e: React.ChangeEvent<HTMLInputElement>) => {
     const s = Number(e.target.value);
     setStep(s);
     onChange(stepToIso(s, nowMs));
+    // Pause if the user starts scrubbing manually.
+    if (playing) setPlaying(false);
   };
 
   const goLive = () => {
@@ -57,6 +92,19 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
     setNowMs(now);
     setStep(STEPS);
     onChange(null);
+    setPlaying(false);
+  };
+
+  const togglePlay = () => {
+    if (atLive) {
+      // Starting playback from Live doesn't make sense — rewind a bit.
+      const startStep = Math.max(0, STEPS - 24); // 6 h back
+      setStep(startStep);
+      onChange(stepToIso(startStep, nowMs));
+      setPlaying(true);
+      return;
+    }
+    setPlaying(p => !p);
   };
 
   return (
@@ -66,7 +114,7 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
         bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
         left: '50%',
         transform: 'translateX(-50%)',
-        width: 'min(560px, calc(100vw - 24px))',
+        width: 'min(620px, calc(100vw - 24px))',
         background: 'rgba(17,24,39,0.92)',
         backdropFilter: 'blur(6px)',
         color: '#e5e7eb',
@@ -77,10 +125,31 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
         fontSize: 13,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <span style={{ fontWeight: 600 }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <button
+          onClick={togglePlay}
+          aria-label={playing ? 'Pause playback' : 'Play playback'}
+          title={playing ? 'Pause' : atLive ? 'Rewind 6 h and play' : 'Play'}
+          style={{
+            background: playing ? '#f97316' : '#2563eb',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            width: 32,
+            height: 26,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          {playing ? <PauseIcon /> : <PlayIcon />}
+        </button>
+        <span style={{ fontWeight: 600, minWidth: 130 }}>{label}</span>
         {loading && <LoadingDot />}
         <div style={{ flex: 1 }} />
+        <SpeedSelect speed={speed} onChange={setSpeed} />
         <button
           onClick={goLive}
           disabled={atLive}
@@ -105,7 +174,7 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
         step={1}
         value={step}
         onChange={onSlide}
-        style={{ width: '100%', accentColor: atLive ? '#2563eb' : '#f97316' }}
+        style={{ width: '100%', accentColor: playing ? '#f97316' : atLive ? '#2563eb' : '#f97316' }}
         aria-label="Select time"
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#9ca3af', fontSize: 11, marginTop: 2 }}>
@@ -113,6 +182,57 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
         <span>now</span>
       </div>
     </div>
+  );
+}
+
+function SpeedSelect({ speed, onChange }: { speed: Speed; onChange: (s: Speed) => void }) {
+  return (
+    <label
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        fontSize: 12,
+        color: '#9ca3af',
+      }}
+      title="Playback speed (1× = 1 hour of gauge data per 5 s)"
+    >
+      <span>Speed</span>
+      <select
+        value={speed}
+        onChange={(e) => onChange(Number(e.target.value) as Speed)}
+        style={{
+          background: '#1f2937',
+          color: '#e5e7eb',
+          border: '1px solid #374151',
+          borderRadius: 6,
+          padding: '2px 6px',
+          fontSize: 12,
+          cursor: 'pointer',
+        }}
+      >
+        {SPEEDS.map(s => (
+          <option key={s} value={s}>{s}×</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path d="M2.5 1.5 L10 6 L2.5 10.5 Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <rect x="2.5" y="1.5" width="2.5" height="9" fill="currentColor" />
+      <rect x="7" y="1.5" width="2.5" height="9" fill="currentColor" />
+    </svg>
   );
 }
 

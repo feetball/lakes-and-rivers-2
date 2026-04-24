@@ -9,7 +9,9 @@
     "postbuild": "cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "lint": "next lint",
     "data:build": "node scripts/build-waterways-data.mjs",
+    "data:build:refresh": "node scripts/build-waterways-data.mjs --refresh",
     "data:refresh-list": "node scripts/refresh-gauges-list.mjs",
+    "data:cache:clear": "rm -rf data-cache/gauges",
     "prebuild": "node scripts/build-waterways-data.mjs --if-missing"
   },
   "dependencies": {

@@ -19,9 +19,22 @@ const OUT_DIR = resolve(ROOT, 'public/data');
 const WATERWAYS_OUT = resolve(OUT_DIR, 'waterways.geojson');
 const GAUGES_OUT = resolve(OUT_DIR, 'gauges-meta.json');
 const GAUGES_LIST_SEED = resolve(OUT_DIR, 'gauges-list.json');
+// Per-gauge cache of the simplified NHD features + NWPS detail. Lives
+// outside public/ so it isn't shipped to clients. Survives across builds —
+// commit the directory if you want Docker image builds to skip the
+// network round-trip too.
+const CACHE_DIR = resolve(ROOT, 'data-cache/gauges');
+// Bump when simplifyFeature / per-gauge schema changes, so old caches are
+// ignored automatically without a manual purge.
+const CACHE_VERSION = 1;
+// Cache entries older than this are refetched. Override with CACHE_TTL_DAYS=N.
+const CACHE_TTL_MS = (Number(process.env.CACHE_TTL_DAYS) || 30) * 24 * 3_600_000;
 
 const ARGS = new Set(process.argv.slice(2));
 const IF_MISSING = ARGS.has('--if-missing');
+// `--refresh` (or REFRESH=1) ignores existing cache entries and refetches
+// every gauge. Useful after upstream NHD/NWPS data updates.
+const REFRESH = ARGS.has('--refresh') || process.env.REFRESH === '1';
 
 // Spatial buffers (meters) for querying NHD around each gauge point.
 // Wider flowline radius captures the longer reach of rivers + named creeks
@@ -208,7 +221,7 @@ function isUsable(g) {
     && typeof g?.longitude === 'number';
 }
 
-async function queryNhd(layer, geometry, radiusM, extraWhere = '1=1', maxRecords = 80) {
+async function queryNhd(layer, geometry, radiusM, extraWhere = '1=1', maxRecords = 200) {
   const params = new URLSearchParams({
     f: 'geojson',
     geometry: JSON.stringify(geometry),
@@ -221,9 +234,12 @@ async function queryNhd(layer, geometry, radiusM, extraWhere = '1=1', maxRecords
     where: extraWhere,
     outFields: 'GNIS_NAME,FTYPE,PERMANENT_IDENTIFIER',
     returnGeometry: 'true',
-    // ~55m in WGS84 — strips sub-pixel detail the map wouldn't render anyway.
-    maxAllowableOffset: '0.0005',
-    geometryPrecision: '5',
+    // ~5 m in WGS84. Anything coarser collapses river curves to straight
+    // chords whose endpoints don't line up with adjacent reaches, which
+    // shows up on the map as a stream broken into disconnected line
+    // fragments. ~5 m keeps reaches visually contiguous.
+    maxAllowableOffset: '0.00005',
+    geometryPrecision: '6',
     resultRecordCount: String(maxRecords),
   });
   const url = `${NHD_BASE}/${layer}/query?${params.toString()}`;
@@ -246,18 +262,131 @@ async function pLimit(items, limit, worker) {
 }
 
 function simplifyFeature(feat, gaugeId) {
-  // Strip heavy props; keep only what the UI uses.
+  // Strip heavy props; keep only what the UI uses. ArcGIS's `f=geojson`
+  // output lower-cases field names, so read both casings to be safe.
   const props = feat.properties ?? {};
+  const name = props.gnis_name ?? props.GNIS_NAME ?? null;
+  const ftype = props.ftype ?? props.FTYPE ?? null;
+  const nhdId = props.permanent_identifier ?? props.PERMANENT_IDENTIFIER ?? null;
   return {
     type: 'Feature',
     geometry: feat.geometry,
     properties: {
       gaugeId,
-      name: props.GNIS_NAME || null,
-      ftype: props.FTYPE ?? null,
-      nhdId: props.PERMANENT_IDENTIFIER ?? null,
+      name: name || null,
+      ftype: ftype ?? null,
+      nhdId: nhdId ?? null,
     },
   };
+}
+
+function cachePathFor(lid) {
+  return resolve(CACHE_DIR, `${lid}.json`);
+}
+
+async function readGaugeCache(lid) {
+  if (REFRESH) return null;
+  try {
+    const raw = await readFile(cachePathFor(lid), 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed?.version !== CACHE_VERSION) return null;
+    if (!parsed?.fetchedAt) return null;
+    if (Date.now() - new Date(parsed.fetchedAt).getTime() > CACHE_TTL_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function writeGaugeCache(lid, payload) {
+  await mkdir(CACHE_DIR, { recursive: true });
+  const p = cachePathFor(lid);
+  const body = JSON.stringify({ version: CACHE_VERSION, ...payload });
+  await writeFile(p + '.tmp', body);
+  await rename(p + '.tmp', p);
+}
+
+async function fetchGaugeBundle(g) {
+  const lid = g.lid;
+  const lat = g.latitude;
+  const lon = g.longitude;
+  const point = { x: lon, y: lat, spatialReference: { wkid: 4326 } };
+  const [hostJson, flowJson, wbJson, detail] = await Promise.all([
+    // Host segment: nearest flowline of any type, named or not. Guarantees
+    // the waterway the gauge actually sits on always ends up rendered, even
+    // if it's an unnamed creek or an artificial channel.
+    queryNhd(FLOWLINE_LAYER, point, HOST_FLOWLINE_RADIUS_M, '1=1', HOST_FLOWLINE_MAX).catch(() => null),
+    // FTYPE 460=StreamRiver, 558=ArtificialPath (flow line through a lake).
+    // Keeps rivers + named creeks; excludes canals, ditches, pipelines.
+    queryNhd(FLOWLINE_LAYER, point, FLOWLINE_RADIUS_M, "GNIS_NAME IS NOT NULL AND GNIS_NAME <> '' AND FTYPE IN (460, 558)").catch(() => null),
+    // FTYPE 390=LakePond, 436=Reservoir, 361=Playa. AREASQKM filter drops
+    // sub-5-hectare stock ponds — there are tens of thousands across TX
+    // and they bloat the payload without adding signal.
+    queryNhd(WATERBODY_LAYER, point, WATERBODY_RADIUS_M, 'FTYPE IN (390, 436, 361) AND AREASQKM >= 0.05').catch(() => null),
+    fetchJson(NWPS_GAUGE_DETAIL(lid), { timeoutMs: 30_000, retries: 2 }).catch(() => null),
+  ]);
+
+  const features = [];
+  for (const src of [hostJson, flowJson, wbJson]) {
+    if (!src?.features) continue;
+    for (const f of src.features) features.push(simplifyFeature(f, lid));
+  }
+  const cats = detail?.flood?.categories;
+  const meta = {
+    id: lid,
+    name: g.name,
+    lat, lon,
+    usgsId: detail?.usgsId || g.usgsId || null,
+    reachId: detail?.reachId || g.reachId || null,
+    thresholds: cats
+      ? {
+          action: cats.action?.stage ?? null,
+          minor: cats.minor?.stage ?? null,
+          moderate: cats.moderate?.stage ?? null,
+          major: cats.major?.stage ?? null,
+        }
+      : null,
+    unit: detail?.flood?.stageUnits || 'ft',
+  };
+  return { features, meta };
+}
+
+// Stitch all LineString reaches sharing (gaugeId, name) into one MultiLine
+// Feature. NHDPlus splits a single river into many small reach segments;
+// rendering them as separate Leaflet paths makes the river look like a chain
+// of disconnected fragments at zoom levels where the per-segment stroke
+// joins become visible. One MultiLineString per river per gauge fixes that
+// and shrinks the output too.
+function mergeFlowlinesByName(features) {
+  const out = [];
+  const groups = new Map();
+  for (const f of features) {
+    const t = f.geometry?.type;
+    const name = f.properties?.name;
+    const gid = f.properties?.gaugeId;
+    if ((t !== 'LineString' && t !== 'MultiLineString') || !name || !gid) {
+      // Pass-through for waterbodies and unnamed reaches (no safe key to
+      // stitch by — keep them as-is).
+      out.push(f);
+      continue;
+    }
+    const key = `${gid} ${name}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = { gaugeId: gid, name, ftype: f.properties?.ftype ?? null, lines: [] };
+      groups.set(key, group);
+    }
+    if (t === 'LineString') group.lines.push(f.geometry.coordinates);
+    else for (const line of f.geometry.coordinates) group.lines.push(line);
+  }
+  for (const g of groups.values()) {
+    out.push({
+      type: 'Feature',
+      geometry: { type: 'MultiLineString', coordinates: g.lines },
+      properties: { gaugeId: g.gaugeId, name: g.name, ftype: g.ftype, nhdId: null },
+    });
+  }
+  return out;
 }
 
 async function build() {
@@ -265,76 +394,54 @@ async function build() {
   const usable = gauges.filter(isUsable).slice(0, LIMIT === Infinity ? gauges.length : LIMIT);
   console.log(`      ${usable.length} usable gauges (with lid + coordinates)`);
 
-  console.log('[2/3] Querying NHD flowlines + waterbodies near each gauge…');
+  console.log(`[2/3] Building per-gauge data (cache: ${REFRESH ? 'forced refresh' : 'enabled, ttl ' + (CACHE_TTL_MS / 86_400_000).toFixed(0) + ' d'})`);
   const seenIds = new Set();
   const features = [];
   const gaugesMeta = [];
   let processed = 0;
+  let cacheHits = 0;
+  let cacheMisses = 0;
 
   await pLimit(usable, NHD_CONCURRENCY, async (g) => {
     const lid = g.lid;
-    const lat = g.latitude;
-    const lon = g.longitude;
-
-    const point = { x: lon, y: lat, spatialReference: { wkid: 4326 } };
-    const [hostJson, flowJson, wbJson, detail] = await Promise.all([
-      // Host segment: nearest flowline of any type, named or not. Guarantees
-      // the waterway the gauge actually sits on always ends up rendered, even
-      // if it's an unnamed creek or an artificial channel.
-      queryNhd(FLOWLINE_LAYER, point, HOST_FLOWLINE_RADIUS_M, '1=1', HOST_FLOWLINE_MAX).catch(() => null),
-      // FTYPE 460=StreamRiver, 558=ArtificialPath (flow line through a lake).
-      // Keeps rivers + named creeks; excludes canals, ditches, pipelines.
-      queryNhd(FLOWLINE_LAYER, point, FLOWLINE_RADIUS_M, "GNIS_NAME IS NOT NULL AND GNIS_NAME <> '' AND FTYPE IN (460, 558)").catch(() => null),
-      queryNhd(WATERBODY_LAYER, point, WATERBODY_RADIUS_M, 'FTYPE IN (390, 436, 361)').catch(() => null),
-      fetchJson(NWPS_GAUGE_DETAIL(lid), { timeoutMs: 30_000, retries: 2 }).catch(() => null),
-    ]);
-
-    for (const src of [hostJson, flowJson, wbJson]) {
-      if (!src?.features) continue;
-      for (const f of src.features) {
-        const id = f.properties?.PERMANENT_IDENTIFIER;
-        // Deduplicate: the same river segment can be "nearest" to multiple
-        // gauges. Keep the first; clients see the first-wins gauge color.
-        if (id && seenIds.has(id)) continue;
-        if (id) seenIds.add(id);
-        features.push(simplifyFeature(f, lid));
-      }
+    let bundle = await readGaugeCache(lid);
+    if (bundle) {
+      cacheHits++;
+    } else {
+      bundle = await fetchGaugeBundle(g);
+      await writeGaugeCache(lid, { fetchedAt: new Date().toISOString(), ...bundle });
+      cacheMisses++;
     }
 
-    const cats = detail?.flood?.categories;
-    gaugesMeta.push({
-      id: lid,
-      name: g.name,
-      lat, lon,
-      usgsId: detail?.usgsId || g.usgsId || null,
-      reachId: detail?.reachId || g.reachId || null,
-      thresholds: cats
-        ? {
-            action: cats.action?.stage ?? null,
-            minor: cats.minor?.stage ?? null,
-            moderate: cats.moderate?.stage ?? null,
-            major: cats.major?.stage ?? null,
-          }
-        : null,
-      unit: detail?.flood?.stageUnits || 'ft',
-    });
+    for (const f of bundle.features) {
+      const id = f.properties?.nhdId;
+      // Deduplicate: the same river segment can be "nearest" to multiple
+      // gauges. Keep the first; clients see the first-wins gauge color.
+      if (id && seenIds.has(id)) continue;
+      if (id) seenIds.add(id);
+      features.push(f);
+    }
+    gaugesMeta.push(bundle.meta);
 
     processed++;
     const pct = ((processed / usable.length) * 100).toFixed(1);
-    const line = `      ${processed}/${usable.length} (${pct}%) · ${features.length} features · last: ${lid}`;
+    const line = `      ${processed}/${usable.length} (${pct}%) · cache ${cacheHits} hit / ${cacheMisses} miss · ${features.length} feats · last: ${lid}`;
     // Single-line progress — overwrite when possible, otherwise log periodically.
     if (process.stdout.isTTY) {
       process.stdout.write(`\r${line}\x1b[K`);
-    } else if (processed % 10 === 0 || processed === usable.length) {
+    } else if (processed % 25 === 0 || processed === usable.length) {
       console.log(line);
     }
   });
   if (process.stdout.isTTY) process.stdout.write('\n');
 
+  console.log(`      cache: ${cacheHits} hits / ${cacheMisses} misses (${((cacheHits / usable.length) * 100).toFixed(0)}% hit rate)`);
   console.log(`      total features: ${features.length}`);
+  const merged = mergeFlowlinesByName(features);
+  console.log(`      after merge by name: ${merged.length} features`);
   console.log('[3/3] Writing output files…');
   await mkdir(OUT_DIR, { recursive: true });
-  const geojson = { type: 'FeatureCollection', features };
+  const geojson = { type: 'FeatureCollection', features: merged };
   // Write to a tmp path then rename, so a failed run can't wipe existing data.
   await writeFile(WATERWAYS_OUT + '.tmp', JSON.stringify(geojson));
   await writeFile(GAUGES_OUT + '.tmp', JSON.stringify({ gauges: gaugesMeta, builtAt: new Date().toISOString() }));
