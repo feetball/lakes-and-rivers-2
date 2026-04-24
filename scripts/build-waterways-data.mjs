@@ -12,6 +12,7 @@
 import { writeFile, mkdir, access, rename, readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { unpackCache } from './unpack-cache.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -395,6 +396,11 @@ function mergeFlowlinesByName(features) {
 }
 
 async function build() {
+  // If a tarball is committed but loose cache files aren't, restore them
+  // before any per-gauge cache lookups. Skipped automatically when the
+  // loose dir already has files, so a freshly-fetched gauge isn't clobbered.
+  unpackCache({ quiet: false });
+
   const gauges = await fetchGauges();
   const usable = gauges.filter(isUsable).slice(0, LIMIT === Infinity ? gauges.length : LIMIT);
   console.log(`      ${usable.length} usable gauges (with lid + coordinates)`);

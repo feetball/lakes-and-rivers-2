@@ -12,6 +12,8 @@
     "data:build:refresh": "node scripts/build-waterways-data.mjs --refresh",
     "data:refresh-list": "node scripts/refresh-gauges-list.mjs",
     "data:cache:clear": "rm -rf data-cache/gauges",
+    "data:cache:pack": "node scripts/pack-cache.mjs",
+    "data:cache:unpack": "node scripts/unpack-cache.mjs",
     "prebuild": "node scripts/build-waterways-data.mjs --if-missing"
   },
   "dependencies": {
@@ -29,5 +31,8 @@
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp"]
   }
 }

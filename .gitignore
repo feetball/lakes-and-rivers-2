@@ -12,7 +12,8 @@ public/data/waterways.geojson
 public/data/gauges-meta.json
 .cache/
 
-# Per-gauge NHD/NWPS cache. Untracked by default so it doesn't bloat the
-# repo. Commit this directory if you want Docker image builds to skip the
-# ~3-minute network fetch step (it'll be COPYed into the build context).
-data-cache/
+# Per-gauge NHD/NWPS cache. The loose dir (700+ small JSON files) is
+# untracked — commit data-cache/gauges.tar.gz instead via `pnpm data:cache:pack`.
+# build-waterways-data.mjs unpacks the tarball on startup if the loose dir
+# is missing, so a fresh clone or Docker build gets the cache for free.
+data-cache/gauges/
