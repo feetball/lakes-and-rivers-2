@@ -38,13 +38,33 @@ export interface Thresholds {
   major: number | null;
 }
 
+// NWPS uses -9999 (and sometimes -999) as a missing-value sentinel for
+// flood thresholds that aren't defined for a given gauge. Treat any value
+// well below zero as missing — real flood thresholds are physically
+// positive (gauge height) or large positive (lake elevation in ft).
+function valid(t: number | null | undefined): t is number {
+  return typeof t === 'number' && t > -100;
+}
+
 // Map a stage reading to a flood category using NWS thresholds. Missing
 // thresholds cascade down (e.g., a gauge with only `action` defined still
 // reports `no_flooding` below that and `action` above it).
 export function categorizeByStage(stage: number, t: Thresholds): FloodCategory {
-  if (t.major != null && stage >= t.major) return 'major';
-  if (t.moderate != null && stage >= t.moderate) return 'moderate';
-  if (t.minor != null && stage >= t.minor) return 'minor';
-  if (t.action != null && stage >= t.action) return 'action';
+  if (valid(t.major) && stage >= t.major) return 'major';
+  if (valid(t.moderate) && stage >= t.moderate) return 'moderate';
+  if (valid(t.minor) && stage >= t.minor) return 'minor';
+  if (valid(t.action) && stage >= t.action) return 'action';
   return 'no_flooding';
+}
+
+// Strip NWPS sentinels from a thresholds object — useful when surfacing
+// thresholds to the UI so we don't show "-9999 ft" to users.
+export function sanitizeThresholds(t: Thresholds | null | undefined): Thresholds | null {
+  if (!t) return null;
+  return {
+    action:   valid(t.action)   ? t.action   : null,
+    minor:    valid(t.minor)    ? t.minor    : null,
+    moderate: valid(t.moderate) ? t.moderate : null,
+    major:    valid(t.major)    ? t.major    : null,
+  };
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import type { FloodCategory, GaugeStatus, GaugesResponse } from '@/lib/types';
+import { sanitizeThresholds } from '@/lib/floodStatus';
 
 // The NWPS list response is ~13 MB (over Next's 2 MB fetch-cache limit) and
 // takes ~45-60 s to serve, so we keep an in-memory cache per server instance
@@ -27,7 +28,7 @@ async function loadMeta(): Promise<Map<string, MetaEntry>> {
   try {
     const raw = await readFile(resolve(process.cwd(), 'public/data/gauges-meta.json'), 'utf8');
     const parsed = JSON.parse(raw) as { gauges: MetaEntry[] };
-    metaCache = new Map(parsed.gauges.map(g => [g.id, g]));
+    metaCache = new Map(parsed.gauges.map(g => [g.id, { ...g, thresholds: sanitizeThresholds(g.thresholds) }]));
   } catch {
     metaCache = new Map();
   }

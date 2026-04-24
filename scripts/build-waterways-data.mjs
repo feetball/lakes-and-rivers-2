@@ -332,6 +332,11 @@ async function fetchGaugeBundle(g) {
     for (const f of src.features) features.push(simplifyFeature(f, lid));
   }
   const cats = detail?.flood?.categories;
+  // NWPS uses -9999 (and sometimes -999) as a sentinel for thresholds that
+  // aren't defined for a gauge. Storing the sentinel verbatim makes
+  // categorizeByStage flag every observation as a flood, so normalize to
+  // null at write time.
+  const cleanStage = (s) => (typeof s === 'number' && s > -100 ? s : null);
   const meta = {
     id: lid,
     name: g.name,
@@ -340,10 +345,10 @@ async function fetchGaugeBundle(g) {
     reachId: detail?.reachId || g.reachId || null,
     thresholds: cats
       ? {
-          action: cats.action?.stage ?? null,
-          minor: cats.minor?.stage ?? null,
-          moderate: cats.moderate?.stage ?? null,
-          major: cats.major?.stage ?? null,
+          action: cleanStage(cats.action?.stage),
+          minor: cleanStage(cats.minor?.stage),
+          moderate: cleanStage(cats.moderate?.stage),
+          major: cleanStage(cats.major?.stage),
         }
       : null,
     unit: detail?.flood?.stageUnits || 'ft',
