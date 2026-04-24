@@ -1,0 +1,4272 @@
+{
+  "fetchedAt": "2026-04-24T19:50:12Z",
+  "source": "nwps-v1-list",
+  "gauges": [
+    {
+      "lid": "AAIT2",
+      "name": "Williamson Creek at Manchaca Road at Austin",
+      "latitude": 30.221111111111,
+      "longitude": -97.793333333333
+    },
+    {
+      "lid": "ABAT2",
+      "name": "Hubbard Creek below Albany",
+      "latitude": 32.7327777777778,
+      "longitude": -99.1402777777778
+    },
+    {
+      "lid": "ABIT2",
+      "name": "West Central Texas Lakes at Lake Abilene",
+      "latitude": 32.234444444444,
+      "longitude": -99.888611111111
+    },
+    {
+      "lid": "ABTT2",
+      "name": "Barton Creek at Loop 360",
+      "latitude": 30.244444444444,
+      "longitude": -97.801944444444
+    },
+    {
+      "lid": "ABUT2",
+      "name": "Bull Creek above Loop 360",
+      "latitude": 30.371944444444,
+      "longitude": -97.784444444444
+    },
+    {
+      "lid": "ABYT2",
+      "name": "Clear Fork Brazos River near Fort Griffin",
+      "latitude": 32.932978,
+      "longitude": -99.215389
+    },
+    {
+      "lid": "ACET2",
+      "name": "San Diego Creek at Alice",
+      "latitude": 27.76663889,
+      "longitude": -98.07555555555555
+    },
+    {
+      "lid": "ACRT2",
+      "name": "Colorado River (TX) at Austin",
+      "latitude": 30.246111111111,
+      "longitude": -97.68
+    },
+    {
+      "lid": "ACTT2",
+      "name": "North Texas Lakes at Waco Lake",
+      "latitude": 31.579444444444,
+      "longitude": -97.1975
+    },
+    {
+      "lid": "ADDT2",
+      "name": "Langham Creek at Addicks Reservoir",
+      "latitude": 29.791111111111,
+      "longitude": -95.623333333333
+    },
+    {
+      "lid": "ADMT2",
+      "name": "Adams Bayou at SH 87",
+      "latitude": 30.0934,
+      "longitude": -93.7497
+    },
+    {
+      "lid": "AHOT2",
+      "name": "Shoal Creek at West 12th Street",
+      "latitude": 30.276388888889,
+      "longitude": -97.75
+    },
+    {
+      "lid": "AICT2",
+      "name": "San Fernando Creek near Alice",
+      "latitude": 27.772222222222,
+      "longitude": -98.033333333333
+    },
+    {
+      "lid": "ALAT2",
+      "name": "North Texas Lakes at Aquilla Lake",
+      "latitude": 31.899722222222,
+      "longitude": -97.2025
+    },
+    {
+      "lid": "ALKT2",
+      "name": "Colorado River (TX) at Lake Austin",
+      "latitude": 30.3149283,
+      "longitude": -97.7863958
+    },
+    {
+      "lid": "ALOT2",
+      "name": "Angelina River near Alto",
+      "latitude": 31.6718436415156,
+      "longitude": -94.9527151699389
+    },
+    {
+      "lid": "ALWT2",
+      "name": "Little Wichita River near Archer City",
+      "latitude": 33.662602,
+      "longitude": -98.613112
+    },
+    {
+      "lid": "AMAT2",
+      "name": "Canadian River at Amarillo",
+      "latitude": 35.470277777778,
+      "longitude": -101.87916666667
+    },
+    {
+      "lid": "AMIT2",
+      "name": "Rio Grande at Lake Amistad",
+      "latitude": 29.4502245,
+      "longitude": -101.0587107
+    },
+    {
+      "lid": "AMTT2",
+      "name": "Brazos River at Aspermont 10S",
+      "latitude": 33.0081577,
+      "longitude": -100.1806589
+    },
+    {
+      "lid": "ANPT2",
+      "name": "Tide Gauge above Aransas Pass",
+      "latitude": 27.837,
+      "longitude": -97.039
+    },
+    {
+      "lid": "AQLT2",
+      "name": "Brazos River near Aquilla",
+      "latitude": 31.812222222222,
+      "longitude": -97.2975
+    },
+    {
+      "lid": "ARHT2",
+      "name": "North Fork Little Wichita River at Lake Kickapoo",
+      "latitude": 33.663156,
+      "longitude": -98.77895
+    },
+    {
+      "lid": "ARRT2",
+      "name": "Little Wichita River at Lake Arrowhead",
+      "latitude": 33.764268,
+      "longitude": -98.371717
+    },
+    {
+      "lid": "ARTT2",
+      "name": "Salt Fork - Brazos River near Aspermont 13N",
+      "latitude": 33.333888888889,
+      "longitude": -100.23777777778
+    },
+    {
+      "lid": "ASHT2",
+      "name": "Shoal Creek above Silverway Drive",
+      "latitude": 30.354166666667,
+      "longitude": -97.738888888889
+    },
+    {
+      "lid": "ASRT2",
+      "name": "Nueces River near Asherton",
+      "latitude": 28.5,
+      "longitude": -99.681666666667
+    },
+    {
+      "lid": "ATBT2",
+      "name": "Attoyac Bayou near Chireno",
+      "latitude": 31.504166666667,
+      "longitude": -94.304166666667
+    },
+    {
+      "lid": "ATCT2",
+      "name": "Atascosa River at FM 476 near Pleasanton",
+      "latitude": 29,
+      "longitude": -98.5116
+    },
+    {
+      "lid": "ATHT2",
+      "name": "North Texas Lakes at Lake Athens",
+      "latitude": 32.210555555556,
+      "longitude": -95.765
+    },
+    {
+      "lid": "ATIT2",
+      "name": "Onion Creek at US 183",
+      "latitude": 30.177777777778,
+      "longitude": -97.688333333333
+    },
+    {
+      "lid": "ATOT2",
+      "name": "Neches River near Alto",
+      "latitude": 31.5792,
+      "longitude": -95.1655
+    },
+    {
+      "lid": "AUST2",
+      "name": "Austin Bayou at SH 35 near Liverpool",
+      "latitude": 29.28088333,
+      "longitude": -95.33179167
+    },
+    {
+      "lid": "AYIT2",
+      "name": "Ayish Bayou near San Augustine",
+      "latitude": 31.396111111111,
+      "longitude": -94.150833333333
+    },
+    {
+      "lid": "BABT2",
+      "name": "Tide Gauge at Baffin Bay",
+      "latitude": 27.29702,
+      "longitude": -97.40491
+    },
+    {
+      "lid": "BACT2",
+      "name": "Colorado River (TX) near Bay City",
+      "latitude": 28.973888888889,
+      "longitude": -96.012222222222
+    },
+    {
+      "lid": "BAKT2",
+      "name": "Buffalo Bayou at Barker Reservoir",
+      "latitude": 29.769722222222,
+      "longitude": -95.646944444444
+    },
+    {
+      "lid": "BAMT2",
+      "name": "Elm Creek (Colorado Basin WCTX) at Ballinger",
+      "latitude": 31.7491666666667,
+      "longitude": -99.9475
+    },
+    {
+      "lid": "BAPT2",
+      "name": "Blanco River at Crabapple Road",
+      "latitude": 30.1025,
+      "longitude": -98.51055555555556
+    },
+    {
+      "lid": "BAWT2",
+      "name": "Brazos River above San Felipe",
+      "latitude": 29.808333333333334,
+      "longitude": -96.09555555555555
+    },
+    {
+      "lid": "BBAT2",
+      "name": "Bear Creek at Barker",
+      "latitude": 29.83055555555556,
+      "longitude": -95.68666666666668
+    },
+    {
+      "lid": "BBST2",
+      "name": "Buffalo Bayou at Shepherd Drive",
+      "latitude": 29.76,
+      "longitude": -95.408333333333
+    },
+    {
+      "lid": "BBZT2",
+      "name": "Brazos River near Bryan",
+      "latitude": 30.626666666667,
+      "longitude": -96.543888888889
+    },
+    {
+      "lid": "BCAT2",
+      "name": "North Texas Lakes at Lake Amon Carter",
+      "latitude": 33.47416666666667,
+      "longitude": -97.86277777777778
+    },
+    {
+      "lid": "BCCT2",
+      "name": "Barton Creek above Barton Springs",
+      "latitude": 30.263333333333,
+      "longitude": -97.771944444444
+    },
+    {
+      "lid": "BCDT2",
+      "name": "Bear Creek below Route 1826 at Driftwood",
+      "latitude": 30.155277777778,
+      "longitude": -97.939722222222
+    },
+    {
+      "lid": "BCIT2",
+      "name": "Brushy Creek at I-35 Round Rock",
+      "latitude": 30.512777777777778,
+      "longitude": -97.68638888888889
+    },
+    {
+      "lid": "BCMT2",
+      "name": "Bear Creek at Spillar Ranch Road",
+      "latitude": 30.163611111111113,
+      "longitude": -97.90694444444445
+    },
+    {
+      "lid": "BCNT2",
+      "name": "Big Creek near Needville",
+      "latitude": 29.47190769,
+      "longitude": -95.8030067
+    },
+    {
+      "lid": "BCRT2",
+      "name": "West Central Texas Lakes at Brady Creek Reservoir",
+      "latitude": 31.138055555556,
+      "longitude": -99.385277777778
+    },
+    {
+      "lid": "BCWT2",
+      "name": "Boggy Creek at Webberville Road",
+      "latitude": 30.263055555556,
+      "longitude": -97.7125
+    },
+    {
+      "lid": "BCYT2",
+      "name": "Cypress Creek (E TX) at CR 725",
+      "latitude": 30.4753,
+      "longitude": -93.9392
+    },
+    {
+      "lid": "BDAT2",
+      "name": "Medina River at Bandera",
+      "latitude": 29.723611111111,
+      "longitude": -99.069722222222
+    },
+    {
+      "lid": "BDLT2",
+      "name": "North Texas Lakes at Lake Daniel",
+      "latitude": 32.647777777778,
+      "longitude": -98.869166666667
+    },
+    {
+      "lid": "BDUT2",
+      "name": "Onion Creek at Buda",
+      "latitude": 30.086666666667,
+      "longitude": -97.848611111111
+    },
+    {
+      "lid": "BDWT2",
+      "name": "North Texas Lakes at Bardwell Lake",
+      "latitude": 32.253333333333,
+      "longitude": -96.643888888889
+    },
+    {
+      "lid": "BEAT2",
+      "name": "Neches River at Beaumont",
+      "latitude": 30.133055555556,
+      "longitude": -94.096388888889
+    },
+    {
+      "lid": "BEHT2",
+      "name": "Big Creek at TX 150 near Shepherd",
+      "latitude": 30.50217778,
+      "longitude": -95.03128889
+    },
+    {
+      "lid": "BEKT2",
+      "name": "Sabine River near Beckville",
+      "latitude": 32.327222222222,
+      "longitude": -94.353333333333
+    },
+    {
+      "lid": "BEMT2",
+      "name": "Mill Creek near Bellville",
+      "latitude": 29.880833333333,
+      "longitude": -96.205
+    },
+    {
+      "lid": "BENT2",
+      "name": "South Wichita River near Benjamin",
+      "latitude": 33.644257,
+      "longitude": -99.800925
+    },
+    {
+      "lid": "BEST2",
+      "name": "Bear Creek at FM 2722 nr Sattler",
+      "latitude": 29.808333333333334,
+      "longitude": -98.23027777777777
+    },
+    {
+      "lid": "BFST2",
+      "name": "Blanco River at Fischer Store Rd near Fischer",
+      "latitude": 30.000583,
+      "longitude": -98.200361
+    },
+    {
+      "lid": "BGET2",
+      "name": "Big Sandy Creek (Brazos River Basin) above Breckenridge",
+      "latitude": 32.6483333333333,
+      "longitude": -99.0041666666667
+    },
+    {
+      "lid": "BGKT2",
+      "name": "Big Cypress Creek near Karnack",
+      "latitude": 32.738611111111,
+      "longitude": -94.2325
+    },
+    {
+      "lid": "BGMT2",
+      "name": "Boggy Creek at Manor Road",
+      "latitude": 30.286111111111,
+      "longitude": -97.708611111111
+    },
+    {
+      "lid": "BICT2",
+      "name": "Prairie Dog Town Fork of the Red River at Brice 6SW",
+      "latitude": 34.627777777778,
+      "longitude": -100.94027777778
+    },
+    {
+      "lid": "BIPT2",
+      "name": "Pine Island Bayou at B.I. Pump Plant",
+      "latitude": 30.179166666667,
+      "longitude": -94.188888888889
+    },
+    {
+      "lid": "BKBT2",
+      "name": "Red River near Burkburnett",
+      "latitude": 34.110093,
+      "longitude": -98.531723
+    },
+    {
+      "lid": "BKCT2",
+      "name": "Devils River at Bakers Crossing near Juno",
+      "latitude": 29.95,
+      "longitude": -101.13027777778
+    },
+    {
+      "lid": "BKFT2",
+      "name": "Brushy Creek at Kenney Fort Blvd nr Round Rock",
+      "latitude": 30.512222,
+      "longitude": -97.636667
+    },
+    {
+      "lid": "BKLT2",
+      "name": "Sabine River at Toledo Bend Reservoir",
+      "latitude": 31.196111111111,
+      "longitude": -93.571944444444
+    },
+    {
+      "lid": "BKTT2",
+      "name": "Brushy Creek at FM 619 near Taylor",
+      "latitude": 30.519444444444446,
+      "longitude": -97.33833333333334
+    },
+    {
+      "lid": "BLBT2",
+      "name": "North Texas Lakes at Lake Bonham",
+      "latitude": 33.645277777778,
+      "longitude": -96.163888888889
+    },
+    {
+      "lid": "BLET2",
+      "name": "Leon River near Belton",
+      "latitude": 31.07,
+      "longitude": -97.4411111111111
+    },
+    {
+      "lid": "BLIT2",
+      "name": "Colorado River (TX) near Ballinger",
+      "latitude": 31.7152777777778,
+      "longitude": -100.026111111111
+    },
+    {
+      "lid": "BLKT2",
+      "name": "West Central Texas Lakes at Oak Creek Reservoir",
+      "latitude": 32.040555555556,
+      "longitude": -100.26805555556
+    },
+    {
+      "lid": "BLNT2",
+      "name": "North Texas Lakes at Belton Lake",
+      "latitude": 31.106111111111,
+      "longitude": -97.474444444444
+    },
+    {
+      "lid": "BMCT2",
+      "name": "Marys Creek near Benbrook",
+      "latitude": 32.695,
+      "longitude": -97.446944444444
+    },
+    {
+      "lid": "BMKT2",
+      "name": "Manadas Creek at Bristol Road nr Laredo",
+      "latitude": 27.5838,
+      "longitude": -99.5147
+    },
+    {
+      "lid": "BNBT2",
+      "name": "North Texas Lakes at Benbrook Lake",
+      "latitude": 32.650555555556,
+      "longitude": -97.448333333333
+    },
+    {
+      "lid": "BOLT2",
+      "name": "San Bernard River near Boling",
+      "latitude": 29.313333333333,
+      "longitude": -95.893888888889
+    },
+    {
+      "lid": "BOPT2",
+      "name": "Boggy Creek (E TX) at Park Road",
+      "latitude": 30.224757508,
+      "longitude": -94.206492019
+    },
+    {
+      "lid": "BOQT2",
+      "name": "Rio Grande at Boquillas Crossing",
+      "latitude": 29.1835386,
+      "longitude": -102.9754409
+    },
+    {
+      "lid": "BOYT2",
+      "name": "West Fork Trinity River near Boyd",
+      "latitude": 33.085277777778,
+      "longitude": -97.558333333333
+    },
+    {
+      "lid": "BPRT2",
+      "name": "North Texas Lakes at Lake Bridgeport",
+      "latitude": 33.222777777778,
+      "longitude": -97.831666666667
+    },
+    {
+      "lid": "BPST2",
+      "name": "South Wichita River at Guthrie 6E",
+      "latitude": 33.622222222222,
+      "longitude": -100.20861111111
+    },
+    {
+      "lid": "BRAT2",
+      "name": "Brady Creek at Brady",
+      "latitude": 31.138055555556,
+      "longitude": -99.334722222222
+    },
+    {
+      "lid": "BRBT2",
+      "name": "Blanco River at Blanco",
+      "latitude": 30.0928,
+      "longitude": -98.42318
+    },
+    {
+      "lid": "BRLT2",
+      "name": "Lavaca River at Breslau",
+      "latitude": 29.520277777778,
+      "longitude": -97.001666666667
+    },
+    {
+      "lid": "BRPT2",
+      "name": "Big Sandy Creek (Trinity River Basin) near Bridgeport",
+      "latitude": 33.231666666667,
+      "longitude": -97.694444444444
+    },
+    {
+      "lid": "BRTT2",
+      "name": "Colorado River (TX) at Bastrop",
+      "latitude": 30.104444444444,
+      "longitude": -97.319166666667
+    },
+    {
+      "lid": "BRVT2",
+      "name": "Sabine River near Burkeville",
+      "latitude": 31.063888888889,
+      "longitude": -93.519444444444
+    },
+    {
+      "lid": "BSAT2",
+      "name": "North Texas Lakes at Lake Mexia",
+      "latitude": 31.643611111111,
+      "longitude": -96.578611111111
+    },
+    {
+      "lid": "BSJT2",
+      "name": "South Fork Rocky Creek near Briggs, TX",
+      "latitude": 30.911388888889,
+      "longitude": -98.036666666667
+    },
+    {
+      "lid": "BSMT2",
+      "name": "Blanco River at San Marcos",
+      "latitude": 29.879444444444,
+      "longitude": -97.910555555556
+    },
+    {
+      "lid": "BSNT2",
+      "name": "Big Sandy Creek near Big Sandy",
+      "latitude": 32.603888888889,
+      "longitude": -95.091388888889
+    },
+    {
+      "lid": "BSST2",
+      "name": "San Saba River near Brady",
+      "latitude": 31.003888888889,
+      "longitude": -99.268611111111
+    },
+    {
+      "lid": "BSWT2",
+      "name": "Salado Creek at Wilderness Road near San Antonio",
+      "latitude": 29.630555555555556,
+      "longitude": -98.56527777777778
+    },
+    {
+      "lid": "BSYT2",
+      "name": "Brushy Creek at FM 973 nr Coupland",
+      "latitude": 30.469167,
+      "longitude": -97.463333
+    },
+    {
+      "lid": "BTNT2",
+      "name": "Pecos River 14 miles NW of Pandale",
+      "latitude": 30.314,
+      "longitude": -101.7415556
+    },
+    {
+      "lid": "BTVT2",
+      "name": "West Nueces River at Brackettville",
+      "latitude": 29.48108333,
+      "longitude": -100.2391667
+    },
+    {
+      "lid": "BUDT2",
+      "name": "Colorado River (TX) at Lake Buchanan",
+      "latitude": 30.751388888889,
+      "longitude": -98.418055555556
+    },
+    {
+      "lid": "BUKT2",
+      "name": "Sabine River at CR 2082",
+      "latitude": 30.9694,
+      "longitude": -93.5719
+    },
+    {
+      "lid": "BUMT2",
+      "name": "Nolan River at Blum",
+      "latitude": 32.150555555556,
+      "longitude": -97.4025
+    },
+    {
+      "lid": "BVST2",
+      "name": "Cibolo Creek at Specht Road near Bulverde",
+      "latitude": 29.73677777777,
+      "longitude": -98.4933722222
+    },
+    {
+      "lid": "BVWT2",
+      "name": "Sister Grove Creek near Blue Ridge",
+      "latitude": 33.294444444444,
+      "longitude": -96.482777777778
+    },
+    {
+      "lid": "BWDT2",
+      "name": "Pecan Bayou at Brownwood",
+      "latitude": 31.7364,
+      "longitude": -98.975489
+    },
+    {
+      "lid": "BWRT2",
+      "name": "Sabine River near Bon Wier",
+      "latitude": 30.746944444444,
+      "longitude": -93.608333333333
+    },
+    {
+      "lid": "BYBT2",
+      "name": "Brushy Creek at Cedar Park",
+      "latitude": 30.525,
+      "longitude": -97.749722
+    },
+    {
+      "lid": "CAAT2",
+      "name": "Nueces River at Calallen",
+      "latitude": 27.883,
+      "longitude": -97.625
+    },
+    {
+      "lid": "CAKT2",
+      "name": "Carters Creek at FM 60 near College Station",
+      "latitude": 30.6417333,
+      "longitude": -96.308125
+    },
+    {
+      "lid": "CART2",
+      "name": "Elm Fork Trinity River near Carrollton",
+      "latitude": 32.965833333333,
+      "longitude": -96.944166666667
+    },
+    {
+      "lid": "CBBT2",
+      "name": "Rio Grande at Columbia Bridge",
+      "latitude": 27.79861111111111,
+      "longitude": -99.87777777777778
+    },
+    {
+      "lid": "CBST2",
+      "name": "Colorado River (TX) at Columbus",
+      "latitude": 29.70611111111111,
+      "longitude": -96.53666666666666
+    },
+    {
+      "lid": "CBVT2",
+      "name": "Nueces River near Bluntzer",
+      "latitude": 27.9375,
+      "longitude": -97.7755
+    },
+    {
+      "lid": "CCGT2",
+      "name": "Cypress Creek near Cypress",
+      "latitude": 29.973333333333,
+      "longitude": -95.598333333333
+    },
+    {
+      "lid": "CCRT2",
+      "name": "Champion Creek at Champion Creek Reservoir",
+      "latitude": 32.2815116,
+      "longitude": -100.8587228
+    },
+    {
+      "lid": "CCST2",
+      "name": "North Texas Lakes at Lake Cisco",
+      "latitude": 32.437777777778,
+      "longitude": -98.985277777778
+    },
+    {
+      "lid": "CCVT2",
+      "name": "Coleto Creek at Highway 59",
+      "latitude": 28.731,
+      "longitude": -97.138
+    },
+    {
+      "lid": "CDCT2",
+      "name": "Colorado River (TX) 1 mile WSW of Colorado City",
+      "latitude": 32.39261865,
+      "longitude": -100.8787246
+    },
+    {
+      "lid": "CDET2",
+      "name": "Rio Grande at Candelaria Crossing",
+      "latitude": 30.17611111,
+      "longitude": -104.68722222
+    },
+    {
+      "lid": "CDNT2",
+      "name": "Canadian River at Canadian",
+      "latitude": 35.935,
+      "longitude": -100.37027777778
+    },
+    {
+      "lid": "CDPT2",
+      "name": "Pease River at Childress 17SE",
+      "latitude": 34.2275,
+      "longitude": -100.07333333333
+    },
+    {
+      "lid": "CFKT2",
+      "name": "West Fork San Jacinto River near Conroe",
+      "latitude": 30.244444444444,
+      "longitude": -95.456944444444
+    },
+    {
+      "lid": "CHLT2",
+      "name": "Prairie Dog Town Fork of the Red River at Childress 10N",
+      "latitude": 34.569166666667,
+      "longitude": -100.19361111111
+    },
+    {
+      "lid": "CHOT2",
+      "name": "Frio River at Choke Canyon Dam",
+      "latitude": 28.483611111111,
+      "longitude": -98.245555555556
+    },
+    {
+      "lid": "CHVT2",
+      "name": "South Concho River at Christoval",
+      "latitude": 31.1869444444444,
+      "longitude": -100.501666666667
+    },
+    {
+      "lid": "CHWT2",
+      "name": "Wichita River near Charlie",
+      "latitude": 34.05315,
+      "longitude": -98.296714
+    },
+    {
+      "lid": "CICT2",
+      "name": "Cibolo Creek near Boerne",
+      "latitude": 29.775,
+      "longitude": -98.709444444444
+    },
+    {
+      "lid": "CKDT2",
+      "name": "Coleto Creek at Coleto Creek Reservoir",
+      "latitude": 28.7308333,
+      "longitude": -97.1647222
+    },
+    {
+      "lid": "CKET2",
+      "name": "Cole Creek at I-10",
+      "latitude": 30.1321,
+      "longitude": -93.8638
+    },
+    {
+      "lid": "CLBT2",
+      "name": "North Concho River near Carlsbad",
+      "latitude": 31.5925,
+      "longitude": -100.636666666667
+    },
+    {
+      "lid": "CLDT2",
+      "name": "East Fork San Jacinto River at Cleveland",
+      "latitude": 30.336388888889,
+      "longitude": -95.103888888889
+    },
+    {
+      "lid": "CLRT2",
+      "name": "Morgan Creek (TX) at Lake Colorado City",
+      "latitude": 32.34484228,
+      "longitude": -100.919836
+    },
+    {
+      "lid": "CMHT2",
+      "name": "Moss Creek at Moss Creek Lake",
+      "latitude": 32.24373238,
+      "longitude": -101.3117878
+    },
+    {
+      "lid": "CMKT2",
+      "name": "Devils River at Pafford Crossing near Comstock",
+      "latitude": 29.676388888889,
+      "longitude": -101
+    },
+    {
+      "lid": "CMNT2",
+      "name": "Little River at Cameron",
+      "latitude": 30.835,
+      "longitude": -96.946388888889
+    },
+    {
+      "lid": "CMVT2",
+      "name": "Caney Creek at Hwy 21 near Madisonville",
+      "latitude": 30.9371,
+      "longitude": -95.9356
+    },
+    {
+      "lid": "CNCT2",
+      "name": "Frio River at Concan",
+      "latitude": 29.488333333333,
+      "longitude": -99.704444444444
+    },
+    {
+      "lid": "CNLT2",
+      "name": "East Fork Trinity River near Crandall",
+      "latitude": 32.638611111111,
+      "longitude": -96.485
+    },
+    {
+      "lid": "CNXT2",
+      "name": "Cibolo Creek at Cibolo Nature Center",
+      "latitude": 29.781111111111,
+      "longitude": -98.712777777778
+    },
+    {
+      "lid": "CODT2",
+      "name": "Sandy Creek near Cordele",
+      "latitude": 29.16,
+      "longitude": -96.546111111111
+    },
+    {
+      "lid": "COMT2",
+      "name": "Guadalupe River at Comfort",
+      "latitude": 29.96523889,
+      "longitude": -98.8971667
+    },
+    {
+      "lid": "COPT2",
+      "name": "South Sulphur River near Cooper",
+      "latitude": 33.356388888889,
+      "longitude": -95.594722222222
+    },
+    {
+      "lid": "COTT2",
+      "name": "Nueces River at Cotulla",
+      "latitude": 28.426111111111,
+      "longitude": -99.239722222222
+    },
+    {
+      "lid": "COWT2",
+      "name": "Cow Bayou at SH 87",
+      "latitude": 30.0445,
+      "longitude": -93.8214
+    },
+    {
+      "lid": "CPNT2",
+      "name": "Tide Gauge at Copano Bay",
+      "latitude": 28.116944444444446,
+      "longitude": -97.0175
+    },
+    {
+      "lid": "CPPT2",
+      "name": "North Sulphur River near Cooper",
+      "latitude": 33.474722222222,
+      "longitude": -95.5875
+    },
+    {
+      "lid": "CRFT2",
+      "name": "Hog Creek near Crawford",
+      "latitude": 31.555555555556,
+      "longitude": -97.356111111111
+    },
+    {
+      "lid": "CRKT2",
+      "name": "Trinity River near Crockett",
+      "latitude": 31.3383333333333,
+      "longitude": -95.6561111111111
+    },
+    {
+      "lid": "CRMT2",
+      "name": "Rio Grande below Amistad Dam",
+      "latitude": 29.425,
+      "longitude": -101.04027777777777
+    },
+    {
+      "lid": "CRTT2",
+      "name": "Little Elkhart Creek at Houston County Lake",
+      "latitude": 31.4068455,
+      "longitude": -95.601896
+    },
+    {
+      "lid": "CSRT2",
+      "name": "San Bernard River near Chesterville",
+      "latitude": 29.6605,
+      "longitude": -96.2436
+    },
+    {
+      "lid": "CSTT2",
+      "name": "Rio Grande at Castolon",
+      "latitude": 29.13798,
+      "longitude": -103.5249033
+    },
+    {
+      "lid": "CSVT2",
+      "name": "Cibolo Creek at Smithson Valley Rd nr Bulverde",
+      "latitude": 29.748333333333,
+      "longitude": -98.407777777778
+    },
+    {
+      "lid": "CTCT2",
+      "name": "Cuthand Creek near Cuthand",
+      "latitude": 33.4989,
+      "longitude": -95.0514
+    },
+    {
+      "lid": "CTKT2",
+      "name": "Dry Devils River near Comstock",
+      "latitude": 29.876666666667,
+      "longitude": -100.89666666667
+    },
+    {
+      "lid": "CTNT2",
+      "name": "North Bosque River near Clifton",
+      "latitude": 31.785833333333,
+      "longitude": -97.567777777778
+    },
+    {
+      "lid": "CUET2",
+      "name": "Guadalupe River near Cuero",
+      "latitude": 29.090277777778,
+      "longitude": -97.329444444444
+    },
+    {
+      "lid": "CUST2",
+      "name": "East Fork Angelina River near Cushing",
+      "latitude": 31.86,
+      "longitude": -94.823055555556
+    },
+    {
+      "lid": "CUTT2",
+      "name": "Pecan Bayou near Cross Cutt",
+      "latitude": 31.9733333333333,
+      "longitude": -99.1291666666667
+    },
+    {
+      "lid": "CWRT2",
+      "name": "Salt Fork - Brazos River at White River Lake",
+      "latitude": 33.45786654,
+      "longitude": -101.084028
+    },
+    {
+      "lid": "CYST2",
+      "name": "Crystal Creek at FM 1314 near Conroe",
+      "latitude": 30.24138611,
+      "longitude": -95.38298056
+    },
+    {
+      "lid": "DALT2",
+      "name": "Trinity River at Dallas",
+      "latitude": 32.7747222222222,
+      "longitude": -96.8216666666667
+    },
+    {
+      "lid": "DAWT2",
+      "name": "North Texas Lakes at Navarro Mills Lake",
+      "latitude": 31.9575,
+      "longitude": -96.689166666667
+    },
+    {
+      "lid": "DBYT2",
+      "name": "Frio River near Derby",
+      "latitude": 28.736388888889,
+      "longitude": -99.144444444444
+    },
+    {
+      "lid": "DCJT2",
+      "name": "Denton Creek near Justin",
+      "latitude": 33.118888888889,
+      "longitude": -97.290277777778
+    },
+    {
+      "lid": "DCMT2",
+      "name": "Cramer Creek 30SW Dalhart",
+      "latitude": 35.751388888889,
+      "longitude": -102.89305555556
+    },
+    {
+      "lid": "DDET2",
+      "name": "Wichita River at Lake Diversion near Dundee",
+      "latitude": 33.815096,
+      "longitude": -98.933678
+    },
+    {
+      "lid": "DEET2",
+      "name": "Deep Creek 1 mile W of Dunn",
+      "latitude": 32.57372368,
+      "longitude": -100.9078941
+    },
+    {
+      "lid": "DEKT2",
+      "name": "Red River near Dekalb - Pecan Point",
+      "latitude": 33.683888888889,
+      "longitude": -94.694166666667
+    },
+    {
+      "lid": "DEYT2",
+      "name": "East Yegua Creek near Dime Box",
+      "latitude": 30.407222222222,
+      "longitude": -96.817222222222
+    },
+    {
+      "lid": "DIBT2",
+      "name": "Neches River near Diboll",
+      "latitude": 31.13296,
+      "longitude": -94.80993
+    },
+    {
+      "lid": "DLLT2",
+      "name": "Leon River near DeLeon",
+      "latitude": 32.173611111111,
+      "longitude": -98.532777777778
+    },
+    {
+      "lid": "DLRT2",
+      "name": "Rio Grande at Del Rio",
+      "latitude": 29.330833333333,
+      "longitude": -100.92888888889
+    },
+    {
+      "lid": "DLWT2",
+      "name": "Peach Creek below Dilworth",
+      "latitude": 29.473888888889,
+      "longitude": -97.316388888889
+    },
+    {
+      "lid": "DMYT2",
+      "name": "Middle Yegua Creek near Dime Box",
+      "latitude": 30.339166666667,
+      "longitude": -96.904444444444
+    },
+    {
+      "lid": "DNBT2",
+      "name": "Dickinson Bayou at SH 517 near Alvin",
+      "latitude": 29.436075,
+      "longitude": -95.17013056
+    },
+    {
+      "lid": "DNNT2",
+      "name": "Brazos River near Dennis",
+      "latitude": 32.615555555556,
+      "longitude": -97.925555555556
+    },
+    {
+      "lid": "DOLT2",
+      "name": "Dolan Creek above Devils River near Comstock",
+      "latitude": 29.888333333333,
+      "longitude": -100.98972222222
+    },
+    {
+      "lid": "DRAT2",
+      "name": "Spring Branch at SH 242 near Splendora",
+      "latitude": 33.801666666667,
+      "longitude": -96.58
+    },
+    {
+      "lid": "DRWT2",
+      "name": "Onion Creek near Driftwood",
+      "latitude": 30.082777777778,
+      "longitude": -98.0075
+    },
+    {
+      "lid": "DSBT2",
+      "name": "Sabana River near DeLeon",
+      "latitude": 32.113888888889,
+      "longitude": -98.605277777778
+    },
+    {
+      "lid": "DSCT2",
+      "name": "South Side Canal near Dundee",
+      "latitude": 33.813985,
+      "longitude": -98.932844
+    },
+    {
+      "lid": "DSNT2",
+      "name": "Red River at Lake Texoma near Denison",
+      "latitude": 33.818158,
+      "longitude": -96.572493
+    },
+    {
+      "lid": "DSPT2",
+      "name": "Sulphur River near Dalby Springs at Interstate 30",
+      "latitude": 33.3094,
+      "longitude": -94.6981
+    },
+    {
+      "lid": "DSTT2",
+      "name": "Red River at Denison Dam near Denison",
+      "latitude": 33.818991,
+      "longitude": -96.563326
+    },
+    {
+      "lid": "DUPT2",
+      "name": "Guadalupe River near Bloomington",
+      "latitude": 28.661944444444,
+      "longitude": -96.965277777778
+    },
+    {
+      "lid": "DWRT2",
+      "name": "White Rock Creek at Dallas",
+      "latitude": 32.889166666667,
+      "longitude": -96.756388888889
+    },
+    {
+      "lid": "DWYT2",
+      "name": "Sabine River at Deweyville",
+      "latitude": 30.303611111111,
+      "longitude": -93.743611111111
+    },
+    {
+      "lid": "DYNT2",
+      "name": "Rio Grande 14 miles S of Dryden",
+      "latitude": 29.81166667,
+      "longitude": -102.15083333
+    },
+    {
+      "lid": "EAMT2",
+      "name": "North Texas Lakes at Eagle Mountain Lake",
+      "latitude": 32.8775,
+      "longitude": -97.474722222222
+    },
+    {
+      "lid": "EAST2",
+      "name": "Navasota River near Easterly",
+      "latitude": 31.17,
+      "longitude": -96.2975
+    },
+    {
+      "lid": "EBBT2",
+      "name": "San Bernard River at East Bernard",
+      "latitude": 29.533055555556,
+      "longitude": -96.056111111111
+    },
+    {
+      "lid": "ECYT2",
+      "name": "East Fork Crystal Creek at FM 1485 near Conroe",
+      "latitude": 30.2949,
+      "longitude": -95.35210556
+    },
+    {
+      "lid": "EDNT2",
+      "name": "Lavaca River near Edna",
+      "latitude": 28.959722222222,
+      "longitude": -96.686111111111
+    },
+    {
+      "lid": "EGYT2",
+      "name": "Wilbarger Creek at Elgin",
+      "latitude": 30.231944444444,
+      "longitude": -97.432777777778
+    },
+    {
+      "lid": "EGZT2",
+      "name": "Big Sandy Creek (TX) near Elgin",
+      "latitude": 30.2656,
+      "longitude": -97.3281
+    },
+    {
+      "lid": "ELMT2",
+      "name": "San Antonio River at Elmendorf",
+      "latitude": 29.221944444444,
+      "longitude": -98.355555555556
+    },
+    {
+      "lid": "ELNT2",
+      "name": "Rio Grande at El Indio",
+      "latitude": 28.35,
+      "longitude": -100.32
+    },
+    {
+      "lid": "ELTT2",
+      "name": "Beaver Creek (TX) near Electra",
+      "latitude": 33.905928,
+      "longitude": -98.905067
+    },
+    {
+      "lid": "EMAT2",
+      "name": "Tide Station (HGX) at East Matagorda",
+      "latitude": 28.71,
+      "longitude": -95.9138
+    },
+    {
+      "lid": "EMDT2",
+      "name": "Rio Grande 3 miles NNW of Redford",
+      "latitude": 29.48555556,
+      "longitude": -104.21583333
+    },
+    {
+      "lid": "EPPT2",
+      "name": "Rio Grande at Eagle Pass",
+      "latitude": 28.713888888889,
+      "longitude": -100.50694444444
+    },
+    {
+      "lid": "EPRT2",
+      "name": "Rio Grande at El Paso (Courchesne Bridge)",
+      "latitude": 31.80319,
+      "longitude": -106.54131
+    },
+    {
+      "lid": "EPTT2",
+      "name": "Tide Station (HGX) at San Leon",
+      "latitude": 29.48,
+      "longitude": -94.9183
+    },
+    {
+      "lid": "ERMT2",
+      "name": "Village Creek near Everman",
+      "latitude": 32.603333333333,
+      "longitude": -97.264722222222
+    },
+    {
+      "lid": "EVDT2",
+      "name": "Neches River at Evadale",
+      "latitude": 30.355555555556,
+      "longitude": -94.093055555556
+    },
+    {
+      "lid": "EVST2",
+      "name": "West Central Texas Lakes at E. V. Spence Reservoir",
+      "latitude": 31.879444444444,
+      "longitude": -100.51694444444
+    },
+    {
+      "lid": "FACT2",
+      "name": "San Antonio River near Falls City",
+      "latitude": 28.951388888889,
+      "longitude": -98.063888888889
+    },
+    {
+      "lid": "FAFT2",
+      "name": "Los Olmos Creek near Falfurrias",
+      "latitude": 27.264166666667,
+      "longitude": -98.135555555556
+    },
+    {
+      "lid": "FALT2",
+      "name": "Rio Grande at Falcon Lake",
+      "latitude": 26.559722222222,
+      "longitude": -99.166666666667
+    },
+    {
+      "lid": "FBCT2",
+      "name": "Cummins Creek at Frelsburg",
+      "latitude": 29.825833333333,
+      "longitude": -96.580555555556
+    },
+    {
+      "lid": "FBKT2",
+      "name": "Big Blue Creek 6NNW Fritch",
+      "latitude": 35.720833333333,
+      "longitude": -101.6625
+    },
+    {
+      "lid": "FCTT2",
+      "name": "Cibolo Creek near Falls City",
+      "latitude": 29.013888888889,
+      "longitude": -97.93
+    },
+    {
+      "lid": "FCWT2",
+      "name": "Lake Creek above The Woodlands",
+      "latitude": 30.258333333333333,
+      "longitude": -95.56361111111111
+    },
+    {
+      "lid": "FFLT2",
+      "name": "North Texas Lakes at Richland-Chambers Lake",
+      "latitude": 32.040277777778,
+      "longitude": -96.206388888889
+    },
+    {
+      "lid": "FILT2",
+      "name": "Frio River at at Leakey",
+      "latitude": 29.72277777777778,
+      "longitude": -99.75333333333333
+    },
+    {
+      "lid": "FLVT2",
+      "name": "San Antonio River near Floresville",
+      "latitude": 29.11,
+      "longitude": -98.174444444444
+    },
+    {
+      "lid": "FLWT2",
+      "name": "North Texas Lakes at Lake Worth",
+      "latitude": 32.789166666667,
+      "longitude": -97.416111111111
+    },
+    {
+      "lid": "FMFT2",
+      "name": "Berry Creek near Florence, TX",
+      "latitude": 30.8106,
+      "longitude": -97.826
+    },
+    {
+      "lid": "FPST2",
+      "name": "Tide Station (HGX) at Freeport",
+      "latitude": 28.935,
+      "longitude": -95.295
+    },
+    {
+      "lid": "FQGT2",
+      "name": "Rio Grande near Fort Quitman",
+      "latitude": 31.0875,
+      "longitude": -105.60972222222
+    },
+    {
+      "lid": "FRBT2",
+      "name": "Pedernales River at Fredericksburg",
+      "latitude": 30.220277777778,
+      "longitude": -98.869444444444
+    },
+    {
+      "lid": "FRHT2",
+      "name": "North Texas Lakes at Lake Ray Hubbard",
+      "latitude": 32.8,
+      "longitude": -96.495833333333
+    },
+    {
+      "lid": "FRLT2",
+      "name": "Redgate Creek at Frelsburg",
+      "latitude": 29.798888888889,
+      "longitude": -96.531944444444
+    },
+    {
+      "lid": "FRRT2",
+      "name": "San Casimiro Creek near Freer",
+      "latitude": 27.964722222222,
+      "longitude": -98.966666666667
+    },
+    {
+      "lid": "FWHT2",
+      "name": "Clear Fork Trinity River at Fort Worth",
+      "latitude": 32.732222222222,
+      "longitude": -97.358611111111
+    },
+    {
+      "lid": "FWOT2",
+      "name": "West Fork Trinity River at Fort Worth",
+      "latitude": 32.760833333333,
+      "longitude": -97.332222222222
+    },
+    {
+      "lid": "GAST2",
+      "name": "Leon River at Gatesville",
+      "latitude": 31.434722222222224,
+      "longitude": -97.75833333333334
+    },
+    {
+      "lid": "GBCT2",
+      "name": "Guadalupe River below Comal",
+      "latitude": 29.697777777778,
+      "longitude": -98.106388888889
+    },
+    {
+      "lid": "GBHT2",
+      "name": "Greens Bayou at Houston",
+      "latitude": 29.918055555556,
+      "longitude": -95.306666666667
+    },
+    {
+      "lid": "GBLT2",
+      "name": "Greens Bayou near Houston",
+      "latitude": 29.836944444444,
+      "longitude": -95.233055555556
+    },
+    {
+      "lid": "GBYT2",
+      "name": "North Texas Lakes at Lake Granbury",
+      "latitude": 32.374166666667,
+      "longitude": -97.688888888889
+    },
+    {
+      "lid": "GCCT2",
+      "name": "Culebra Creek at GCSNA near Helotes",
+      "latitude": 29.539166666667,
+      "longitude": -98.751388888889
+    },
+    {
+      "lid": "GCST2",
+      "name": "Geronimo Creek near Seguin 2NE",
+      "latitude": 29.5905,
+      "longitude": -97.9347
+    },
+    {
+      "lid": "GCTT2",
+      "name": "Guadalupe River near Centerpoint",
+      "latitude": 29.987777777778,
+      "longitude": -99.11
+    },
+    {
+      "lid": "GDHT2",
+      "name": "Guadalupe River at Hwy 183 near Hochheim",
+      "latitude": 29.314444444444444,
+      "longitude": -97.30333333333333
+    },
+    {
+      "lid": "GDWT2",
+      "name": "Sabine River near Gladewater",
+      "latitude": 32.526944444444,
+      "longitude": -94.96
+    },
+    {
+      "lid": "GETT2",
+      "name": "San Gabriel River at Georgetown South Fork",
+      "latitude": 30.625555555556,
+      "longitude": -97.690833333333
+    },
+    {
+      "lid": "GGLT2",
+      "name": "San Gabriel River at Lake Georgetown",
+      "latitude": 30.6675,
+      "longitude": -97.727222222222
+    },
+    {
+      "lid": "GIVT2",
+      "name": "Pecos River 3 miles NNW of Girvin",
+      "latitude": 31.11320329,
+      "longitude": -102.4176419
+    },
+    {
+      "lid": "GLIT2",
+      "name": "San Antonio River at Goliad",
+      "latitude": 28.649166666667,
+      "longitude": -97.384722222222
+    },
+    {
+      "lid": "GLLT2",
+      "name": "Elm Fork Trinity River at Gainesville",
+      "latitude": 33.624166666667,
+      "longitude": -97.156111111111
+    },
+    {
+      "lid": "GLRT2",
+      "name": "Brazos River near Glen Rose",
+      "latitude": 32.258888888889,
+      "longitude": -97.702222222222
+    },
+    {
+      "lid": "GLYT2",
+      "name": "Gail Creek at FM 1280 near Lovelady",
+      "latitude": 31.1373,
+      "longitude": -95.4073
+    },
+    {
+      "lid": "GMKT2",
+      "name": "Goose Creek near McNair",
+      "latitude": 29.8014,
+      "longitude": -95.0047
+    },
+    {
+      "lid": "GNDT2",
+      "name": "West Mustang Creek near Ganado",
+      "latitude": 29.071388888889,
+      "longitude": -96.466944444444
+    },
+    {
+      "lid": "GNGT2",
+      "name": "San Gabriel River at Granger Lake",
+      "latitude": 30.692777777778,
+      "longitude": -97.326111111111
+    },
+    {
+      "lid": "GNJT2",
+      "name": "Tide Station (HGX) at Galveston Bay Entrance North Jetty",
+      "latitude": 29.3583,
+      "longitude": -94.725
+    },
+    {
+      "lid": "GNLT2",
+      "name": "Guadalupe River at Gonzales",
+      "latitude": 29.484302,
+      "longitude": -97.44754
+    },
+    {
+      "lid": "GNRT2",
+      "name": "North Fork San Gabriel River at Ronald Reagan Blvd near Leander 8N",
+      "latitude": 30.697777777778,
+      "longitude": -97.849166666667
+    },
+    {
+      "lid": "GNST2",
+      "name": "Giffin Springs 1 mile N of Toyahvale",
+      "latitude": 30.94573056,
+      "longitude": -103.7898833
+    },
+    {
+      "lid": "GNVT2",
+      "name": "Cowleech Fork Sabine River at Greenville",
+      "latitude": 33.132777777778,
+      "longitude": -96.076666666667
+    },
+    {
+      "lid": "GOBT2",
+      "name": "Goode Branch at CR 773",
+      "latitude": 30.43,
+      "longitude": -93.9732
+    },
+    {
+      "lid": "GPET2",
+      "name": "North Texas Lakes at Mountain Creek Lake",
+      "latitude": 32.731944444444,
+      "longitude": -96.943055555556
+    },
+    {
+      "lid": "GPLT2",
+      "name": "Colorado River (TX) at Lake LBJ",
+      "latitude": 30.555833333333,
+      "longitude": -98.338055555556
+    },
+    {
+      "lid": "GPRT2",
+      "name": "West Fork Trinity River at Grand Prairie",
+      "latitude": 32.7625,
+      "longitude": -96.994444444444
+    },
+    {
+      "lid": "GPVT2",
+      "name": "North Texas Lakes at Lake Grapevine",
+      "latitude": 32.9725,
+      "longitude": -97.056111111111
+    },
+    {
+      "lid": "GQQT2",
+      "name": "North Texas Lakes at Squaw Creek Reservoir",
+      "latitude": 32.3,
+      "longitude": -97.786666666667
+    },
+    {
+      "lid": "GRET2",
+      "name": "Salt Fork of the Red River at Greenbelt Lake",
+      "latitude": 35.000555555556,
+      "longitude": -100.89444444444
+    },
+    {
+      "lid": "GRHT2",
+      "name": "Guadalupe River above Bear Creek at Kerrville",
+      "latitude": 30.069444444444,
+      "longitude": -99.195
+    },
+    {
+      "lid": "GRIT2",
+      "name": "Trinity River near Goodrich",
+      "latitude": 30.5719444444444,
+      "longitude": -94.9486111111111
+    },
+    {
+      "lid": "GROT2",
+      "name": "Paluxy River at Glen Rose",
+      "latitude": 32.231388888889,
+      "longitude": -97.776944444444
+    },
+    {
+      "lid": "GRRT2",
+      "name": "Tide Station (HGX) at Galveston Railroad Bridge",
+      "latitude": 29.3016,
+      "longitude": -94.8966
+    },
+    {
+      "lid": "GRST2",
+      "name": "Navasota River above Groesbeck",
+      "latitude": 31.574166666667,
+      "longitude": -96.520555555556
+    },
+    {
+      "lid": "GRTT2",
+      "name": "Guadalupe River at 3rd Crossing nr Sattler",
+      "latitude": 29.803611111111,
+      "longitude": -98.163055555556
+    },
+    {
+      "lid": "GSST2",
+      "name": "Brays Bayou at Gessner Drive",
+      "latitude": 29.6725,
+      "longitude": -95.528055555556
+    },
+    {
+      "lid": "GSVT2",
+      "name": "Red River near Gainesville",
+      "latitude": 33.727883,
+      "longitude": -97.160013
+    },
+    {
+      "lid": "GTOT2",
+      "name": "Tide Station (HGX) at NOS Station at Pier 21 Galveston",
+      "latitude": 29.31,
+      "longitude": -94.7933
+    },
+    {
+      "lid": "GTWT2",
+      "name": "Berry Creek near Georgetown",
+      "latitude": 30.703055555556,
+      "longitude": -97.666111111111
+    },
+    {
+      "lid": "GUBT2",
+      "name": "Guadalupe River at FM474 near Bergheim",
+      "latitude": 29.893333333333334,
+      "longitude": -98.66972222222222
+    },
+    {
+      "lid": "GWGT2",
+      "name": "Guadalupe River at CR 143 near Gonzales",
+      "latitude": 29.4875,
+      "longitude": -97.5875
+    },
+    {
+      "lid": "GWLT2",
+      "name": "Lagarto Creek below George West",
+      "latitude": 28.059444444444,
+      "longitude": -98.096666666667
+    },
+    {
+      "lid": "GWNT2",
+      "name": "Nueces River at George West",
+      "latitude": 28.332777777778,
+      "longitude": -98.085555555556
+    },
+    {
+      "lid": "GYST2",
+      "name": "Grassy Creek at TX 105 near Navasota",
+      "latitude": 30.35330556,
+      "longitude": -95.99627778
+    },
+    {
+      "lid": "HAGT2",
+      "name": "Arroyo Colorado at Harlingen",
+      "latitude": 26.173993,
+      "longitude": -97.700744
+    },
+    {
+      "lid": "HAJT2",
+      "name": "Sandy Creek (E TX) at Jasper",
+      "latitude": 30.9184,
+      "longitude": -94.004
+    },
+    {
+      "lid": "HAKT2",
+      "name": "Sabine River near Hawkins",
+      "latitude": 32.559722222222,
+      "longitude": -95.206388888889
+    },
+    {
+      "lid": "HAWT2",
+      "name": "West Central Texas Lakes at Lake Fort Phantom Hill",
+      "latitude": 32.596111111111,
+      "longitude": -99.680277777778
+    },
+    {
+      "lid": "HBMT2",
+      "name": "Brays Bayou at Houston",
+      "latitude": 29.696944444444,
+      "longitude": -95.411944444444
+    },
+    {
+      "lid": "HBRT2",
+      "name": "Brazos River at FM 485 Near Hearne",
+      "latitude": 30.865,
+      "longitude": -96.695
+    },
+    {
+      "lid": "HCCT2",
+      "name": "Clear Creek at Friendswood",
+      "latitude": 29.517222222222,
+      "longitude": -95.178333333333
+    },
+    {
+      "lid": "HCDT2",
+      "name": "Cedar Bayou near Crosby",
+      "latitude": 29.9725,
+      "longitude": -94.985555555556
+    },
+    {
+      "lid": "HCRT2",
+      "name": "North Texas Lakes at Hubbard Creek Lake",
+      "latitude": 32.831388888889,
+      "longitude": -98.9675
+    },
+    {
+      "lid": "HDWT2",
+      "name": "Cibolo Creek near St. Hedwig",
+      "latitude": 29.501388888889,
+      "longitude": -98.186111111111
+    },
+    {
+      "lid": "HEIT2",
+      "name": "Martinez Creek near Saint Hedwig",
+      "latitude": 29.443888888889,
+      "longitude": -98.168888888889
+    },
+    {
+      "lid": "HFFT2",
+      "name": "Luce Bayou near Huffman",
+      "latitude": 30.109444444444,
+      "longitude": -95.059722222222
+    },
+    {
+      "lid": "HFXT2",
+      "name": "Blanco River above at Halifax Ranch near Kyle",
+      "latitude": 30.005555555555556,
+      "longitude": -97.9525
+    },
+    {
+      "lid": "HGBT2",
+      "name": "Greens Bayou near Houston",
+      "latitude": 29.956666666667,
+      "longitude": -95.417777777778
+    },
+    {
+      "lid": "HGLT2",
+      "name": "Highland Bayou at FM 646 near Santa Fe",
+      "latitude": 29.38055833,
+      "longitude": -95.09005278
+    },
+    {
+      "lid": "HGTT2",
+      "name": "White Oak Bayou at Houston",
+      "latitude": 29.775,
+      "longitude": -95.396944444444
+    },
+    {
+      "lid": "HIBT2",
+      "name": "Brazos River near Highbank",
+      "latitude": 31.133888888889,
+      "longitude": -96.824722222222
+    },
+    {
+      "lid": "HICT2",
+      "name": "North Bosque River at Hico",
+      "latitude": 31.976388888889,
+      "longitude": -98.0325
+    },
+    {
+      "lid": "HIST2",
+      "name": "Tide Station (HGX) at High Island",
+      "latitude": 29.5947,
+      "longitude": -94.3902
+    },
+    {
+      "lid": "HJMT2",
+      "name": "Mayhaw Bayou at McCall Road",
+      "latitude": 29.8508,
+      "longitude": -94.3252
+    },
+    {
+      "lid": "HLCT2",
+      "name": "Lelia Lake Creek at Hedley",
+      "latitude": 34.935555555556,
+      "longitude": -100.696
+    },
+    {
+      "lid": "HLTT2",
+      "name": "Helotes Creek at Helotes",
+      "latitude": 29.578333333333,
+      "longitude": -98.691388888889
+    },
+    {
+      "lid": "HMLT2",
+      "name": "Leon River near Hamilton",
+      "latitude": 31.788611111111,
+      "longitude": -98.121111111111
+    },
+    {
+      "lid": "HMMT2",
+      "name": "West Fork San Jacinto River near Humble",
+      "latitude": 30.026388888889,
+      "longitude": -95.258333333333
+    },
+    {
+      "lid": "HNFT2",
+      "name": "North Fork Guadalupe River near Hunt",
+      "latitude": 30.063888888889,
+      "longitude": -99.386666666667
+    },
+    {
+      "lid": "HNLT2",
+      "name": "Little Cypress Creek (SE TX) at County Road 3114",
+      "latitude": 30.36608454,
+      "longitude": -93.834875545
+    },
+    {
+      "lid": "HNTT2",
+      "name": "Guadalupe River at Hunt",
+      "latitude": 30.069722222222,
+      "longitude": -99.321388888889
+    },
+    {
+      "lid": "HNYT2",
+      "name": "Yellow Bayou at St. John Road",
+      "latitude": 30.953673,
+      "longitude": -93.6499399
+    },
+    {
+      "lid": "HORT2",
+      "name": "West Central Texas Lakes at Hords Creek Lake",
+      "latitude": 31.832777777778,
+      "longitude": -99.560555555556
+    },
+    {
+      "lid": "HPDT2",
+      "name": "Brazos River near Hempstead",
+      "latitude": 30.128888888889,
+      "longitude": -96.1875
+    },
+    {
+      "lid": "HSIT2",
+      "name": "Sims Bayou at Houston",
+      "latitude": 29.674167,
+      "longitude": -95.289167
+    },
+    {
+      "lid": "HSJT2",
+      "name": "San Jacinto River at Lake Houston",
+      "latitude": 29.916111111111,
+      "longitude": -95.141111111111
+    },
+    {
+      "lid": "HTAT2",
+      "name": "Little Wichita River near Henrietta",
+      "latitude": 33.826767,
+      "longitude": -98.240046
+    },
+    {
+      "lid": "HTST2",
+      "name": "Lavaca River at Hallettsville",
+      "latitude": 29.4431,
+      "longitude": -96.9447
+    },
+    {
+      "lid": "HTWT2",
+      "name": "East Fork Little Wichita River near Henrietta",
+      "latitude": 33.812878,
+      "longitude": -98.085041
+    },
+    {
+      "lid": "HWLT2",
+      "name": "Clear Fork Brazos River at Hawley",
+      "latitude": 32.59817587,
+      "longitude": -99.8150919
+    },
+    {
+      "lid": "HYST2",
+      "name": "Hickory Slough at FM 865 near Pearland",
+      "latitude": 29.56640556,
+      "longitude": -95.35073611
+    },
+    {
+      "lid": "HYUT2",
+      "name": "Hurricane Bayou at US 287 near Crockett",
+      "latitude": 31.34466944,
+      "longitude": -95.47257778
+    },
+    {
+      "lid": "IKLT2",
+      "name": "Colorado River (TX) at Inks Lake",
+      "latitude": 30.731111111111,
+      "longitude": -98.384722222222
+    },
+    {
+      "lid": "IPRT2",
+      "name": "North Fork Buffalo Creek at NF Buffalo Cr. Reservoir",
+      "latitude": 33.986761,
+      "longitude": -98.752008
+    },
+    {
+      "lid": "IPWT2",
+      "name": "Wichita River near Iowa Park",
+      "latitude": 33.896944,
+      "longitude": -98.707222
+    },
+    {
+      "lid": "IRAT2",
+      "name": "Colorado River (TX) 4 miles SW of Ira below Lake J. B. Thomas",
+      "latitude": 32.53915278,
+      "longitude": -101.0552222
+    },
+    {
+      "lid": "IRDT2",
+      "name": "Tide Gauge at Bird Island",
+      "latitude": 27.48611111,
+      "longitude": -97.316944444
+    },
+    {
+      "lid": "JAIT2",
+      "name": "Taylor Bayou at Craigen Road",
+      "latitude": 29.8805944,
+      "longitude": -94.2571139
+    },
+    {
+      "lid": "JAKT2",
+      "name": "West Fork Trinity River near Jacksboro",
+      "latitude": 33.291666666667,
+      "longitude": -98.080277777778
+    },
+    {
+      "lid": "JBGT2",
+      "name": "Colorado River (TX) 13 miles SE of Gail",
+      "latitude": 32.6287208,
+      "longitude": -101.2854044
+    },
+    {
+      "lid": "JBTT2",
+      "name": "Colorado River (TX) at Lake JB Thomas",
+      "latitude": 32.59316669,
+      "longitude": -101.1381778
+    },
+    {
+      "lid": "JCIT2",
+      "name": "Johnson Creek above Ingram",
+      "latitude": 30.1,
+      "longitude": -99.282777777778
+    },
+    {
+      "lid": "JCTT2",
+      "name": "North Llano River near Junction",
+      "latitude": 30.517222222222,
+      "longitude": -99.805833333333
+    },
+    {
+      "lid": "JEFT2",
+      "name": "Black Cypress Bayou near Jefferson",
+      "latitude": 32.777777777778,
+      "longitude": -94.357222222222
+    },
+    {
+      "lid": "JFET2",
+      "name": "Big Cypress Creek above Jefferson",
+      "latitude": 32.749444444444,
+      "longitude": -94.498611111111
+    },
+    {
+      "lid": "JFFT2",
+      "name": "Little Cypress Creek near Jefferson",
+      "latitude": 32.712777777778,
+      "longitude": -94.345833333333
+    },
+    {
+      "lid": "JKST2",
+      "name": "Mud Creek near Jacksonville",
+      "latitude": 31.976388888889,
+      "longitude": -95.160555555556
+    },
+    {
+      "lid": "JNCT2",
+      "name": "Llano River near Junction",
+      "latitude": 30.5041666666667,
+      "longitude": -99.7341666666667
+    },
+    {
+      "lid": "JNXT2",
+      "name": "Devils River at Cauthorn Ranch near Juno",
+      "latitude": 30.079166666667,
+      "longitude": -101.10972222222
+    },
+    {
+      "lid": "JOCT2",
+      "name": "Pedernales River at Johnson City",
+      "latitude": 30.291666666667,
+      "longitude": -98.399166666667
+    },
+    {
+      "lid": "JPLT2",
+      "name": "North Texas Lakes at Joe Pool  Lake",
+      "latitude": 32.643333333333,
+      "longitude": -97.000833333333
+    },
+    {
+      "lid": "JSPT2",
+      "name": "Angelina River at Lake Sam Rayburn",
+      "latitude": 31.06075,
+      "longitude": -94.106025
+    },
+    {
+      "lid": "JTBT2",
+      "name": "Brazos River at Justiceburg",
+      "latitude": 33.038333333333,
+      "longitude": -101.19722222222
+    },
+    {
+      "lid": "JUAT2",
+      "name": "Juanita Creek at SH 71 near Midfield",
+      "latitude": 28.97359167,
+      "longitude": -96.20851944
+    },
+    {
+      "lid": "JYBT2",
+      "name": "Neches River at Downtown Beaumont",
+      "latitude": 30.0868,
+      "longitude": -94.0957
+    },
+    {
+      "lid": "JYIT2",
+      "name": "Hillebrandt Bayou at Hillebrandt Road",
+      "latitude": 29.928333,
+      "longitude": -94.11056
+    },
+    {
+      "lid": "JYKT2",
+      "name": "Pine Island Bayou near Batson",
+      "latitude": 30.2569,
+      "longitude": -94.5683
+    },
+    {
+      "lid": "JYLT2",
+      "name": "Little Pine Island Bayou near Thicket",
+      "latitude": 30.35861111111111,
+      "longitude": -94.5911111111111
+    },
+    {
+      "lid": "JYMT2",
+      "name": "Black Creek at Highway 326",
+      "latitude": 30.255555555555556,
+      "longitude": -94.36472222222223
+    },
+    {
+      "lid": "JYNT2",
+      "name": "Pine Island Bayou near Bevil Oaks",
+      "latitude": 30.135277777778,
+      "longitude": -94.278888888889
+    },
+    {
+      "lid": "JZBT2",
+      "name": "Pine Island Bayou at Highway 326",
+      "latitude": 30.09861111111111,
+      "longitude": -94.40472222222222
+    },
+    {
+      "lid": "JZHT2",
+      "name": "Hillebrandt Bayou at Highway 124",
+      "latitude": 30.035833,
+      "longitude": -94.14889
+    },
+    {
+      "lid": "JZWT2",
+      "name": "North Fork Taylor Bayou at F.M. 1406",
+      "latitude": 29.9475,
+      "longitude": -94.4
+    },
+    {
+      "lid": "JZYT2",
+      "name": "Taylor Bayou at Labelle Road",
+      "latitude": 29.87444444444445,
+      "longitude": -94.1588888888889
+    },
+    {
+      "lid": "KBYT2",
+      "name": "West Central Texas Lakes above Kirby Lake",
+      "latitude": 32.385555555556,
+      "longitude": -99.731666666667
+    },
+    {
+      "lid": "KEMT2",
+      "name": "Lampasas River near Kempner",
+      "latitude": 31.0792,
+      "longitude": -98.0164
+    },
+    {
+      "lid": "KHOT2",
+      "name": "Cypress Creek near Hockley",
+      "latitude": 29.95,
+      "longitude": -95.808055555556
+    },
+    {
+      "lid": "KIVT2",
+      "name": "Tranquitas Creek at Kingsville",
+      "latitude": 27.525833333333335,
+      "longitude": -97.86722222222222
+    },
+    {
+      "lid": "KLGT2",
+      "name": "Rabbit Creek at Kilgore",
+      "latitude": 32.388055555556,
+      "longitude": -94.903055555556
+    },
+    {
+      "lid": "KMST2",
+      "name": "Lavaca River at Komensky",
+      "latitude": 29.540833333333,
+      "longitude": -97.037777777778
+    },
+    {
+      "lid": "KNBT2",
+      "name": "Dove Creek (Concho River Basin) at Knickerbocker",
+      "latitude": 31.2738888888889,
+      "longitude": -100.630555555556
+    },
+    {
+      "lid": "KNLT2",
+      "name": "Sandy Creek near Kingsland",
+      "latitude": 30.5575,
+      "longitude": -98.471944444444
+    },
+    {
+      "lid": "KOUT2",
+      "name": "Village Creek near Kountze",
+      "latitude": 30.397777777778,
+      "longitude": -94.263333333333
+    },
+    {
+      "lid": "KRRT2",
+      "name": "Guadalupe River at Kerrville",
+      "latitude": 30.053055555556,
+      "longitude": -99.163055555556
+    },
+    {
+      "lid": "KTNT2",
+      "name": "Sweetwater Creek at Kelton",
+      "latitude": 35.473055555556,
+      "longitude": -100.12055555556
+    },
+    {
+      "lid": "KWHT2",
+      "name": "Hondo Creek at SH 173 near Hondo",
+      "latitude": 29.376111111111,
+      "longitude": -99.116666666667
+    },
+    {
+      "lid": "KYET2",
+      "name": "Blanco River near Kyle",
+      "latitude": 29.979166666667,
+      "longitude": -97.909722222222
+    },
+    {
+      "lid": "LACT2",
+      "name": "Medina River near La Coste",
+      "latitude": 29.32388888888889,
+      "longitude": -98.81277777777778
+    },
+    {
+      "lid": "LART2",
+      "name": "North Texas Lakes at Lake Arlington",
+      "latitude": 32.716111111111,
+      "longitude": -97.192222222222
+    },
+    {
+      "lid": "LBFT2",
+      "name": "Little Blanco River at FM32 near Fischer",
+      "latitude": 30.020806,
+      "longitude": -98.330556
+    },
+    {
+      "lid": "LBUT2",
+      "name": "Linnville Bayou at FM 521 near Cedar Lane",
+      "latitude": 28.95151389,
+      "longitude": -95.71122778
+    },
+    {
+      "lid": "LBWT2",
+      "name": "Pecan Bayou at Lake Brownwood",
+      "latitude": 31.836944444444,
+      "longitude": -99.003611111111
+    },
+    {
+      "lid": "LBYT2",
+      "name": "Trinity River at Liberty",
+      "latitude": 30.0575,
+      "longitude": -94.8180555555556
+    },
+    {
+      "lid": "LCBT2",
+      "name": "Wolf Creek at Lipscomb",
+      "latitude": 36.238611111111,
+      "longitude": -100.27527777778
+    },
+    {
+      "lid": "LCFT2",
+      "name": "Leon Creek at I-10 and Loop 1604",
+      "latitude": 29.593055555555555,
+      "longitude": -98.59916666666666
+    },
+    {
+      "lid": "LCJT2",
+      "name": "North Texas Lakes at Lost Creek Reservoir",
+      "latitude": 33.243333333333,
+      "longitude": -98.119722222222
+    },
+    {
+      "lid": "LCKT2",
+      "name": "Lost Creek at Lost Creek Blvd",
+      "latitude": 30.273888888889,
+      "longitude": -97.844444444444
+    },
+    {
+      "lid": "LCLT2",
+      "name": "North Texas Lakes at Lake Pat Cleburne",
+      "latitude": 32.288888888889,
+      "longitude": -97.415
+    },
+    {
+      "lid": "LCPT2",
+      "name": "Plum Creek at Lockhart",
+      "latitude": 29.922777777778,
+      "longitude": -97.678888888889
+    },
+    {
+      "lid": "LCRT2",
+      "name": "Cherokee Bayou at Lake Cherokee",
+      "latitude": 32.3433,
+      "longitude": -94.6412
+    },
+    {
+      "lid": "LCTT2",
+      "name": "West Fork San Jacinto River at Lake Conroe",
+      "latitude": 30.358333333333,
+      "longitude": -95.560833333333
+    },
+    {
+      "lid": "LDOT2",
+      "name": "Rio Grande at Laredo",
+      "latitude": 27.501833333333334,
+      "longitude": -99.50296666666696
+    },
+    {
+      "lid": "LEAT2",
+      "name": "Mill Creek (E TX) at Brownlea Road",
+      "latitude": 30.407156739,
+      "longitude": -94.188331908
+    },
+    {
+      "lid": "LEBT2",
+      "name": "Little Bernard Creek at I-10 near Sealy",
+      "latitude": 29.761675,
+      "longitude": -96.205325
+    },
+    {
+      "lid": "LECT2",
+      "name": "Leon Creek at Loop 410 near Leon Valley",
+      "latitude": 29.447777777778,
+      "longitude": -98.633611111111
+    },
+    {
+      "lid": "LEWT2",
+      "name": "North Texas Lakes at Lake Lewisville",
+      "latitude": 33.069166666667,
+      "longitude": -96.964166666667
+    },
+    {
+      "lid": "LFKT2",
+      "name": "Lake Fork Creek at Lake Fork",
+      "latitude": 32.813333333333,
+      "longitude": -95.527777777778
+    },
+    {
+      "lid": "LGRT2",
+      "name": "Colorado River (TX) above La Grange",
+      "latitude": 29.912428,
+      "longitude": -96.896993
+    },
+    {
+      "lid": "LHGT2",
+      "name": "South Fork San Gabriel River at SH 1869 near Liberty Hill",
+      "latitude": 30.66,
+      "longitude": -97.9378
+    },
+    {
+      "lid": "LHPT2",
+      "name": "Brazos River at Lake Alan Henry",
+      "latitude": 33.062777777778,
+      "longitude": -101.04722222222
+    },
+    {
+      "lid": "LIVT2",
+      "name": "Long King Creek at Livingston",
+      "latitude": 30.716111111111,
+      "longitude": -94.958611111111
+    },
+    {
+      "lid": "LKCT2",
+      "name": "West Central Texas Lakes at Lake Coleman",
+      "latitude": 32.03,
+      "longitude": -99.465
+    },
+    {
+      "lid": "LKPT2",
+      "name": "Lake Creek at Lake Creek Parkway near Cedar Park 5SE",
+      "latitude": 30.465555555556,
+      "longitude": -97.787777777778
+    },
+    {
+      "lid": "LKST2",
+      "name": "Leon Creek at I-35S near San Antonio",
+      "latitude": 29.329722222222,
+      "longitude": -98.583888888889
+    },
+    {
+      "lid": "LLAT2",
+      "name": "Llano River at Llano",
+      "latitude": 30.751111111111,
+      "longitude": -98.669444444444
+    },
+    {
+      "lid": "LLET2",
+      "name": "North Texas Lakes at Lake Leon",
+      "latitude": 32.363611111111,
+      "longitude": -98.675277777778
+    },
+    {
+      "lid": "LLGT2",
+      "name": "San Marcos River at Luling",
+      "latitude": 29.666111111111,
+      "longitude": -97.650555555556
+    },
+    {
+      "lid": "LLST2",
+      "name": "North Texas Lakes at Lake Limestone",
+      "latitude": 31.325,
+      "longitude": -96.318888888889
+    },
+    {
+      "lid": "LLYT2",
+      "name": "Langham Creek near Addicks",
+      "latitude": 29.866944444444,
+      "longitude": -95.646388888889
+    },
+    {
+      "lid": "LMCT2",
+      "name": "East Mustang Creek near Louise",
+      "latitude": 29.070555555556,
+      "longitude": -96.416944444444
+    },
+    {
+      "lid": "LMGT2",
+      "name": "North Texas Lakes at Lake Graham",
+      "latitude": 33.134444444444,
+      "longitude": -98.613333333333
+    },
+    {
+      "lid": "LMKT2",
+      "name": "Manadas Creek at Laredo",
+      "latitude": 27.575683333333334,
+      "longitude": -99.5060388888889
+    },
+    {
+      "lid": "LMTT2",
+      "name": "Martin Creek at Martin Creek Lake",
+      "latitude": 32.261666666667,
+      "longitude": -94.573055555556
+    },
+    {
+      "lid": "LMVT2",
+      "name": "Murvaul Bayou at Lake Murvaul",
+      "latitude": 32.034444444444,
+      "longitude": -94.420833333333
+    },
+    {
+      "lid": "LNYT2",
+      "name": "Rio Grande at Foster Ranch",
+      "latitude": 29.78075694,
+      "longitude": -101.7559523
+    },
+    {
+      "lid": "LOBT2",
+      "name": "Rio Grande at Lower Brownsville",
+      "latitude": 25.876388888889,
+      "longitude": -97.455555555556
+    },
+    {
+      "lid": "LOLT2",
+      "name": "Trinity River near Long Lake (Oakwood)",
+      "latitude": 31.6483333333333,
+      "longitude": -95.7891666666667
+    },
+    {
+      "lid": "LONT2",
+      "name": "Sabine River below Longview",
+      "latitude": 32.416666666667,
+      "longitude": -94.709722222222
+    },
+    {
+      "lid": "LPPT2",
+      "name": "North Texas Lakes at Lake Palo Pinto",
+      "latitude": 32.6475,
+      "longitude": -98.268888888889
+    },
+    {
+      "lid": "LPTT2",
+      "name": "Neches River at Lake Palestine",
+      "latitude": 32.053333333333,
+      "longitude": -95.436666666667
+    },
+    {
+      "lid": "LQAT2",
+      "name": "Tide Gauge above La Quinta Channel",
+      "latitude": 27.88,
+      "longitude": -97.28667
+    },
+    {
+      "lid": "LRIT2",
+      "name": "Little River near Little River",
+      "latitude": 30.966388888889,
+      "longitude": -97.345833333333
+    },
+    {
+      "lid": "LRST2",
+      "name": "Larrison Creek at FM 1428 near Midway",
+      "latitude": 30.9496,
+      "longitude": -95.7164
+    },
+    {
+      "lid": "LRTT2",
+      "name": "Llano River at County Road 102",
+      "latitude": 30.727222222222224,
+      "longitude": -98.81444444444445
+    },
+    {
+      "lid": "LRUT2",
+      "name": "Leona River at CR 429A near Uvalde",
+      "latitude": 29.345277777778,
+      "longitude": -99.748888888889
+    },
+    {
+      "lid": "LSET2",
+      "name": "Brazos River near Lubbock 4ESE",
+      "latitude": 33.5547,
+      "longitude": -101.7881
+    },
+    {
+      "lid": "LSFT2",
+      "name": "West Central Texas Lakes at Lake Stamford",
+      "latitude": 33.0625,
+      "longitude": -99.579166666667
+    },
+    {
+      "lid": "LSNT2",
+      "name": "Navidad River at Strane Park",
+      "latitude": 29.065555555556,
+      "longitude": -96.674444444444
+    },
+    {
+      "lid": "LSPT2",
+      "name": "Las Moras Creek at Brackettville",
+      "latitude": 29.30791667,
+      "longitude": -100.4192222
+    },
+    {
+      "lid": "LSWT2",
+      "name": "West Central Texas Lakes at Lake Sweetwater",
+      "latitude": 32.438611111111,
+      "longitude": -100.30333333333
+    },
+    {
+      "lid": "LTLT2",
+      "name": "North Texas Lakes at New Terrell City Lake",
+      "latitude": 32.728333333333,
+      "longitude": -96.173333333333
+    },
+    {
+      "lid": "LTRT2",
+      "name": "Pecos River near Langtry",
+      "latitude": 29.802777777778,
+      "longitude": -101.44583333333
+    },
+    {
+      "lid": "LTXT2",
+      "name": "Navidad River at Lake Texana",
+      "latitude": 28.89193124,
+      "longitude": -96.5777528
+    },
+    {
+      "lid": "LUFT2",
+      "name": "Angelina River near Lufkin",
+      "latitude": 31.457222222222,
+      "longitude": -94.726111111111
+    },
+    {
+      "lid": "LUIT2",
+      "name": "Tide Station (HGX) at San Luis Pass",
+      "latitude": 29.095,
+      "longitude": -95.1133
+    },
+    {
+      "lid": "LULT2",
+      "name": "Plum Creek near Luling",
+      "latitude": 29.6996,
+      "longitude": -97.6036
+    },
+    {
+      "lid": "LVDT2",
+      "name": "Trinity River at Lake Livingston",
+      "latitude": 30.633333333333,
+      "longitude": -95.01
+    },
+    {
+      "lid": "LVNT2",
+      "name": "North Texas Lakes at Lake Lavon",
+      "latitude": 33.031666666667,
+      "longitude": -96.482222222222
+    },
+    {
+      "lid": "LWCT2",
+      "name": "Willow Creek near Tomball",
+      "latitude": 30.105277777778,
+      "longitude": -95.546388888889
+    },
+    {
+      "lid": "LWFT2",
+      "name": "North Texas Lakes at Lake Weatherford",
+      "latitude": 32.7725,
+      "longitude": -97.674444444444
+    },
+    {
+      "lid": "LWGT2",
+      "name": "Little Walnut Creek (TX) at Georgian Drive near Austin 7N",
+      "latitude": 30.354166666667,
+      "longitude": -97.697777777778
+    },
+    {
+      "lid": "LWTT2",
+      "name": "Rio Grande at World Trade Bridge",
+      "latitude": 27.59722222,
+      "longitude": -99.53666666
+    },
+    {
+      "lid": "LWWT2",
+      "name": "North Texas Lakes at Lake Waxahachie",
+      "latitude": 32.341666666667,
+      "longitude": -96.805
+    },
+    {
+      "lid": "LYNT2",
+      "name": "Davidson Creek near Lyons",
+      "latitude": 30.4196519612315,
+      "longitude": -96.5402466078278
+    },
+    {
+      "lid": "MADT2",
+      "name": "Rio Grande at Anzalduas Reservior",
+      "latitude": 26.130555555556,
+      "longitude": -98.336111111111
+    },
+    {
+      "lid": "MBCT2",
+      "name": "Beaver Creek (Llano River Basin) near Mason",
+      "latitude": 30.6433333333333,
+      "longitude": -99.0955555555555
+    },
+    {
+      "lid": "MBET2",
+      "name": "Tide Station (HGX) at Matagorda Bay Entrance Channel",
+      "latitude": 28.4217,
+      "longitude": -96.3267
+    },
+    {
+      "lid": "MBFT2",
+      "name": "Trinity River near Moss Bluff",
+      "latitude": 29.9418847,
+      "longitude": -94.774366
+    },
+    {
+      "lid": "MBLT2",
+      "name": "Wichita River near Mabelle",
+      "latitude": 33.760093,
+      "longitude": -99.14285
+    },
+    {
+      "lid": "MBVT2",
+      "name": "Cedar Bayou at I-10 near Mont Belvieu",
+      "latitude": 29.82151389,
+      "longitude": -94.90970556
+    },
+    {
+      "lid": "MCGT2",
+      "name": "Middle Bosque River near McGregor",
+      "latitude": 31.509166666667,
+      "longitude": -97.365555555556
+    },
+    {
+      "lid": "MCKT2",
+      "name": "East Fork Trinity River at McKinney",
+      "latitude": 33.203611111111,
+      "longitude": -96.595555555556
+    },
+    {
+      "lid": "MCVT2",
+      "name": "Cow Bayou near Mauriceville",
+      "latitude": 30.186388888889,
+      "longitude": -93.908333333333
+    },
+    {
+      "lid": "MDLT2",
+      "name": "Medina River at Medina Lake",
+      "latitude": 29.54,
+      "longitude": -98.933611111111
+    },
+    {
+      "lid": "MDST2",
+      "name": "Bedias Creek near Madisonville",
+      "latitude": 30.8841666666667,
+      "longitude": -95.7775
+    },
+    {
+      "lid": "MEPT2",
+      "name": "Medina River above Engligh Crossing near Pipe Creek",
+      "latitude": 29.694444444444443,
+      "longitude": -98.97944444444444
+    },
+    {
+      "lid": "MERT2",
+      "name": "Medina River at Patterson Road at Medina",
+      "latitude": 29.793888888889,
+      "longitude": -99.248611111111
+    },
+    {
+      "lid": "MFCT2",
+      "name": "North Texas Lakes at Moss Lake",
+      "latitude": 33.773888888889,
+      "longitude": -97.213888888889
+    },
+    {
+      "lid": "MFDT2",
+      "name": "Colorado River (TX) at Lake Marble Falls",
+      "latitude": 30.555833333333,
+      "longitude": -98.257222222222
+    },
+    {
+      "lid": "MFNT2",
+      "name": "San Antonio River near McFaddin",
+      "latitude": 28.531111111111,
+      "longitude": -97.042777777778
+    },
+    {
+      "lid": "MGPT2",
+      "name": "Tide Station (HGX) at Morgan's Point",
+      "latitude": 29.6817,
+      "longitude": -94.985
+    },
+    {
+      "lid": "MHBT2",
+      "name": "Tide Gauge at Enbridge Ingleside",
+      "latitude": 27.81861,
+      "longitude": -97.20894
+    },
+    {
+      "lid": "MIOT2",
+      "name": "Medio Creek near Beeville",
+      "latitude": 28.482777777778,
+      "longitude": -97.656388888889
+    },
+    {
+      "lid": "MKTT2",
+      "name": "Mathis Creek at US 190 near Kurten",
+      "latitude": 30.75761111,
+      "longitude": -96.297475
+    },
+    {
+      "lid": "MKZT2",
+      "name": "Tule Draw at Mackenzie Reservior",
+      "latitude": 34.54527777777778,
+      "longitude": -101.4377777777778
+    },
+    {
+      "lid": "MLAT2",
+      "name": "Sabine River near Mineola",
+      "latitude": 32.613611111111,
+      "longitude": -95.485555555556
+    },
+    {
+      "lid": "MLIT2",
+      "name": "Pecan Bayou near Mullin",
+      "latitude": 31.5172222222222,
+      "longitude": -98.7402777777778
+    },
+    {
+      "lid": "MLRT2",
+      "name": "Llano River near Mason",
+      "latitude": 30.6605555555556,
+      "longitude": -99.1088888888889
+    },
+    {
+      "lid": "MMDT2",
+      "name": "Medina River near Macdona",
+      "latitude": 29.334722222222,
+      "longitude": -98.689444444444
+    },
+    {
+      "lid": "MMWT2",
+      "name": "North Texas Lakes at Lake Mineral Wells",
+      "latitude": 32.8166666666667,
+      "longitude": -98.0416666666667
+    },
+    {
+      "lid": "MNFT2",
+      "name": "Walnut Creek near Mansfield",
+      "latitude": 32.580833333333,
+      "longitude": -97.101666666667
+    },
+    {
+      "lid": "MNRT2",
+      "name": "San Saba River at Menard",
+      "latitude": 30.91906245,
+      "longitude": -99.7856254
+    },
+    {
+      "lid": "MQTT2",
+      "name": "Tide Gauge at Bob Hall Pier",
+      "latitude": 27.58111111111111,
+      "longitude": -97.21666666666667
+    },
+    {
+      "lid": "MRAT2",
+      "name": "Navidad River near Morales",
+      "latitude": 29.135277777778,
+      "longitude": -96.744166666667
+    },
+    {
+      "lid": "MRCT2",
+      "name": "Colorado River (TX) at Matagorda",
+      "latitude": 28.699166666667,
+      "longitude": -95.975
+    },
+    {
+      "lid": "MRIT2",
+      "name": "Canadian River at Lake Meredith",
+      "latitude": 35.710555555556,
+      "longitude": -101.55083333333
+    },
+    {
+      "lid": "MSDT2",
+      "name": "Colorado River (TX) at Lake Travis",
+      "latitude": 30.3915902,
+      "longitude": -97.9069554
+    },
+    {
+      "lid": "MTBT2",
+      "name": "Nueces River at Mathis",
+      "latitude": 28.038055555556,
+      "longitude": -97.86
+    },
+    {
+      "lid": "MTHT2",
+      "name": "Nueces River at Lake Corpus Christi",
+      "latitude": 28.038055555556,
+      "longitude": -97.870833333333
+    },
+    {
+      "lid": "MTPT2",
+      "name": "Tres Palacios River near Midfield",
+      "latitude": 28.92777777777778,
+      "longitude": -96.17083333333332
+    },
+    {
+      "lid": "MTST2",
+      "name": "San Antonio River at Mitchell Street",
+      "latitude": 29.392777777778,
+      "longitude": -98.494444444444
+    },
+    {
+      "lid": "MUGT2",
+      "name": "Mustang Bayou at SH 6 near Alvin",
+      "latitude": 29.43651111,
+      "longitude": -95.26628889
+    },
+    {
+      "lid": "MYAT2",
+      "name": "Atascosa River near McCoy",
+      "latitude": 28.864722222222,
+      "longitude": -98.338055555556
+    },
+    {
+      "lid": "MYST2",
+      "name": "North Texas Lakes at Pat Mayse Lake",
+      "latitude": 33.852777777778,
+      "longitude": -95.543888888889
+    },
+    {
+      "lid": "NAST2",
+      "name": "West Central Texas Lakes at Lake Nasworthy",
+      "latitude": 31.388611111111,
+      "longitude": -100.47805555556
+    },
+    {
+      "lid": "NAVT2",
+      "name": "Navasota River at SH 6 near Navasota",
+      "latitude": 30.41840278,
+      "longitude": -96.10661667
+    },
+    {
+      "lid": "NBCT2",
+      "name": "Comal River at New Braunfels",
+      "latitude": 29.705833333333,
+      "longitude": -98.122222222222
+    },
+    {
+      "lid": "NBDT2",
+      "name": "Dry Comal at Loop 337",
+      "latitude": 29.688055555556,
+      "longitude": -98.154722222222
+    },
+    {
+      "lid": "NBRT2",
+      "name": "Guadalupe River above Comal River at New Braunfels",
+      "latitude": 29.714722222222,
+      "longitude": -98.109722222222
+    },
+    {
+      "lid": "NCCT2",
+      "name": "Big Cow Creek near Newton",
+      "latitude": 30.818888888889,
+      "longitude": -93.785555555556
+    },
+    {
+      "lid": "NCET2",
+      "name": "East Fork San Jacinto River near New Caney",
+      "latitude": 30.145277777778,
+      "longitude": -95.124166666667
+    },
+    {
+      "lid": "NCHT2",
+      "name": "Tide Station (HGX) at Manchester",
+      "latitude": 29.7262,
+      "longitude": -95.2658
+    },
+    {
+      "lid": "NCST2",
+      "name": "Neches River near Neches",
+      "latitude": 31.892222222222,
+      "longitude": -95.430555555556
+    },
+    {
+      "lid": "NDST2",
+      "name": "Beals Creek at Natural Dam Salt Lake",
+      "latitude": 32.22012048,
+      "longitude": -101.6295723
+    },
+    {
+      "lid": "NEST2",
+      "name": "Nelson Creek at FM 247 near Huntsville",
+      "latitude": 30.82226111,
+      "longitude": -95.59463056
+    },
+    {
+      "lid": "NFBT2",
+      "name": "North Fork San Gabriel River at 243 near Briggs, TX",
+      "latitude": 30.8139,
+      "longitude": -97.9658
+    },
+    {
+      "lid": "NGCT2",
+      "name": "Garcitas Creek near Inez",
+      "latitude": 28.891111111111,
+      "longitude": -96.818888888889
+    },
+    {
+      "lid": "NGET2",
+      "name": "Navasota River near Normangee",
+      "latitude": 30.973611111111,
+      "longitude": -96.241388888889
+    },
+    {
+      "lid": "NGTT2",
+      "name": "Clear Fork Brazos River at Nugent",
+      "latitude": 32.69,
+      "longitude": -99.669166666667
+    },
+    {
+      "lid": "NMOT2",
+      "name": "Nueces River at CR 414 near Montell",
+      "latitude": 29.52638888888889,
+      "longitude": -100.01833333333333
+    },
+    {
+      "lid": "NNCT2",
+      "name": "North Texas Lakes at Lake Nocona",
+      "latitude": 33.8825,
+      "longitude": -97.6525
+    },
+    {
+      "lid": "NPBT2",
+      "name": "North Prong Medina River at Brewington Creek",
+      "latitude": 29.87527777777778,
+      "longitude": -99.34861111111111
+    },
+    {
+      "lid": "NSBT2",
+      "name": "Neches River at Saltwater Barrier",
+      "latitude": 30.156666666667,
+      "longitude": -94.114166666667
+    },
+    {
+      "lid": "NTCT2",
+      "name": "Big Cow Creek at FM1416",
+      "latitude": 30.605,
+      "longitude": -93.7944
+    },
+    {
+      "lid": "NUBT2",
+      "name": "Nueces River near Barksdale",
+      "latitude": 29.71883333,
+      "longitude": -100.039575
+    },
+    {
+      "lid": "NUCT2",
+      "name": "Nueces River at FM 1025 Near Crystal City",
+      "latitude": 28.775614,
+      "longitude": -99.835911
+    },
+    {
+      "lid": "NUET2",
+      "name": "Tide Gauge at Nueces Bay",
+      "latitude": 27.833,
+      "longitude": -97.486
+    },
+    {
+      "lid": "NYBT2",
+      "name": "New Year Creek at TX 105 near Brenham",
+      "latitude": 30.19580278,
+      "longitude": -96.36540278
+    },
+    {
+      "lid": "OABT2",
+      "name": "Adams Bayou at FM 3247",
+      "latitude": 30.1319,
+      "longitude": -93.7866
+    },
+    {
+      "lid": "OCNT2",
+      "name": "San Bernard River near Old Ocean",
+      "latitude": 29.1119,
+      "longitude": -95.6766
+    },
+    {
+      "lid": "OCOT2",
+      "name": "Coon Bayou at Lane of the Oaks",
+      "latitude": 30.072812667,
+      "longitude": -93.817363849
+    },
+    {
+      "lid": "ODCT2",
+      "name": "Terry Gully at FM 1442",
+      "latitude": 30.1025,
+      "longitude": -93.9035
+    },
+    {
+      "lid": "OHBT2",
+      "name": "Barton Creek above Hwy 71 near Oak Hill",
+      "latitude": 30.296111111111,
+      "longitude": -97.925277777778
+    },
+    {
+      "lid": "OHIT2",
+      "name": "West Central Texas Lakes at O.H. Ivie Reservoir",
+      "latitude": 31.5,
+      "longitude": -99.6680555555556
+    },
+    {
+      "lid": "OMWT2",
+      "name": "White Oak Creek near Omaha at Interstate 30",
+      "latitude": 33.2747,
+      "longitude": -94.8025
+    },
+    {
+      "lid": "ONIT2",
+      "name": "Onion Creek at Twin Creeks near Manchaca",
+      "latitude": 30.126111111111,
+      "longitude": -97.820833333333
+    },
+    {
+      "lid": "OOST2",
+      "name": "Oso Creek near Corpus Christi",
+      "latitude": 27.7114,
+      "longitude": -97.5019
+    },
+    {
+      "lid": "ORBT2",
+      "name": "West Bouldin Creek above Oltorf Road at Austin",
+      "latitude": 30.246666666667,
+      "longitude": -97.769166666667
+    },
+    {
+      "lid": "ORCT2",
+      "name": "Little Cypress Creek near Ore City",
+      "latitude": 32.6725,
+      "longitude": -94.750833333333
+    },
+    {
+      "lid": "ORFT2",
+      "name": "Cow Bayou at FM 1442",
+      "latitude": 30.1079,
+      "longitude": -93.8963
+    },
+    {
+      "lid": "ORLT2",
+      "name": "Pecos River 6 miles NE of Orla",
+      "latitude": 31.87262648,
+      "longitude": -103.8315824
+    },
+    {
+      "lid": "ORNT2",
+      "name": "Sabine River at Orange",
+      "latitude": 30.097222222222,
+      "longitude": -93.721111111111
+    },
+    {
+      "lid": "OXDT2",
+      "name": "Sandy Creek near Willow City",
+      "latitude": 30.5528,
+      "longitude": -98.7013
+    },
+    {
+      "lid": "PACT2",
+      "name": "Tide Gauge at Packery Channel",
+      "latitude": 27.61888888888889,
+      "longitude": -97.23388888888888
+    },
+    {
+      "lid": "PBGT2",
+      "name": "Big Cypress Creek near Pittsburg",
+      "latitude": 33.020833333333,
+      "longitude": -94.881944444444
+    },
+    {
+      "lid": "PCNT2",
+      "name": "Tide Gauge at Port O'Connor",
+      "latitude": 28.450277777777778,
+      "longitude": -96.38416666666667
+    },
+    {
+      "lid": "PCST2",
+      "name": "Pecos River 2 miles NE of Pecos",
+      "latitude": 31.4838611,
+      "longitude": -103.4901667
+    },
+    {
+      "lid": "PCTT2",
+      "name": "North Texas Lakes at Proctor Lake",
+      "latitude": 31.968611111111,
+      "longitude": -98.485833333333
+    },
+    {
+      "lid": "PDAT2",
+      "name": "Pecos River at Pandale Crossing",
+      "latitude": 30.125,
+      "longitude": -101.57222222222
+    },
+    {
+      "lid": "PEDT2",
+      "name": "Perdido Creek near Fannin",
+      "latitude": 28.751388888889,
+      "longitude": -97.316944444444
+    },
+    {
+      "lid": "PETT2",
+      "name": "Petronila Creek at FM665 Nr Driscoll",
+      "latitude": 27.6652,
+      "longitude": -97.7022
+    },
+    {
+      "lid": "PEWT2",
+      "name": "Peach Creek at Hwy 90 near Waelder",
+      "latitude": 29.685555555555556,
+      "longitude": -97.23055555555555
+    },
+    {
+      "lid": "PGFT2",
+      "name": "Pecos River 9 miles WNW of Grandfalls",
+      "latitude": 31.3668055,
+      "longitude": -103.0059908
+    },
+    {
+      "lid": "PICT2",
+      "name": "Cowhouse Creek near Pidcoke",
+      "latitude": 31.284722222222,
+      "longitude": -97.884722222222
+    },
+    {
+      "lid": "PIKT2",
+      "name": "Pin Oak Creek at S. Elizabeth Ave. Kirbyville",
+      "latitude": 30.6566,
+      "longitude": -93.8934
+    },
+    {
+      "lid": "PIOT2",
+      "name": "Rio Grande 6 miles WNW of Presidio",
+      "latitude": 29.60361111,
+      "longitude": -104.45166667
+    },
+    {
+      "lid": "PLOT2",
+      "name": "Brazos River near Palo Pinto",
+      "latitude": 32.8625,
+      "longitude": -98.302222222222
+    },
+    {
+      "lid": "PLPT2",
+      "name": "Placedo Creek near Placedo",
+      "latitude": 28.725,
+      "longitude": -96.768611111111
+    },
+    {
+      "lid": "PLXT2",
+      "name": "Rio Grande at Pipeline Crossing",
+      "latitude": 27.400277777778,
+      "longitude": -99.488333333333
+    },
+    {
+      "lid": "PNPT2",
+      "name": "Neches River at Lee Avenue",
+      "latitude": 29.9978,
+      "longitude": -93.9529
+    },
+    {
+      "lid": "PNTT2",
+      "name": "North Texas Lakes at Lake Tawakoni",
+      "latitude": 32.808611111111,
+      "longitude": -95.919444444444
+    },
+    {
+      "lid": "PNVT2",
+      "name": "Salt Fork - Brazos River at Plainview",
+      "latitude": 34.178888888889,
+      "longitude": -101.70222222222
+    },
+    {
+      "lid": "POET2",
+      "name": "West Fork San Jacinto River near Porter",
+      "latitude": 30.1412,
+      "longitude": -95.3381
+    },
+    {
+      "lid": "PPDT2",
+      "name": "Pinto Creek near Del Rio",
+      "latitude": 29.145833333333,
+      "longitude": -100.71805555556
+    },
+    {
+      "lid": "PPTT2",
+      "name": "Buffalo Bayou at Piney Point Village",
+      "latitude": 29.746666666667,
+      "longitude": -95.523333333333
+    },
+    {
+      "lid": "PRBT2",
+      "name": "Alamito Creek 5 miles ESE of Presidio",
+      "latitude": 29.52277778,
+      "longitude": -104.28833333
+    },
+    {
+      "lid": "PRDT2",
+      "name": "Rio Grande 5 miles SE of Presidio",
+      "latitude": 29.52,
+      "longitude": -104.28638889
+    },
+    {
+      "lid": "PRKT2",
+      "name": "Concho River at Paint Rock",
+      "latitude": 31.515833333333,
+      "longitude": -99.919166666667
+    },
+    {
+      "lid": "PRLT2",
+      "name": "Clear Creek above Telephone Road",
+      "latitude": 29.5968,
+      "longitude": -95.2972
+    },
+    {
+      "lid": "PRST2",
+      "name": "Rio Grande at Presidio International Bridge",
+      "latitude": 29.5575,
+      "longitude": -104.39277778
+    },
+    {
+      "lid": "PSMT2",
+      "name": "North Texas Lakes at Possum Kingdom Lake",
+      "latitude": 32.872222222222,
+      "longitude": -98.425555555556
+    },
+    {
+      "lid": "PWCT2",
+      "name": "Pedernales River at LBJ Ranch Near Stonewall",
+      "latitude": 30.2411,
+      "longitude": -98.6253
+    },
+    {
+      "lid": "PWET2",
+      "name": "Little Pine Island Bayou at Pine Wood Estates",
+      "latitude": 30.1623,
+      "longitude": -94.3171
+    },
+    {
+      "lid": "PWRT2",
+      "name": "North Wichita River at Paducah 14SE",
+      "latitude": 33.950555555556,
+      "longitude": -100.06444444444
+    },
+    {
+      "lid": "QGCT2",
+      "name": "Groesbeck Creek near Quanah",
+      "latitude": 34.35452,
+      "longitude": -99.740372
+    },
+    {
+      "lid": "QLAT2",
+      "name": "South Fork Sabine River near Quinlan",
+      "latitude": 32.897777777778,
+      "longitude": -96.253055555556
+    },
+    {
+      "lid": "QTMT2",
+      "name": "Lake Fork Creek near Quitman",
+      "latitude": 32.763055555556,
+      "longitude": -95.462777777778
+    },
+    {
+      "lid": "RBBT2",
+      "name": "Tide Station (LCH) at Rainbow Bridge",
+      "latitude": 29.98,
+      "longitude": -93.8817
+    },
+    {
+      "lid": "RBFT2",
+      "name": "Red Bluff Creek near at FM 1283 near Pipe Creek",
+      "latitude": 29.673,
+      "longitude": -98.96
+    },
+    {
+      "lid": "RBUT2",
+      "name": "Ricon Bayou Channel near Calallen",
+      "latitude": 27.8966666666667,
+      "longitude": -97.6252777777778
+    },
+    {
+      "lid": "RCCT2",
+      "name": "Copano Creek near Refugio",
+      "latitude": 28.303333333333,
+      "longitude": -97.112222222222
+    },
+    {
+      "lid": "RCET2",
+      "name": "Chambers Creek near Rice",
+      "latitude": 32.198333333333,
+      "longitude": -96.52
+    },
+    {
+      "lid": "RCLT2",
+      "name": "Rio Grande at Canutillo",
+      "latitude": 31.915,
+      "longitude": -106.60222222222
+    },
+    {
+      "lid": "RCPT2",
+      "name": "Tide Gauge at Rockport",
+      "latitude": 28.024166666666666,
+      "longitude": -97.04805555555555
+    },
+    {
+      "lid": "REFT2",
+      "name": "Mission River at Refugio",
+      "latitude": 28.291666666667,
+      "longitude": -97.278888888889
+    },
+    {
+      "lid": "RELT2",
+      "name": "Colorado River (TX) at Robert Lee",
+      "latitude": 31.8852777777778,
+      "longitude": -100.480277777778
+    },
+    {
+      "lid": "RGAT2",
+      "name": "Rio Grande below American Canal Diversion",
+      "latitude": 31.777222222222,
+      "longitude": -106.52388888889
+    },
+    {
+      "lid": "RGBT2",
+      "name": "Rhodair Gully at Wellspring Dr.",
+      "latitude": 29.984347,
+      "longitude": -94.0277034
+    },
+    {
+      "lid": "RGDT2",
+      "name": "Rio Grande at Rio Grande City",
+      "latitude": 26.366666666667,
+      "longitude": -98.802777777778
+    },
+    {
+      "lid": "RGIT2",
+      "name": "Rhodair Gully at 5th Street",
+      "latitude": 29.9595,
+      "longitude": -94.0432
+    },
+    {
+      "lid": "RLAT2",
+      "name": "Pecos River at Red Bluff Reservoir",
+      "latitude": 31.901237,
+      "longitude": -103.9101974
+    },
+    {
+      "lid": "RLOT2",
+      "name": "Tide Station (HGX) at Rollover Pass",
+      "latitude": 29.515,
+      "longitude": -94.5133
+    },
+    {
+      "lid": "RLRT2",
+      "name": "Little River near Rockdale",
+      "latitude": 30.760555555556,
+      "longitude": -97.013611111111
+    },
+    {
+      "lid": "RMOT2",
+      "name": "Brazos River at Richmond",
+      "latitude": 29.582222222222,
+      "longitude": -95.7575
+    },
+    {
+      "lid": "RMYT2",
+      "name": "Trinity River near Romayor",
+      "latitude": 30.425,
+      "longitude": -94.8505555555556
+    },
+    {
+      "lid": "ROKT2",
+      "name": "Neches River at Rockland",
+      "latitude": 31.025,
+      "longitude": -94.399444444444
+    },
+    {
+      "lid": "ROST2",
+      "name": "Brazos River near Rosharon",
+      "latitude": 29.349444444444,
+      "longitude": -95.582222222222
+    },
+    {
+      "lid": "ROYT2",
+      "name": "Clear Fork Brazos River near Roby",
+      "latitude": 32.7875,
+      "longitude": -100.388333333333
+    },
+    {
+      "lid": "RRLT2",
+      "name": "North Texas Lakes at Lake Ray Roberts",
+      "latitude": 33.355277777778,
+      "longitude": -97.049722222222
+    },
+    {
+      "lid": "RSRT2",
+      "name": "Trinity River near Rosser",
+      "latitude": 32.426388888889,
+      "longitude": -96.462777777778
+    },
+    {
+      "lid": "RTAT2",
+      "name": "Tide Gauge at Port Aransas",
+      "latitude": 27.83972222222222,
+      "longitude": -97.0725
+    },
+    {
+      "lid": "RVRT2",
+      "name": "Trinity River at Riverside",
+      "latitude": 30.8591666666667,
+      "longitude": -95.3986111111111
+    },
+    {
+      "lid": "RWDT2",
+      "name": "Dry Frio River near Reagan Wells near Uvalde 23N",
+      "latitude": 29.504444444444,
+      "longitude": -99.781111111111
+    },
+    {
+      "lid": "RYET2",
+      "name": "Menard Creek near Rye",
+      "latitude": 30.4811,
+      "longitude": -94.7794
+    },
+    {
+      "lid": "SAAT2",
+      "name": "Medina River at San Antonio US 281S",
+      "latitude": 29.263888888889,
+      "longitude": -98.490555555556
+    },
+    {
+      "lid": "SABT2",
+      "name": "Sabinal River at Sabinal",
+      "latitude": 29.314166666667,
+      "longitude": -99.480555555556
+    },
+    {
+      "lid": "SACT2",
+      "name": "Salado Creek at Loop 13",
+      "latitude": 29.356944444444,
+      "longitude": -98.4125
+    },
+    {
+      "lid": "SAFT2",
+      "name": "San Pedro Creek at Furnish Street",
+      "latitude": 29.406111111111112,
+      "longitude": -98.51055555555556
+    },
+    {
+      "lid": "SAGT2",
+      "name": "West Central Texas Lakes at O. C. Fisher Lake",
+      "latitude": 31.484444444444,
+      "longitude": -100.48138888889
+    },
+    {
+      "lid": "SALT2",
+      "name": "Sabinal River near Sabinal",
+      "latitude": 29.490833333333,
+      "longitude": -99.4925
+    },
+    {
+      "lid": "SBMT2",
+      "name": "Navidad River at Sublime",
+      "latitude": 29.46666666666667,
+      "longitude": -96.8125
+    },
+    {
+      "lid": "SBNT2",
+      "name": "Rio Grande near San Benito",
+      "latitude": 26.030555555556,
+      "longitude": -97.727777777778
+    },
+    {
+      "lid": "SBPT2",
+      "name": "near Sabine Pass",
+      "latitude": 29.728333333333,
+      "longitude": -93.87
+    },
+    {
+      "lid": "SBUT2",
+      "name": "Sabinal River at Utopia",
+      "latitude": 29.612222,
+      "longitude": -99.529444
+    },
+    {
+      "lid": "SCAT2",
+      "name": "Slaughter Creek at FM 1826 near Austin 6NW",
+      "latitude": 30.208888888889,
+      "longitude": -97.90305555555555
+    },
+    {
+      "lid": "SCCT2",
+      "name": "Concho River at San Angelo",
+      "latitude": 31.4544444444444,
+      "longitude": -100.410277777778
+    },
+    {
+      "lid": "SCDT2",
+      "name": "Coleto Creek at Arnold Road Crossing",
+      "latitude": 28.861388888889,
+      "longitude": -97.226111111111
+    },
+    {
+      "lid": "SCGT2",
+      "name": "Sandies Creek at FM 108 near Smiley",
+      "latitude": 29.291755555555557,
+      "longitude": -97.62075555555556
+    },
+    {
+      "lid": "SCLT2",
+      "name": "North Texas Lakes at Jim Chapman Lake",
+      "latitude": 33.333333333333,
+      "longitude": -95.625
+    },
+    {
+      "lid": "SCRT2",
+      "name": "Seco Creek at Rowe Ranch near D'Hanis",
+      "latitude": 29.370555555556,
+      "longitude": -99.2875
+    },
+    {
+      "lid": "SDAT2",
+      "name": "Caney Creek near Splendora",
+      "latitude": 30.25944444444444,
+      "longitude": -95.30222222222223
+    },
+    {
+      "lid": "SDRT2",
+      "name": "Tide Gauge at Seadrift",
+      "latitude": 28.407222222222224,
+      "longitude": -96.71194444444444
+    },
+    {
+      "lid": "SEGT2",
+      "name": "Guadalupe River at Seguin",
+      "latitude": 29.551944444444,
+      "longitude": -97.969722222222
+    },
+    {
+      "lid": "SELT2",
+      "name": "Cibolo Creek at Selma",
+      "latitude": 29.593888888889,
+      "longitude": -98.310833333333
+    },
+    {
+      "lid": "SEYT2",
+      "name": "Wichita River near Seymour",
+      "latitude": 33.70037,
+      "longitude": -99.388691
+    },
+    {
+      "lid": "SFCT2",
+      "name": "San Felipe Creek near Del Rio 2NE",
+      "latitude": 29.330555555556,
+      "longitude": -100.88888888889
+    },
+    {
+      "lid": "SFIT2",
+      "name": "Independence Creek 18 miles SSE of Sheffield",
+      "latitude": 30.45075,
+      "longitude": -101.7319167
+    },
+    {
+      "lid": "SGAT2",
+      "name": "Barrilla Draw 13 miles ESE of Saragosa",
+      "latitude": 30.95792694,
+      "longitude": -103.459619
+    },
+    {
+      "lid": "SGET2",
+      "name": "Clear Creek near Sanger",
+      "latitude": 33.336111111111,
+      "longitude": -97.179166666667
+    },
+    {
+      "lid": "SGGT2",
+      "name": "Guadalupe River at FM 1117 near Seguin",
+      "latitude": 29.536111111111,
+      "longitude": -97.880833333333
+    },
+    {
+      "lid": "SGNT2",
+      "name": "Tide Station (HGX) at Sargent",
+      "latitude": 28.7716,
+      "longitude": -95.6168
+    },
+    {
+      "lid": "SGOT2",
+      "name": "Pecan Creek (Concho River Basin) near San Angelo",
+      "latitude": 31.3088888888889,
+      "longitude": -100.445555555556
+    },
+    {
+      "lid": "SHAT2",
+      "name": "North Fork of the Red River at Shamrock",
+      "latitude": 35.264166666667,
+      "longitude": -100.24138888889
+    },
+    {
+      "lid": "SHCT2",
+      "name": "Rowlette Creek near Sachse",
+      "latitude": 32.959722222222,
+      "longitude": -96.614166666667
+    },
+    {
+      "lid": "SHLT2",
+      "name": "San Jacinto River near Sheldon",
+      "latitude": 29.876111111111,
+      "longitude": -95.093611111111
+    },
+    {
+      "lid": "SILT2",
+      "name": "Colorado River (TX) above Silver",
+      "latitude": 32.053611111111,
+      "longitude": -100.76166666667
+    },
+    {
+      "lid": "SIOT2",
+      "name": "Olmos Creek at Dresden Drive",
+      "latitude": 29.498888888889,
+      "longitude": -98.51
+    },
+    {
+      "lid": "SIPT2",
+      "name": "Sabine River at International Paper",
+      "latitude": 30.1998,
+      "longitude": -93.7184
+    },
+    {
+      "lid": "SKCT2",
+      "name": "Stryker Creek at Stryker Creek Lake",
+      "latitude": 31.940277777778,
+      "longitude": -94.988611111111
+    },
+    {
+      "lid": "SKMT2",
+      "name": "Aransas River near Skidmore",
+      "latitude": 28.282222222222,
+      "longitude": -97.620555555556
+    },
+    {
+      "lid": "SLHT2",
+      "name": "Slaughter Creek at FM 2304 near Manchaca 2NNE",
+      "latitude": 30.161944444444,
+      "longitude": -97.831944444444
+    },
+    {
+      "lid": "SLNT2",
+      "name": "Brazos River at US 59",
+      "latitude": 29.56758,
+      "longitude": -95.66822
+    },
+    {
+      "lid": "SMCT2",
+      "name": "Guadalupe River at Canyon Lake",
+      "latitude": 29.868611111111,
+      "longitude": -98.198611111111
+    },
+    {
+      "lid": "SMIT2",
+      "name": "Colorado River (TX) near Smithville",
+      "latitude": 30.0125,
+      "longitude": -97.161666666667
+    },
+    {
+      "lid": "SMKT2",
+      "name": "Millers Creek at Millers Creek Reservoir near Bomarton",
+      "latitude": 33.408987,
+      "longitude": -99.388969
+    },
+    {
+      "lid": "SMMT2",
+      "name": "Medina River near Somerset",
+      "latitude": 29.261944,
+      "longitude": -98.581111
+    },
+    {
+      "lid": "SMRT2",
+      "name": "San Marcos River near Martindale",
+      "latitude": 29.832222222222,
+      "longitude": -97.842222222222
+    },
+    {
+      "lid": "SMVT2",
+      "name": "Yegua Creek near Somerville, TX",
+      "latitude": 30.3218,
+      "longitude": -96.5072
+    },
+    {
+      "lid": "SNBT2",
+      "name": "Colorado River (TX) near San Saba",
+      "latitude": 31.2177777777778,
+      "longitude": -98.5641666666667
+    },
+    {
+      "lid": "SNPT2",
+      "name": "San Antonio River at Loop 410",
+      "latitude": 29.321944444444,
+      "longitude": -98.45
+    },
+    {
+      "lid": "SOLT2",
+      "name": "Pine Island Bayou near Sour Lake",
+      "latitude": 30.105833333333,
+      "longitude": -94.334444444444
+    },
+    {
+      "lid": "SOMT2",
+      "name": "Yegua Creek at Lake Somerville",
+      "latitude": 30.322222222222,
+      "longitude": -96.525555555556
+    },
+    {
+      "lid": "SOUT2",
+      "name": "Brazos River near South Bend",
+      "latitude": 33.024166666667,
+      "longitude": -98.643611111111
+    },
+    {
+      "lid": "SPAT2",
+      "name": "Navidad River near Speaks",
+      "latitude": 29.321666666667,
+      "longitude": -96.708888888889
+    },
+    {
+      "lid": "SPCT2",
+      "name": "Pecos River 3 miles ESE of Sheffield",
+      "latitude": 30.65961373,
+      "longitude": -101.7701244
+    },
+    {
+      "lid": "SPDT2",
+      "name": "Peach Creek near Splendora",
+      "latitude": 30.2325,
+      "longitude": -95.168055555556
+    },
+    {
+      "lid": "SPMT2",
+      "name": "Palo Duro Creek at Spearman",
+      "latitude": 36.202222222222,
+      "longitude": -101.30555555556
+    },
+    {
+      "lid": "SPNT2",
+      "name": "Spring Creek near Spring",
+      "latitude": 30.110277777778,
+      "longitude": -95.436111111111
+    },
+    {
+      "lid": "SPRT2",
+      "name": "Palo Duro Creek at Palo Duro Reservoir",
+      "latitude": 36.361666666667,
+      "longitude": -101.16333333333
+    },
+    {
+      "lid": "SRCT2",
+      "name": "North Concho River at Sterling City",
+      "latitude": 31.83,
+      "longitude": -100.993333333333
+    },
+    {
+      "lid": "SRGT2",
+      "name": "Guadalupe River near Spring Branch",
+      "latitude": 29.860277777778,
+      "longitude": -98.383333333333
+    },
+    {
+      "lid": "SRMT2",
+      "name": "Sabinal River below Mill Creek near Vanderpool",
+      "latitude": 29.718888888889,
+      "longitude": -99.548611111111
+    },
+    {
+      "lid": "SRRT2",
+      "name": "San Antonio River at SH 72 near Runge",
+      "latitude": 28.848611111111,
+      "longitude": -97.736944444444
+    },
+    {
+      "lid": "SRUT2",
+      "name": "San Marcos River at San Marcos",
+      "latitude": 29.888888888889,
+      "longitude": -97.933888888889
+    },
+    {
+      "lid": "SSBT2",
+      "name": "San Saba River at San Saba",
+      "latitude": 31.2130555555556,
+      "longitude": -98.7191666666667
+    },
+    {
+      "lid": "SSCT2",
+      "name": "Salado Creek at NE Loop 410",
+      "latitude": 29.515833333333,
+      "longitude": -98.430833333333
+    },
+    {
+      "lid": "SSMT2",
+      "name": "Seco Creek at Miller Ranch near Utopia",
+      "latitude": 29.573055555556,
+      "longitude": -99.402777777778
+    },
+    {
+      "lid": "STFT2",
+      "name": "California Creek (Clear Fk Brazos) near Stamford",
+      "latitude": 32.9308333333333,
+      "longitude": -99.6422222222222
+    },
+    {
+      "lid": "STIT2",
+      "name": "North Texas Lakes at Stillhouse Hollow Lake",
+      "latitude": 31.022222222222,
+      "longitude": -97.5325
+    },
+    {
+      "lid": "STLT2",
+      "name": "Guadalupe River at Sattler",
+      "latitude": 29.858888888889,
+      "longitude": -98.179722222222
+    },
+    {
+      "lid": "STYT2",
+      "name": "Colorado River (TX) at Stacy",
+      "latitude": 31.4936111111111,
+      "longitude": -99.5736111111111
+    },
+    {
+      "lid": "SUPT2",
+      "name": "Cibolo Creek at Sutherland Springs",
+      "latitude": 29.279722222222,
+      "longitude": -98.053333333333
+    },
+    {
+      "lid": "SYCT2",
+      "name": "Sycamore Creek near Del Rio 12SE",
+      "latitude": 29.24,
+      "longitude": -100.76583333333
+    },
+    {
+      "lid": "SYMT2",
+      "name": "Brazos River at Seymour",
+      "latitude": 33.5808928,
+      "longitude": -99.267576
+    },
+    {
+      "lid": "SYOT2",
+      "name": "Wichita River at Lake Kemp",
+      "latitude": 33.758427,
+      "longitude": -99.151183
+    },
+    {
+      "lid": "TAQT2",
+      "name": "Tide Gauge at Texas State Aquarium",
+      "latitude": 27.815,
+      "longitude": -97.38916666666667
+    },
+    {
+      "lid": "TBFT2",
+      "name": "Neches River near Town Bluff",
+      "latitude": 30.790833333333,
+      "longitude": -94.150833333333
+    },
+    {
+      "lid": "TBLT2",
+      "name": "Neches River at Steinhagen Lake",
+      "latitude": 30.795277777778,
+      "longitude": -94.18
+    },
+    {
+      "lid": "TBPT2",
+      "name": "Bluff Creek (N TX) at Truscott Brine Lake",
+      "latitude": 33.797864,
+      "longitude": -99.836761
+    },
+    {
+      "lid": "TBRT2",
+      "name": "West Central Texas Lakes at Twin Buttes Reservoir",
+      "latitude": 31.381944444444,
+      "longitude": -100.53805555556
+    },
+    {
+      "lid": "TDDT2",
+      "name": "Trinity River at Trinidad",
+      "latitude": 32.1475,
+      "longitude": -96.102222222222
+    },
+    {
+      "lid": "TELT2",
+      "name": "Rio Grande at Johnson Ranch",
+      "latitude": 29.035,
+      "longitude": -103.39083333
+    },
+    {
+      "lid": "THET2",
+      "name": "Nueces River near Three Rivers",
+      "latitude": 28.427222222222,
+      "longitude": -98.177777777778
+    },
+    {
+      "lid": "TIDT2",
+      "name": "Frio River at Tilden",
+      "latitude": 28.467222222222,
+      "longitude": -98.547222222222
+    },
+    {
+      "lid": "TILT2",
+      "name": "Nueces River near Tilden",
+      "latitude": 28.308611111111,
+      "longitude": -98.556944444444
+    },
+    {
+      "lid": "TIVT2",
+      "name": "Guadalupe River near Tivoli",
+      "latitude": 28.505555555556,
+      "longitude": -96.884444444444
+    },
+    {
+      "lid": "TKLT2",
+      "name": "Spring Creek (Concho River Basin) above Tankersley",
+      "latitude": 31.33,
+      "longitude": -100.64
+    },
+    {
+      "lid": "TKST2",
+      "name": "Middle Concho River above Tankersley",
+      "latitude": 31.4272222222222,
+      "longitude": -100.710833333333
+    },
+    {
+      "lid": "TLCT2",
+      "name": "Sulphur River near Talco",
+      "latitude": 33.3862,
+      "longitude": -95.1322
+    },
+    {
+      "lid": "TLPT2",
+      "name": "Middle Wichita River at Guthrie 19NE",
+      "latitude": 33.795833333333,
+      "longitude": -100.07472222222
+    },
+    {
+      "lid": "TMBT2",
+      "name": "Spring Creek at Tomball",
+      "latitude": 30.119722222222,
+      "longitude": -95.645833333333
+    },
+    {
+      "lid": "TMYT2",
+      "name": "Sabine River at I-10",
+      "latitude": 30.1277,
+      "longitude": -93.7017
+    },
+    {
+      "lid": "TNGT2",
+      "name": "Terlingua Creek 7 miles S of Terlingua",
+      "latitude": 29.19972222,
+      "longitude": -103.605555556
+    },
+    {
+      "lid": "TNLT2",
+      "name": "San Miguel Creek near Tilden",
+      "latitude": 28.587222222222,
+      "longitude": -98.545555555556
+    },
+    {
+      "lid": "TPHT2",
+      "name": "Hondo Creek near Tarpley",
+      "latitude": 29.57,
+      "longitude": -99.247777777778
+    },
+    {
+      "lid": "TRNT2",
+      "name": "North Texas Lakes at Cedar Creek Lake",
+      "latitude": 32.243055555556,
+      "longitude": -96.140555555556
+    },
+    {
+      "lid": "TRST2",
+      "name": "North Wichita River near Truscott",
+      "latitude": 33.820642,
+      "longitude": -99.786482
+    },
+    {
+      "lid": "TVLT2",
+      "name": "Guadalupe River above Tivoli",
+      "latitude": 28.478055555555557,
+      "longitude": -96.8625
+    },
+    {
+      "lid": "TXPT2",
+      "name": "Tide Station (LCH) at Texas Point",
+      "latitude": 29.6892,
+      "longitude": -93.8418
+    },
+    {
+      "lid": "UDET2",
+      "name": "Frio River below Dry Frio near Uvalde",
+      "latitude": 29.245555555556,
+      "longitude": -99.674166666667
+    },
+    {
+      "lid": "ULRT2",
+      "name": "Leona River near Uvalde",
+      "latitude": 29.154166666667,
+      "longitude": -99.743055555556
+    },
+    {
+      "lid": "UMBT2",
+      "name": "Tierra Blanca Creek 8SW Umbarger",
+      "latitude": 34.8502777777778,
+      "longitude": -102.175555555556
+    },
+    {
+      "lid": "UMRT2",
+      "name": "Palo Duro Creek 6NNW Umbarger",
+      "latitude": 35.03550556,
+      "longitude": -102.1506
+    },
+    {
+      "lid": "UVAT2",
+      "name": "Nueces River at Laguna",
+      "latitude": 29.428333333333,
+      "longitude": -99.996944444444
+    },
+    {
+      "lid": "UVLT2",
+      "name": "Nueces River below Uvalde",
+      "latitude": 29.123611111111,
+      "longitude": -99.894444444444
+    },
+    {
+      "lid": "VCAT2",
+      "name": "Tide Gauge at Port Lavaca",
+      "latitude": 28.64027777777778,
+      "longitude": -96.60944444444445
+    },
+    {
+      "lid": "VCKT2",
+      "name": "Middle Verde Creek at Hwy 173N near Hondo",
+      "latitude": 29.567777777778,
+      "longitude": -99.096944444444
+    },
+    {
+      "lid": "VERT2",
+      "name": "Pease River near Vernon",
+      "latitude": 34.179583,
+      "longitude": -99.323333
+    },
+    {
+      "lid": "VICT2",
+      "name": "Guadalupe River at Victoria",
+      "latitude": 28.792777777778,
+      "longitude": -97.012777777778
+    },
+    {
+      "lid": "VIMT2",
+      "name": "Village Creek near Village Mills",
+      "latitude": 30.4814,
+      "longitude": -94.3946
+    },
+    {
+      "lid": "VMAT2",
+      "name": "North Bosque River at Valley Mills",
+      "latitude": 31.669444444444,
+      "longitude": -97.469166666667
+    },
+    {
+      "lid": "VTBT2",
+      "name": "Tide Gauge above Viola Turning Basin",
+      "latitude": 27.8461,
+      "longitude": -97.5207
+    },
+    {
+      "lid": "WADT2",
+      "name": "Walnut Creek at Dessau Rd near Austin",
+      "latitude": 30.375,
+      "longitude": -97.660277777778
+    },
+    {
+      "lid": "WART2",
+      "name": "Waller Creek at Red River Street",
+      "latitude": 30.271389,
+      "longitude": -97.735556
+    },
+    {
+      "lid": "WAYT2",
+      "name": "Prairie Dog Town Fork of the Red River at Wayside",
+      "latitude": 34.8375,
+      "longitude": -101.41361111111
+    },
+    {
+      "lid": "WBAT2",
+      "name": "Brazos River at Waco",
+      "latitude": 31.535833333333,
+      "longitude": -97.073055555556
+    },
+    {
+      "lid": "WBKT2",
+      "name": "Bear Creek (TX) at FM 171 Road near Wichita Falls",
+      "latitude": 33.9842778,
+      "longitude": -98.4620944
+    },
+    {
+      "lid": "WBRT2",
+      "name": "Beals Creek 11 miles S of Westbrook",
+      "latitude": 32.1992913,
+      "longitude": -101.0140029
+    },
+    {
+      "lid": "WBZT2",
+      "name": "Brazos River at Washington",
+      "latitude": 30.35918,
+      "longitude": -96.154903
+    },
+    {
+      "lid": "WCAT2",
+      "name": "Waller Creek at East 1st Street at Austin",
+      "latitude": 30.261944444444445,
+      "longitude": -97.73972222222223
+    },
+    {
+      "lid": "WCBT2",
+      "name": "Brazos River near West Columbia",
+      "latitude": 29.144,
+      "longitude": -95.6058
+    },
+    {
+      "lid": "WCHT2",
+      "name": "Colorado River (TX) at Winchell",
+      "latitude": 31.4677777777778,
+      "longitude": -99.1619444444444
+    },
+    {
+      "lid": "WEAT2",
+      "name": "Clear Fork Trinity River near Weatherford",
+      "latitude": 32.740277777778,
+      "longitude": -97.651666666667
+    },
+    {
+      "lid": "WEET2",
+      "name": "West Elm Creek at Encino Rio at San Antonio",
+      "latitude": 29.629166666666666,
+      "longitude": -98.4486111111111
+    },
+    {
+      "lid": "WEOT2",
+      "name": "Oso Creek at Merrett Road",
+      "latitude": 27.730555555556,
+      "longitude": -97.576944444444
+    },
+    {
+      "lid": "WFDT2",
+      "name": "Cypress Creek near Westfield",
+      "latitude": 30.03555555555555,
+      "longitude": -95.42861111111112
+    },
+    {
+      "lid": "WFHT2",
+      "name": "Holliday Creek at Wichita Falls",
+      "latitude": 33.88444,
+      "longitude": -98.49889
+    },
+    {
+      "lid": "WFRT2",
+      "name": "Wichita River at River Road at Wichita Falls",
+      "latitude": 33.931055,
+      "longitude": -98.459805
+    },
+    {
+      "lid": "WGRT2",
+      "name": "Willis Creek near Granger",
+      "latitude": 30.702222222222,
+      "longitude": -97.434166666667
+    },
+    {
+      "lid": "WHAT2",
+      "name": "Colorado River (TX) at Wharton",
+      "latitude": 29.308888888889,
+      "longitude": -96.103611111111
+    },
+    {
+      "lid": "WHOT2",
+      "name": "Sandies Creek near Westhoff",
+      "latitude": 29.2152474995717,
+      "longitude": -97.4494352901303
+    },
+    {
+      "lid": "WICT2",
+      "name": "Wichita River at Wichita Falls",
+      "latitude": 33.909542,
+      "longitude": -98.533666
+    },
+    {
+      "lid": "WJCT2",
+      "name": "Williamson Creek at Jimmy Clay Road near Austin 6SE",
+      "latitude": 30.189166666667,
+      "longitude": -97.732222222222
+    },
+    {
+      "lid": "WKLT2",
+      "name": "Williamson Creek at Oak Hill",
+      "latitude": 30.235,
+      "longitude": -97.86
+    },
+    {
+      "lid": "WLCT2",
+      "name": "Waller Creek at Koenig Lane",
+      "latitude": 30.322777777778,
+      "longitude": -97.722777777778
+    },
+    {
+      "lid": "WLGT2",
+      "name": "Salt Fork of the Red River at Wellington",
+      "latitude": 34.9575,
+      "longitude": -100.22055555556
+    },
+    {
+      "lid": "WMBT2",
+      "name": "Blanco River at Wimberley",
+      "latitude": 29.994166666667,
+      "longitude": -98.088611111111
+    },
+    {
+      "lid": "WOCT2",
+      "name": "White Oak Creek near Talco",
+      "latitude": 33.322222222222,
+      "longitude": -95.0925
+    },
+    {
+      "lid": "WPMT2",
+      "name": "West Prong Medina River at Carpenter Creek Road",
+      "latitude": 29.78,
+      "longitude": -99.379167
+    },
+    {
+      "lid": "WRST2",
+      "name": "Fifteenmile Creek near Weser",
+      "latitude": 28.8975,
+      "longitude": -97.354722222222
+    },
+    {
+      "lid": "WSBT2",
+      "name": "Buffalo Bayou at West Belt Drive",
+      "latitude": 29.761944444444,
+      "longitude": -95.5575
+    },
+    {
+      "lid": "WSGT2",
+      "name": "San Gabriel River near Weir, TX",
+      "latitude": 30.646,
+      "longitude": -97.5852
+    },
+    {
+      "lid": "WTTT2",
+      "name": "Atascosa River at Whitsett",
+      "latitude": 28.621944444444,
+      "longitude": -98.281111111111
+    },
+    {
+      "lid": "WTYT2",
+      "name": "North Texas Lakes at Whitney Lake",
+      "latitude": 31.865277777778,
+      "longitude": -97.371666666667
+    },
+    {
+      "lid": "WUCT2",
+      "name": "Unnamed Creek at FM 171 Road near Wichita Falls",
+      "latitude": 33.97043889,
+      "longitude": -98.4638056
+    },
+    {
+      "lid": "WWVT2",
+      "name": "Walnut Creek at Webberville Road",
+      "latitude": 30.283055555556,
+      "longitude": -97.654722222222
+    },
+    {
+      "lid": "ZACT2",
+      "name": "Zacate Creek at Laredo",
+      "latitude": 27.53611111111111,
+      "longitude": -99.50027777777778
+    },
+    {
+      "lid": "ZAJT2",
+      "name": "Zacate Creek at Jacaman Road",
+      "latitude": 27.5612,
+      "longitude": -99.4712
+    }
+  ]
+}
