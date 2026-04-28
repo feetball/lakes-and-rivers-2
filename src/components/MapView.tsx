@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMapEvents } from 'react-leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
-import type { PathOptions, Layer } from 'leaflet';
+import type { GeoJSON as LeafletGeoJSON, PathOptions, Layer } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
 import { CATEGORY_ORDER, colorFor, CATEGORY_LABELS } from '@/lib/floodStatus';
 import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
@@ -12,6 +12,12 @@ import GaugeSheet from './GaugeSheet';
 import HoverHydrograph from './HoverHydrograph';
 import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
+
+// Below this zoom, hide stream/river lines and only paint waterbodies.
+// Painting thousands of canvas polylines while panning the whole state is
+// the dominant cost — punting them past the state-wide view keeps the map
+// responsive without losing context (lakes still draw to anchor the geography).
+const STREAM_MIN_ZOOM = 8;
 
 // Center on Texas.
 const TX_CENTER: [number, number] = [31.0, -99.5];
@@ -46,6 +52,13 @@ function ViewPersister() {
   return null;
 }
 
+function ZoomTracker({ onChange }: { onChange: (z: number) => void }) {
+  const map = useMapEvents({
+    zoomend: () => onChange(map.getZoom()),
+  });
+  return null;
+}
+
 type Waterways = FeatureCollection<Geometry, WaterwayProperties>;
 
 export default function MapView() {
@@ -62,6 +75,8 @@ export default function MapView() {
     const saved = loadView();
     return saved ?? { lat: TX_CENTER[0], lon: TX_CENTER[1], zoom: 6 };
   });
+  const [zoom, setZoom] = useState<number>(initialView.zoom);
+  const geoJsonRef = useRef<LeafletGeoJSON | null>(null);
 
   useEffect(() => {
     let aborted = false;
@@ -76,19 +91,16 @@ export default function MapView() {
   }, []);
 
   const gaugeMap = gaugeData?.gauges ?? {};
-
-  // Build a key that re-mounts GeoJSON when gauge statuses change, so styles
-  // recompute. Re-rendering the same Leaflet layer is tricky otherwise.
-  const styleKey = useMemo(() => {
-    return Object.values(gaugeMap)
-      .map(g => `${g.id}:${g.category}`)
-      .sort()
-      .join('|');
-  }, [gaugeMap]);
+  // Keep a ref to the latest gauge map so style + tooltip callbacks can
+  // read live data without forcing the GeoJSON layer to re-mount on every
+  // status update (the previous styleKey approach rebuilt thousands of
+  // canvas paths every tick).
+  const gaugeMapRef = useRef(gaugeMap);
+  gaugeMapRef.current = gaugeMap;
 
   const styleFeature = (feature?: Feature<Geometry, WaterwayProperties>): PathOptions => {
     const gid = feature?.properties?.gaugeId;
-    const cat: FloodCategory | undefined = gid ? gaugeMap[gid]?.category : undefined;
+    const cat: FloodCategory | undefined = gid ? gaugeMapRef.current[gid]?.category : undefined;
     const isWaterbody = feature?.geometry?.type === 'Polygon' || feature?.geometry?.type === 'MultiPolygon';
     const color = colorFor(cat);
     return isWaterbody
@@ -96,13 +108,43 @@ export default function MapView() {
       : { color, weight: 2.5, opacity: 0.9 };
   };
 
+  // Push fresh styles into the existing layer when gauge categories change,
+  // instead of remounting the GeoJSON component.
+  useEffect(() => {
+    const layer = geoJsonRef.current;
+    if (!layer) return;
+    layer.setStyle(styleFeature as any);
+    layer.eachLayer(child => {
+      const f = (child as any).feature as Feature<Geometry, WaterwayProperties> | undefined;
+      const gid = f?.properties?.gaugeId;
+      const name = f?.properties?.name ?? 'Unnamed waterway';
+      const g = gid ? gaugeMap[gid] : undefined;
+      const label = g ? `${name} — ${CATEGORY_LABELS[g.category]}` : name;
+      const tip = (child as any).getTooltip?.();
+      if (tip) tip.setContent(label);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gaugeMap]);
+
+  // Drop tiny/minor stream segments below STREAM_MIN_ZOOM. Lakes always
+  // render — they're cheap (one polygon each) and provide context.
+  const filterFeature = (feature: Feature<Geometry, WaterwayProperties>): boolean => {
+    const t = feature.geometry?.type;
+    const isLine = t === 'LineString' || t === 'MultiLineString';
+    if (!isLine) return true;
+    return zoom >= STREAM_MIN_ZOOM;
+  };
+
   const onEachFeature = (feature: Feature<Geometry, WaterwayProperties>, layer: Layer) => {
     const gid = feature.properties?.gaugeId;
     const name = feature.properties?.name ?? 'Unnamed waterway';
-    const g = gid ? gaugeMap[gid] : undefined;
+    const g = gid ? gaugeMapRef.current[gid] : undefined;
     const label = g ? `${name} — ${CATEGORY_LABELS[g.category]}` : name;
     layer.bindTooltip(label, { sticky: true, direction: 'top', opacity: 0.9 });
-    layer.on('click', () => { if (g) setSelected(g); });
+    layer.on('click', () => {
+      const live = gid ? gaugeMapRef.current[gid] : undefined;
+      if (live) setSelected(live);
+    });
   };
 
   // Render every gauge we know about. Gauges with no thresholds (or no
@@ -130,6 +172,7 @@ export default function MapView() {
         zoomControl={false}
       >
         <ViewPersister />
+        <ZoomTracker onChange={setZoom} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -137,9 +180,14 @@ export default function MapView() {
         />
         {waterways && (
           <GeoJSON
-            key={styleKey || 'initial'}
+            // Re-mount only when the underlying dataset changes or when the
+            // stream-visibility threshold flips, so canvas paths aren't
+            // rebuilt on every gauge tick.
+            key={zoom >= STREAM_MIN_ZOOM ? 'with-streams' : 'lakes-only'}
+            ref={geoJsonRef as any}
             data={waterways}
             style={styleFeature as any}
+            filter={filterFeature as any}
             onEachFeature={onEachFeature as any}
           />
         )}

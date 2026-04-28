@@ -27,7 +27,7 @@ const GAUGES_LIST_SEED = resolve(OUT_DIR, 'gauges-list.json');
 const CACHE_DIR = resolve(ROOT, 'data-cache/gauges');
 // Bump when simplifyFeature / per-gauge schema changes, so old caches are
 // ignored automatically without a manual purge.
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 // Cache entries older than this are refetched. Override with CACHE_TTL_DAYS=N.
 const CACHE_TTL_MS = (Number(process.env.CACHE_TTL_DAYS) || 30) * 24 * 3_600_000;
 
@@ -42,13 +42,10 @@ const REFRESH = ARGS.has('--refresh') || process.env.REFRESH === '1';
 // that stretch between gauges.
 const FLOWLINE_RADIUS_M = 12000;
 const WATERBODY_RADIUS_M = 4000;
-// Tight radius around each gauge for the "host waterway" query: the segment
-// the gauge actually sits on. Unfiltered (any FTYPE, named or not) and
-// capped to a few features so we don't pull in every nearby ditch — just the
-// segment the gauge sits on. Guarantees every gauge has its host waterway
-// in the output even if it's an unnamed creek or artificial channel.
-const HOST_FLOWLINE_RADIUS_M = 300;
-const HOST_FLOWLINE_MAX = 3;
+// Drop sub-AREASQKM lakes/reservoirs. 0.25 km² = 25 ha keeps notable lakes
+// and reservoirs while filtering out farm ponds and oxbows that just add
+// payload weight.
+const WATERBODY_MIN_AREA_KM2 = 0.25;
 // Cap number of gauges processed (useful for smoke tests).
 const LIMIT = Number(process.env.GAUGE_LIMIT ?? 0) || Infinity;
 // Parallel fetches to NHD. Higher = faster build; if NHD starts returning
@@ -312,23 +309,22 @@ async function fetchGaugeBundle(g) {
   const lat = g.latitude;
   const lon = g.longitude;
   const point = { x: lon, y: lat, spatialReference: { wkid: 4326 } };
-  const [hostJson, flowJson, wbJson, detail] = await Promise.all([
-    // Host segment: nearest flowline of any type, named or not. Guarantees
-    // the waterway the gauge actually sits on always ends up rendered, even
-    // if it's an unnamed creek or an artificial channel.
-    queryNhd(FLOWLINE_LAYER, point, HOST_FLOWLINE_RADIUS_M, '1=1', HOST_FLOWLINE_MAX).catch(() => null),
-    // FTYPE 460=StreamRiver, 558=ArtificialPath (flow line through a lake).
-    // Keeps rivers + named creeks; excludes canals, ditches, pipelines.
-    queryNhd(FLOWLINE_LAYER, point, FLOWLINE_RADIUS_M, "GNIS_NAME IS NOT NULL AND GNIS_NAME <> '' AND FTYPE IN (460, 558)").catch(() => null),
-    // FTYPE 390=LakePond, 436=Reservoir, 361=Playa. AREASQKM filter drops
-    // sub-5-hectare stock ponds — there are tens of thousands across TX
-    // and they bloat the payload without adding signal.
-    queryNhd(WATERBODY_LAYER, point, WATERBODY_RADIUS_M, 'FTYPE IN (390, 436, 361) AND AREASQKM >= 0.05').catch(() => null),
+  const [flowJson, wbJson, detail] = await Promise.all([
+    // Main streams and rivers only: named, FTYPE 460 = StreamRiver. We
+    // intentionally drop FTYPE 558 (ArtificialPath — connector lines that
+    // run through lakes and visually duplicate the waterbody polygon) and
+    // skip the unnamed "host segment" query entirely so noise from ditches,
+    // canals and unnamed reaches stays out of the output.
+    queryNhd(FLOWLINE_LAYER, point, FLOWLINE_RADIUS_M, "GNIS_NAME IS NOT NULL AND GNIS_NAME <> '' AND FTYPE = 460").catch(() => null),
+    // FTYPE 390=LakePond, 436=Reservoir. Drop playas (361) — most are dry
+    // most of the year and clutter the map. AREASQKM filter keeps "main"
+    // lakes and reservoirs only.
+    queryNhd(WATERBODY_LAYER, point, WATERBODY_RADIUS_M, `FTYPE IN (390, 436) AND AREASQKM >= ${WATERBODY_MIN_AREA_KM2}`).catch(() => null),
     fetchJson(NWPS_GAUGE_DETAIL(lid), { timeoutMs: 30_000, retries: 2 }).catch(() => null),
   ]);
 
   const features = [];
-  for (const src of [hostJson, flowJson, wbJson]) {
+  for (const src of [flowJson, wbJson]) {
     if (!src?.features) continue;
     for (const f of src.features) features.push(simplifyFeature(f, lid));
   }
