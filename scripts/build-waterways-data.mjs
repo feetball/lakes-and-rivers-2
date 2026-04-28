@@ -27,7 +27,7 @@ const GAUGES_LIST_SEED = resolve(OUT_DIR, 'gauges-list.json');
 const CACHE_DIR = resolve(ROOT, 'data-cache/gauges');
 // Bump when simplifyFeature / per-gauge schema changes, so old caches are
 // ignored automatically without a manual purge.
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 // Cache entries older than this are refetched. Override with CACHE_TTL_DAYS=N.
 const CACHE_TTL_MS = (Number(process.env.CACHE_TTL_DAYS) || 30) * 24 * 3_600_000;
 
@@ -37,15 +37,19 @@ const IF_MISSING = ARGS.has('--if-missing');
 // every gauge. Useful after upstream NHD/NWPS data updates.
 const REFRESH = ARGS.has('--refresh') || process.env.REFRESH === '1';
 
-// Spatial buffers (meters) for querying NHD around each gauge point.
-// Wider flowline radius captures the longer reach of rivers + named creeks
-// that stretch between gauges.
-const FLOWLINE_RADIUS_M = 12000;
-const WATERBODY_RADIUS_M = 4000;
-// Drop sub-AREASQKM lakes/reservoirs. 0.25 km² = 25 ha keeps notable lakes
-// and reservoirs while filtering out farm ponds and oxbows that just add
-// payload weight.
-const WATERBODY_MIN_AREA_KM2 = 0.25;
+// Each gauge claims only the river/lake it physically sits on. Two stages:
+//   1. Identify the host: nearest flowline (HOST_PROBE_RADIUS_M) and any
+//      lake the gauge sits in (HOST_WATERBODY_RADIUS_M).
+//   2. If the host flowline has a GNIS name, fetch every reach with the
+//      same name out to HOST_RIVER_RADIUS_M. Adjacent gauges on the same
+//      river both pull overlapping coverage; the nearest-wins dedup
+//      assigns each segment to exactly one gauge, so the boundary lands
+//      roughly halfway between gauges.
+const HOST_PROBE_RADIUS_M = 500;
+const HOST_PROBE_MAX = 5;
+const HOST_WATERBODY_RADIUS_M = 250;
+const HOST_RIVER_RADIUS_M = 40000;
+const HOST_RIVER_MAX = 400;
 // Cap number of gauges processed (useful for smoke tests).
 const LIMIT = Number(process.env.GAUGE_LIMIT ?? 0) || Infinity;
 // Parallel fetches to NHD. Higher = faster build; if NHD starts returning
@@ -304,30 +308,75 @@ async function writeGaugeCache(lid, payload) {
   await rename(p + '.tmp', p);
 }
 
+// Squared planar distance from a gauge point to the nearest vertex of a
+// geometry. Coordinate-space (lon/lat) — not metric — but monotonic, which
+// is all the nearest-wins dedup needs.
+function nearestVertexDistSq(lat, lon, geom) {
+  let min = Infinity;
+  const visit = (line) => {
+    for (const c of line) {
+      const dx = c[0] - lon;
+      const dy = c[1] - lat;
+      const d = dx * dx + dy * dy;
+      if (d < min) min = d;
+    }
+  };
+  if (!geom) return min;
+  if (geom.type === 'LineString') visit(geom.coordinates);
+  else if (geom.type === 'MultiLineString') for (const l of geom.coordinates) visit(l);
+  else if (geom.type === 'Polygon') for (const r of geom.coordinates) visit(r);
+  else if (geom.type === 'MultiPolygon') for (const p of geom.coordinates) for (const r of p) visit(r);
+  else if (geom.type === 'Point') visit([geom.coordinates]);
+  return min;
+}
+
+function pickNearest(features, lat, lon) {
+  if (!features?.length) return null;
+  let best = null;
+  let bestD = Infinity;
+  for (const f of features) {
+    const d = nearestVertexDistSq(lat, lon, f.geometry);
+    if (d < bestD) { bestD = d; best = f; }
+  }
+  return best;
+}
+
 async function fetchGaugeBundle(g) {
   const lid = g.lid;
   const lat = g.latitude;
   const lon = g.longitude;
   const point = { x: lon, y: lat, spatialReference: { wkid: 4326 } };
-  const [flowJson, wbJson, detail] = await Promise.all([
-    // Main streams and rivers only: named, FTYPE 460 = StreamRiver. We
-    // intentionally drop FTYPE 558 (ArtificialPath — connector lines that
-    // run through lakes and visually duplicate the waterbody polygon) and
-    // skip the unnamed "host segment" query entirely so noise from ditches,
-    // canals and unnamed reaches stays out of the output.
-    queryNhd(FLOWLINE_LAYER, point, FLOWLINE_RADIUS_M, "GNIS_NAME IS NOT NULL AND GNIS_NAME <> '' AND FTYPE = 460").catch(() => null),
-    // FTYPE 390=LakePond, 436=Reservoir. Drop playas (361) — most are dry
-    // most of the year and clutter the map. AREASQKM filter keeps "main"
-    // lakes and reservoirs only.
-    queryNhd(WATERBODY_LAYER, point, WATERBODY_RADIUS_M, `FTYPE IN (390, 436) AND AREASQKM >= ${WATERBODY_MIN_AREA_KM2}`).catch(() => null),
+
+  // Stage 1: probe the gauge location for its host waterway.
+  const [hostFlowJson, hostWbJson, detail] = await Promise.all([
+    queryNhd(FLOWLINE_LAYER, point, HOST_PROBE_RADIUS_M, '1=1', HOST_PROBE_MAX).catch(() => null),
+    // FTYPE 390=LakePond, 436=Reservoir. Tight radius — only a lake the
+    // gauge actually sits on/in counts as a host waterbody.
+    queryNhd(WATERBODY_LAYER, point, HOST_WATERBODY_RADIUS_M, 'FTYPE IN (390, 436)', 5).catch(() => null),
     fetchJson(NWPS_GAUGE_DETAIL(lid), { timeoutMs: 30_000, retries: 2 }).catch(() => null),
   ]);
 
-  const features = [];
-  for (const src of [flowJson, wbJson]) {
-    if (!src?.features) continue;
-    for (const f of src.features) features.push(simplifyFeature(f, lid));
+  const hostFlow = pickNearest(hostFlowJson?.features, lat, lon);
+  const hostWaterbody = pickNearest(hostWbJson?.features, lat, lon);
+  const hostName = (hostFlow?.properties?.gnis_name ?? hostFlow?.properties?.GNIS_NAME ?? '').trim() || null;
+
+  // Stage 2: if the host has a name, pull every same-named reach within
+  // range so coverage extends toward adjacent gauges. Unnamed hosts only
+  // contribute their single nearest segment — we don't have a stable key
+  // to chain unnamed reaches together.
+  let riverFeatures = [];
+  if (hostName) {
+    const safe = hostName.replace(/'/g, "''");
+    const where = `GNIS_NAME = '${safe}' AND FTYPE = 460`;
+    const riverJson = await queryNhd(FLOWLINE_LAYER, point, HOST_RIVER_RADIUS_M, where, HOST_RIVER_MAX).catch(() => null);
+    riverFeatures = riverJson?.features ?? [];
+  } else if (hostFlow) {
+    riverFeatures = [hostFlow];
   }
+
+  const features = [];
+  for (const f of riverFeatures) features.push(simplifyFeature(f, lid));
+  if (hostWaterbody) features.push(simplifyFeature(hostWaterbody, lid));
   const cats = detail?.flood?.categories;
   // NWPS uses -9999 (and sometimes -999) as a sentinel for thresholds that
   // aren't defined for a gauge. Storing the sentinel verbatim makes
@@ -402,8 +451,12 @@ async function build() {
   console.log(`      ${usable.length} usable gauges (with lid + coordinates)`);
 
   console.log(`[2/3] Building per-gauge data (cache: ${REFRESH ? 'forced refresh' : 'enabled, ttl ' + (CACHE_TTL_MS / 86_400_000).toFixed(0) + ' d'})`);
-  const seenIds = new Set();
-  const features = [];
+  // Nearest-wins dedup: the same NHD reach often falls inside the host-
+  // river radius of multiple adjacent gauges. Track the closest gauge to
+  // each reach and only keep that gauge's copy, so the painted segment
+  // boundary lands roughly halfway between neighbouring gauges.
+  const bestByNhd = new Map(); // nhdId -> { d, feature }
+  const unkeyed = [];
   const gaugesMeta = [];
   let processed = 0;
   let cacheHits = 0;
@@ -420,19 +473,20 @@ async function build() {
       cacheMisses++;
     }
 
+    const gLat = bundle.meta?.lat ?? g.latitude;
+    const gLon = bundle.meta?.lon ?? g.longitude;
     for (const f of bundle.features) {
       const id = f.properties?.nhdId;
-      // Deduplicate: the same river segment can be "nearest" to multiple
-      // gauges. Keep the first; clients see the first-wins gauge color.
-      if (id && seenIds.has(id)) continue;
-      if (id) seenIds.add(id);
-      features.push(f);
+      if (!id) { unkeyed.push(f); continue; }
+      const d = nearestVertexDistSq(gLat, gLon, f.geometry);
+      const prev = bestByNhd.get(id);
+      if (!prev || d < prev.d) bestByNhd.set(id, { d, feature: f });
     }
     gaugesMeta.push(bundle.meta);
 
     processed++;
     const pct = ((processed / usable.length) * 100).toFixed(1);
-    const line = `      ${processed}/${usable.length} (${pct}%) · cache ${cacheHits} hit / ${cacheMisses} miss · ${features.length} feats · last: ${lid}`;
+    const line = `      ${processed}/${usable.length} (${pct}%) · cache ${cacheHits} hit / ${cacheMisses} miss · ${bestByNhd.size + unkeyed.length} feats · last: ${lid}`;
     // Single-line progress — overwrite when possible, otherwise log periodically.
     if (process.stdout.isTTY) {
       process.stdout.write(`\r${line}\x1b[K`);
@@ -442,6 +496,8 @@ async function build() {
   });
   if (process.stdout.isTTY) process.stdout.write('\n');
 
+  const features = [...unkeyed];
+  for (const v of bestByNhd.values()) features.push(v.feature);
   console.log(`      cache: ${cacheHits} hits / ${cacheMisses} misses (${((cacheHits / usable.length) * 100).toFixed(0)}% hit rate)`);
   console.log(`      total features: ${features.length}`);
   const merged = mergeFlowlinesByName(features);
