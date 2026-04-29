@@ -594,7 +594,20 @@ async function build() {
   for (const m of gaugesMeta) {
     const o = obs.get(m.id);
     if (!o) continue;
-    m.category = o.category;
+    // NWPS frequently leaves floodCategory null even when the gauge has a
+    // valid stage + thresholds. Derive from thresholds in that case so the
+    // meta-shipped fallback paints real colors instead of "no data".
+    let category = o.category;
+    if ((category === 'not_defined' || !category) && typeof o.observedStage === 'number' && m.thresholds) {
+      const t = m.thresholds;
+      const valid = (n) => typeof n === 'number' && n > -100;
+      if (valid(t.major) && o.observedStage >= t.major) category = 'major';
+      else if (valid(t.moderate) && o.observedStage >= t.moderate) category = 'moderate';
+      else if (valid(t.minor) && o.observedStage >= t.minor) category = 'minor';
+      else if (valid(t.action) && o.observedStage >= t.action) category = 'action';
+      else category = 'no_flooding';
+    }
+    m.category = category;
     m.observedStage = o.observedStage;
     m.observedAt = o.observedAt;
     if (o.observedAt) {

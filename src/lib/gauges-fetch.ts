@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import type { FloodCategory, GaugeStatus, GaugesResponse } from '@/lib/types';
-import { sanitizeThresholds } from '@/lib/floodStatus';
+import { sanitizeThresholds, categorizeByStage } from '@/lib/floodStatus';
 
 const NWPS_LIST = 'https://api.water.noaa.gov/nwps/v1/gauges?state=TX';
 export const GAUGES_CACHE_TAG = 'gauges-list';
@@ -49,6 +49,22 @@ function normalizeCategory(raw: unknown): FloodCategory {
     : 'not_defined';
 }
 
+// NWPS often returns floodCategory: null even for gauges with a valid current
+// observation and full set of thresholds. Without this, those gauges paint
+// "No data" gray on the map even though the gauge sheet shows real values.
+// When the upstream category is missing but we have both stage and thresholds,
+// derive it ourselves via the same comparison NWS uses.
+function resolveCategory(
+  rawCategory: unknown,
+  stage: number | null,
+  thresholds: GaugeStatus['thresholds'],
+): FloodCategory {
+  const normalized = normalizeCategory(rawCategory);
+  if (normalized !== 'not_defined') return normalized;
+  if (stage === null || !thresholds) return normalized;
+  return categorizeByStage(stage, thresholds);
+}
+
 async function fetchFreshGauges(): Promise<GaugesResponse> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -69,16 +85,18 @@ async function fetchFreshGauges(): Promise<GaugesResponse> {
         if (!g?.lid || g?.state?.abbreviation !== 'TX') continue;
         const obs = g.status?.observed;
         const m = meta.get(g.lid);
+        const stage = typeof obs?.primary === 'number' ? obs.primary : null;
+        const thresholds = m?.thresholds ?? null;
         gauges[g.lid] = {
           id: g.lid,
           name: g.name ?? g.lid,
           lat: g.latitude,
           lon: g.longitude,
-          category: normalizeCategory(obs?.floodCategory ?? g.ObservedFloodCategory),
-          observedStage: typeof obs?.primary === 'number' ? obs.primary : null,
+          category: resolveCategory(obs?.floodCategory ?? g.ObservedFloodCategory, stage, thresholds),
+          observedStage: stage,
           observedAt: obs?.validTime ?? null,
           unit: obs?.primaryUnit ?? g.flood?.stageUnits ?? m?.unit ?? null,
-          thresholds: m?.thresholds ?? null,
+          thresholds,
         };
       }
       return { gauges, updatedAt: new Date().toISOString() };
