@@ -30,6 +30,12 @@ const CACHE_DIR = resolve(ROOT, 'data-cache/gauges');
 const CACHE_VERSION = 3;
 // Cache entries older than this are refetched. Override with CACHE_TTL_DAYS=N.
 const CACHE_TTL_MS = (Number(process.env.CACHE_TTL_DAYS) || 30) * 24 * 3_600_000;
+// A gauge bundle that comes back empty is treated as a possible transient
+// upstream failure (NHD slow response, NWPS hiccup) and retried on each
+// subsequent build. After this many consecutive empty results we accept that
+// the gauge legitimately has no nearby NHD coverage and stop probing — use
+// --refresh to override.
+const MAX_EMPTY_RETRIES = 5;
 
 const ARGS = new Set(process.argv.slice(2));
 const IF_MISSING = ARGS.has('--if-missing');
@@ -293,8 +299,32 @@ async function readGaugeCache(lid) {
     const parsed = JSON.parse(raw);
     if (parsed?.version !== CACHE_VERSION) return null;
     if (!parsed?.fetchedAt) return null;
-    if (Date.now() - new Date(parsed.fetchedAt).getTime() > CACHE_TTL_MS) return null;
+
+    const isEmpty = !parsed.features?.length;
+    const attempts = parsed.emptyAttempts ?? 0;
+    const givenUp = isEmpty && attempts >= MAX_EMPTY_RETRIES;
+
+    // Empty bundles below the retry cap are treated as a cache miss so the
+    // next build refetches them.
+    if (isEmpty && !givenUp) return null;
+
+    // TTL applies to entries that are still in play. Once we've given up on
+    // a gauge, ignore TTL so we don't re-probe it on every subsequent build.
+    if (!givenUp && Date.now() - new Date(parsed.fetchedAt).getTime() > CACHE_TTL_MS) {
+      return null;
+    }
     return parsed;
+  } catch {
+    return null;
+  }
+}
+
+// Returns the raw cached entry (ignoring TTL / empty-retry rules) so callers
+// can read auxiliary state — primarily emptyAttempts — when deciding how to
+// write a fresh fetch.
+async function readGaugeCacheRaw(lid) {
+  try {
+    return JSON.parse(await readFile(cachePathFor(lid), 'utf8'));
   } catch {
     return null;
   }
@@ -468,9 +498,22 @@ async function build() {
     if (bundle) {
       cacheHits++;
     } else {
+      // Carry forward the prior empty-attempt counter so retries accumulate
+      // across builds rather than resetting each run.
+      const prior = await readGaugeCacheRaw(lid);
       bundle = await fetchGaugeBundle(g);
-      await writeGaugeCache(lid, { fetchedAt: new Date().toISOString(), ...bundle });
+      const isEmpty = !bundle.features?.length;
+      const emptyAttempts = isEmpty ? (prior?.emptyAttempts ?? 0) + 1 : 0;
+      await writeGaugeCache(lid, {
+        fetchedAt: new Date().toISOString(),
+        emptyAttempts,
+        ...bundle,
+      });
       cacheMisses++;
+      if (isEmpty && emptyAttempts >= MAX_EMPTY_RETRIES) {
+        if (process.stdout.isTTY) process.stdout.write('\n');
+        console.log(`      [${lid}] no data after ${emptyAttempts} attempts — won't retry`);
+      }
     }
 
     const gLat = bundle.meta?.lat ?? g.latitude;

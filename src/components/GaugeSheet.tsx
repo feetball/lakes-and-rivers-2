@@ -32,6 +32,8 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
           position: 'absolute',
           left: 0, right: 0,
           bottom: 0,
+          maxWidth: 560,
+          marginInline: 'auto',
           maxHeight: '70dvh',
           background: '#111827',
           color: '#e5e7eb',
@@ -116,7 +118,16 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
           <img
             src={`https://water.noaa.gov/resources/hydrographs/${gauge.id.toLowerCase()}_hg.png`}
             alt={`${gauge.name} hydrograph`}
-            style={{ width: '100%', borderRadius: 6, background: '#0b1220' }}
+            style={{
+              display: 'block',
+              maxWidth: '100%',
+              maxHeight: '40dvh',
+              width: 'auto',
+              height: 'auto',
+              margin: '0 auto',
+              borderRadius: 6,
+              background: '#0b1220',
+            }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         </div>

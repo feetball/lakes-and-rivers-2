@@ -69,7 +69,12 @@ export default function MapView() {
   const hoverTimerRef = useRef<number | null>(null);
   // null = live; ISO = historical snapshot.
   const [atIso, setAtIso] = useState<string | null>(null);
-  const { data: gaugeData, isLoading: gaugesLoading, isValidating: gaugesValidating } = useGaugeData(atIso);
+  const {
+    data: gaugeData,
+    isLoading: gaugesLoading,
+    isValidating: gaugesValidating,
+    mutate: refreshGauges,
+  } = useGaugeData(atIso);
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
     const saved = loadView();
@@ -227,7 +232,12 @@ export default function MapView() {
         ))}
       </MapContainer>
 
-      <Legend counts={categoryCounts} updatedAt={gaugeData?.updatedAt} />
+      <Legend
+        counts={categoryCounts}
+        updatedAt={gaugeData?.updatedAt}
+        onRefresh={() => { refreshGauges(); }}
+        refreshing={gaugesValidating}
+      />
       <TimelineSlider value={atIso} onChange={setAtIso} loading={gaugesValidating} />
       {(!waterways || (gaugesLoading && !gaugeData) || (gaugeData?.updatedAt && new Date(gaugeData.updatedAt).getTime() === 0)) && (
         <LoadingBanner

@@ -7,9 +7,11 @@ import type { FloodCategory } from '@/lib/types';
 interface Props {
   counts: Record<FloodCategory, number>;
   updatedAt?: string;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export default function Legend({ counts, updatedAt }: Props) {
+export default function Legend({ counts, updatedAt, onRefresh, refreshing }: Props) {
   const [open, setOpen] = useState(true);
   const updatedLabel = updatedAt
     ? new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -66,9 +68,42 @@ export default function Legend({ counts, updatedAt }: Props) {
               <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{counts[cat]}</span>
             </div>
           ))}
-          <div style={{ marginTop: 6, color: '#9ca3af', fontSize: 11 }}>
-            Updated {updatedLabel} · refreshes every 10 min
+          <div
+            style={{
+              marginTop: 6,
+              color: '#9ca3af',
+              fontSize: 11,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <span>Updated {updatedLabel}</span>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={refreshing}
+                aria-label="Refresh gauge data"
+                title="Refresh gauge data"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '0 2px',
+                  color: refreshing ? '#6b7280' : '#e5e7eb',
+                  cursor: refreshing ? 'wait' : 'pointer',
+                  fontSize: 13,
+                  lineHeight: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  animation: refreshing ? 'tfm-spin 0.9s linear infinite' : 'none',
+                }}
+              >
+                ↻
+              </button>
+            )}
+            <span>· refreshes every 10 min</span>
           </div>
+          <style>{`@keyframes tfm-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
         </div>
       )}
     </div>
