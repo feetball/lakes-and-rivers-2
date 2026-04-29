@@ -188,10 +188,32 @@ async function loadSeedList() {
   }
 }
 
+// Reshape seed entries to match the NWPS list envelope (isUsable + downstream
+// code only read lid/latitude/longitude + state.abbreviation).
+function seedToTx(seed) {
+  return seed.gauges.map(g => ({
+    lid: g.lid,
+    name: g.name,
+    latitude: g.latitude,
+    longitude: g.longitude,
+    state: { abbreviation: 'TX' },
+  }));
+}
+
 async function fetchGauges() {
-  console.log('[1/3] Fetching TX gauge list from NWPS…');
-  // Try live first with a tight budget (2 attempts, 90 s each). NWPS often
-  // returns 504 at the upstream nginx after 60 s; seed falls through fast.
+  console.log('[1/3] Resolving TX gauge list…');
+  const seed = await loadSeedList();
+  // Default: use the committed seed when present. The build only needs
+  // lid + coordinates per gauge — those don't change often, the seed is
+  // refreshed daily by the running app's instrumentation hook, and the
+  // live NWPS list endpoint regularly takes 60+ s (often 504s) which
+  // exceeds Vercel's build budget. Use --refresh to force a live re-fetch.
+  if (seed?.gauges?.length && !REFRESH) {
+    const tx = seedToTx(seed);
+    console.log(`      using seed from ${seed.fetchedAt ?? 'unknown time'} (${tx.length} TX gauges)`);
+    return tx;
+  }
+  console.log('      fetching live from NWPS…');
   try {
     const data = await fetchJsonWithProgress(NWPS_GAUGES_URL, 'NWPS gauge list', { timeoutMs: 90_000, retries: 2 });
     const all = Array.isArray(data) ? data : data.gauges ?? [];
@@ -199,24 +221,15 @@ async function fetchGauges() {
     const tx = all.filter(g => g?.state?.abbreviation === 'TX');
     console.log(`      got ${all.length} US gauges, ${tx.length} in TX (live)`);
     return tx;
-  } catch (e) {
-    console.warn(`      live fetch failed; trying seed file`);
-  }
-  const seed = await loadSeedList();
-  if (!seed?.gauges?.length) {
+  } catch {
+    console.warn('      live fetch failed; falling back to seed');
+    if (seed?.gauges?.length) {
+      const tx = seedToTx(seed);
+      console.log(`      using seed from ${seed.fetchedAt ?? 'unknown time'} (${tx.length} TX gauges)`);
+      return tx;
+    }
     throw new Error('no live data and no gauges-list.json seed available');
   }
-  // Reshape seed entries to match the NWPS list envelope (isUsable + downstream
-  // code only read lid/latitude/longitude + state.abbreviation).
-  const tx = seed.gauges.map(g => ({
-    lid: g.lid,
-    name: g.name,
-    latitude: g.latitude,
-    longitude: g.longitude,
-    state: { abbreviation: 'TX' },
-  }));
-  console.log(`      using seed from ${seed.fetchedAt ?? 'unknown time'} (${tx.length} TX gauges)`);
-  return tx;
 }
 
 // A gauge is usable if it has the basics needed to place it on the map.
