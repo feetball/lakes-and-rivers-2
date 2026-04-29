@@ -483,6 +483,35 @@ function mergeFlowlinesByName(features) {
   return out;
 }
 
+// Pull current observations for every TX gauge in a single NWPS list call,
+// keyed by lid. Embedded in gauges-meta.json so the runtime fallback can
+// serve real (build-time-stale) flood categories instead of "No data" while
+// the live cache warms up. Returns an empty Map on failure — meta is still
+// usable, the runtime just falls back to "not_defined" as before.
+async function fetchObservations() {
+  console.log('[2.5/3] Fetching live observations from NWPS…');
+  try {
+    const data = await fetchJsonWithProgress(NWPS_GAUGES_URL, 'NWPS list (observations)', { timeoutMs: 90_000, retries: 2 });
+    const all = Array.isArray(data) ? data : data.gauges ?? [];
+    const obs = new Map();
+    for (const g of all) {
+      if (!g?.lid || g?.state?.abbreviation !== 'TX') continue;
+      const observed = g.status?.observed;
+      const cat = observed?.floodCategory ?? g.ObservedFloodCategory;
+      obs.set(g.lid, {
+        category: typeof cat === 'string' ? cat : 'not_defined',
+        observedStage: typeof observed?.primary === 'number' ? observed.primary : null,
+        observedAt: observed?.validTime ?? null,
+      });
+    }
+    console.log(`      observations for ${obs.size} TX gauges`);
+    return obs;
+  } catch (e) {
+    console.warn(`      observation fetch failed (${e?.message ?? e}); shipping meta without live obs`);
+    return new Map();
+  }
+}
+
 async function build() {
   // If a tarball is committed but loose cache files aren't, restore them
   // before any per-gauge cache lookups. Skipped automatically when the
@@ -558,12 +587,39 @@ async function build() {
   console.log(`      total features: ${features.length}`);
   const merged = mergeFlowlinesByName(features);
   console.log(`      after merge by name: ${merged.length} features`);
+
+  const obs = await fetchObservations();
+  let withObs = 0;
+  let latestObsAt = 0;
+  for (const m of gaugesMeta) {
+    const o = obs.get(m.id);
+    if (!o) continue;
+    m.category = o.category;
+    m.observedStage = o.observedStage;
+    m.observedAt = o.observedAt;
+    if (o.observedAt) {
+      const t = Date.parse(o.observedAt);
+      if (Number.isFinite(t) && t > latestObsAt) latestObsAt = t;
+    }
+    withObs++;
+  }
+  console.log(`      ${withObs}/${gaugesMeta.length} gauges have build-time observations`);
+
   console.log('[3/3] Writing output files…');
   await mkdir(OUT_DIR, { recursive: true });
   const geojson = { type: 'FeatureCollection', features: merged };
+  // observationsAt records the most recent observation time across the
+  // shipped gauges so the runtime fallback can return that as updatedAt
+  // instead of the epoch-0 sentinel — which keeps the "Loading live gauge
+  // data" banner from firing when the fallback is in use.
+  const metaPayload = {
+    gauges: gaugesMeta,
+    builtAt: new Date().toISOString(),
+    observationsAt: latestObsAt > 0 ? new Date(latestObsAt).toISOString() : null,
+  };
   // Write to a tmp path then rename, so a failed run can't wipe existing data.
   await writeFile(WATERWAYS_OUT + '.tmp', JSON.stringify(geojson));
-  await writeFile(GAUGES_OUT + '.tmp', JSON.stringify({ gauges: gaugesMeta, builtAt: new Date().toISOString() }));
+  await writeFile(GAUGES_OUT + '.tmp', JSON.stringify(metaPayload));
   await rename(WATERWAYS_OUT + '.tmp', WATERWAYS_OUT);
   await rename(GAUGES_OUT + '.tmp', GAUGES_OUT);
   const sizeMb = (JSON.stringify(geojson).length / 1024 / 1024).toFixed(2);

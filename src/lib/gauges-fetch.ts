@@ -12,17 +12,32 @@ type MetaEntry = {
   usgsId: string | null;
   thresholds: { action: number | null; minor: number | null; moderate: number | null; major: number | null } | null;
   unit: string | null;
+  // Build-time observation snapshot. Lets the runtime fallback ship real
+  // (stale) flood categories instead of "not_defined" until the live cache
+  // populates. Optional because pre-observation builds may still be loaded.
+  category?: FloodCategory;
+  observedStage?: number | null;
+  observedAt?: string | null;
 };
 
-let metaCache: Map<string, MetaEntry> | null = null;
-async function loadMeta(): Promise<Map<string, MetaEntry>> {
-  if (metaCache && metaCache.size > 0) return metaCache;
+type MetaFile = {
+  gauges: MetaEntry[];
+  observationsAt?: string | null;
+  builtAt?: string;
+};
+
+let metaCache: { entries: Map<string, MetaEntry>; observationsAt: string | null } | null = null;
+async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observationsAt: string | null }> {
+  if (metaCache && metaCache.entries.size > 0) return metaCache;
   try {
     const raw = await readFile(resolve(process.cwd(), 'public/data/gauges-meta.json'), 'utf8');
-    const parsed = JSON.parse(raw) as { gauges: MetaEntry[] };
-    metaCache = new Map(parsed.gauges.map(g => [g.id, { ...g, thresholds: sanitizeThresholds(g.thresholds) }]));
+    const parsed = JSON.parse(raw) as MetaFile;
+    const entries = new Map(
+      parsed.gauges.map(g => [g.id, { ...g, thresholds: sanitizeThresholds(g.thresholds) }]),
+    );
+    metaCache = { entries, observationsAt: parsed.observationsAt ?? null };
   } catch {
-    metaCache = new Map();
+    metaCache = { entries: new Map(), observationsAt: null };
   }
   return metaCache;
 }
@@ -48,7 +63,7 @@ async function fetchFreshGauges(): Promise<GaugesResponse> {
       if (!res.ok) throw new Error(`NWPS ${res.status}`);
       const data: any = await res.json();
       const list: any[] = Array.isArray(data) ? data : data.gauges ?? [];
-      const meta = await loadMeta();
+      const meta = (await loadMeta()).entries;
       const gauges: Record<string, GaugeStatus> = {};
       for (const g of list) {
         if (!g?.lid || g?.state?.abbreviation !== 'TX') continue;
@@ -88,15 +103,21 @@ export const getCachedGauges = unstable_cache(
 );
 
 export async function fallbackFromMeta(): Promise<GaugesResponse> {
-  const meta = await loadMeta();
+  const { entries, observationsAt } = await loadMeta();
   const gauges: Record<string, GaugeStatus> = {};
-  for (const g of meta.values()) {
+  for (const g of entries.values()) {
     gauges[g.id] = {
       id: g.id, name: g.name, lat: g.lat, lon: g.lon,
-      category: 'not_defined',
-      observedStage: null, observedAt: null,
+      category: g.category ?? 'not_defined',
+      observedStage: g.observedStage ?? null,
+      observedAt: g.observedAt ?? null,
       unit: g.unit, thresholds: g.thresholds,
     };
   }
-  return { gauges, updatedAt: new Date(0).toISOString() };
+  // observationsAt — the most recent observation time captured at build —
+  // becomes the response's updatedAt. Falls back to epoch-0 only when the
+  // build skipped observation capture (e.g. NWPS list timed out at build),
+  // which is the legacy "no real data" sentinel the client uses to decide
+  // whether to show the "Loading live gauge data" banner.
+  return { gauges, updatedAt: observationsAt ?? new Date(0).toISOString() };
 }

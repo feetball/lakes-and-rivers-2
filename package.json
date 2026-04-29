@@ -14,7 +14,8 @@
     "data:cache:clear": "rm -rf data-cache/gauges",
     "data:cache:pack": "node scripts/pack-cache.mjs",
     "data:cache:unpack": "node scripts/unpack-cache.mjs",
-    "prebuild": "node scripts/build-waterways-data.mjs --if-missing"
+    "prebuild": "node scripts/build-waterways-data.mjs --if-missing",
+    "release": "pnpm version patch -m \"chore(release): %s\" && git push --follow-tags"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
