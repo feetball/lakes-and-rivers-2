@@ -8,3 +8,26 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+
+  # Pings the Vercel-hosted /api/cron/refresh-gauges every 30 min so the gauge
+  # data cache stays warm. Replaces Vercel Cron, which is daily-only on Hobby.
+  # Set REFRESH_URL and CRON_SECRET in a .env file next to this compose file:
+  #   REFRESH_URL=https://your-app.vercel.app/api/cron/refresh-gauges
+  #   CRON_SECRET=...same value as the Vercel project env var...
+  gauge-cron:
+    image: curlimages/curl:latest
+    container_name: lakes-rivers-gauge-cron
+    restart: unless-stopped
+    environment:
+      - REFRESH_URL=${REFRESH_URL:?set REFRESH_URL in .env}
+      - CRON_SECRET=${CRON_SECRET:?set CRON_SECRET in .env}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          echo "[$$(date -Iseconds)] refresh $$REFRESH_URL"
+          curl -fsS -m 90 -H "Authorization: Bearer $$CRON_SECRET" "$$REFRESH_URL" \
+            && echo "" \
+            || echo "  refresh failed (will retry next tick)"
+          sleep 1800
+        done
