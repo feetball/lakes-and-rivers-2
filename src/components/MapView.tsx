@@ -12,6 +12,7 @@ import GaugeSheet from './GaugeSheet';
 import HoverHydrograph from './HoverHydrograph';
 import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
+import DraggablePanel from './DraggablePanel';
 
 // Below this zoom, hide stream/river lines and only paint waterbodies.
 // Painting thousands of canvas polylines while panning the whole state is
@@ -232,13 +233,30 @@ export default function MapView() {
         ))}
       </MapContainer>
 
-      <Legend
-        counts={categoryCounts}
-        updatedAt={gaugeData?.updatedAt}
-        onRefresh={() => { refreshGauges(); }}
-        refreshing={gaugesValidating}
-      />
-      <TimelineSlider value={atIso} onChange={setAtIso} loading={gaugesValidating} />
+      <DraggablePanel
+        storageKey="tfm:legend-pos"
+        defaultAnchor={{
+          bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
+          left: 12,
+        }}
+      >
+        <Legend
+          counts={categoryCounts}
+          updatedAt={gaugeData?.updatedAt}
+          onRefresh={() => { refreshGauges(); }}
+          refreshing={gaugesValidating}
+        />
+      </DraggablePanel>
+      <DraggablePanel
+        storageKey="tfm:timeline-pos"
+        defaultAnchor={{
+          bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+        }}
+      >
+        <TimelineSlider value={atIso} onChange={setAtIso} loading={gaugesValidating} />
+      </DraggablePanel>
       {(!waterways || (gaugesLoading && !gaugeData) || (gaugeData?.updatedAt && new Date(gaugeData.updatedAt).getTime() === 0)) && (
         <LoadingBanner
           label={

@@ -20,14 +20,11 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing }: Pro
   return (
     <div
       style={{
-        position: 'absolute',
-        bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
-        left: 12,
-        zIndex: 1000,
         background: 'rgba(17,24,39,0.92)',
         backdropFilter: 'blur(6px)',
         color: '#e5e7eb',
-        borderRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 10,
         padding: open ? '10px 12px' : '8px 12px',
         boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
         maxWidth: 'calc(100vw - 24px)',
