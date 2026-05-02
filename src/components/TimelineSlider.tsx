@@ -110,18 +110,14 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
   return (
     <div
       style={{
-        position: 'absolute',
-        bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
         width: 'min(620px, calc(100vw - 24px))',
         background: 'rgba(17,24,39,0.92)',
         backdropFilter: 'blur(6px)',
         color: '#e5e7eb',
-        borderRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 10,
         padding: '10px 14px',
         boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-        zIndex: 1000,
         fontSize: 13,
       }}
     >
