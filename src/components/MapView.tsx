@@ -20,8 +20,11 @@ import DraggablePanel from './DraggablePanel';
 // responsive without losing context (lakes still draw to anchor the geography).
 const STREAM_MIN_ZOOM = 8;
 
-// Center on Texas.
-const TX_CENTER: [number, number] = [31.0, -99.5];
+// Center on Austin/central Texas. The default zoom matches STREAM_MIN_ZOOM
+// so first-time visitors land with rivers already painted (the Colorado
+// runs through the frame at this center+zoom).
+const TX_CENTER: [number, number] = [30.27, -97.74];
+const DEFAULT_ZOOM = STREAM_MIN_ZOOM;
 const TX_BOUNDS: [[number, number], [number, number]] = [
   [25.8, -106.7],
   [36.6, -93.5],
@@ -79,7 +82,7 @@ export default function MapView() {
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
     const saved = loadView();
-    return saved ?? { lat: TX_CENTER[0], lon: TX_CENTER[1], zoom: 6 };
+    return saved ?? { lat: TX_CENTER[0], lon: TX_CENTER[1], zoom: DEFAULT_ZOOM };
   });
   const [zoom, setZoom] = useState<number>(initialView.zoom);
   const geoJsonRef = useRef<LeafletGeoJSON | null>(null);
