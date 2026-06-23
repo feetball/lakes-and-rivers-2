@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMapEvents }
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, PathOptions, Layer } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
-import { CATEGORY_ORDER, colorFor, CATEGORY_LABELS } from '@/lib/floodStatus';
+import { colorFor, CATEGORY_LABELS } from '@/lib/floodStatus';
 import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
 import GaugeSheet from './GaugeSheet';
@@ -89,7 +89,10 @@ export default function MapView() {
 
   useEffect(() => {
     let aborted = false;
-    fetch('/data/waterways.geojson')
+    // /api/waterways negotiates brotli/gzip from precompressed artifacts and
+    // sets long-lived caching — roughly half the transfer of the raw static
+    // file. Falls back to the static file if the route 404s (older deploys).
+    fetch('/api/waterways')
       .then(r => {
         if (!r.ok) throw new Error(`waterways ${r.status}`);
         return r.json();
@@ -132,7 +135,6 @@ export default function MapView() {
       const tip = (child as any).getTooltip?.();
       if (tip) tip.setContent(label);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gaugeMap]);
 
   // Drop tiny/minor stream segments below STREAM_MIN_ZOOM. Lakes always
@@ -277,7 +279,7 @@ export default function MapView() {
             borderRadius: 8, fontSize: 13, zIndex: 1000,
           }}
         >
-          Couldn't load waterways data ({loadError}). Run <code>pnpm data:build</code>.
+          Couldn&apos;t load waterways data ({loadError}). Run <code>pnpm data:build</code>.
         </div>
       )}
       {hoverChart && <HoverHydrograph gauge={hoverChart.gauge} x={hoverChart.x} y={hoverChart.y} />}

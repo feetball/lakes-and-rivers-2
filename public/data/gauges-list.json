@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-04-24T19:50:12Z",
+  "fetchedAt": "2026-06-23T23:21:06.422Z",
   "source": "nwps-v1-list",
   "gauges": [
     {
@@ -373,6 +373,12 @@
       "name": "Bear Creek at FM 2722 nr Sattler",
       "latitude": 29.808333333333334,
       "longitude": -98.23027777777777
+    },
+    {
+      "lid": "BFAT2",
+      "name": "Rio Grande Below Falcon Reservoir",
+      "latitude": 26.557222222222,
+      "longitude": -99.166666666667
     },
     {
       "lid": "BFST2",
@@ -970,7 +976,7 @@
     },
     {
       "lid": "CUTT2",
-      "name": "Pecan Bayou near Cross Cutt",
+      "name": "Pecan Bayou near Cross Cut",
       "latitude": 31.9733333333333,
       "longitude": -99.1291666666667
     },
@@ -1091,8 +1097,8 @@
     {
       "lid": "DRAT2",
       "name": "Spring Branch at SH 242 near Splendora",
-      "latitude": 33.801666666667,
-      "longitude": -96.58
+      "latitude": 30.21981111,
+      "longitude": -95.24920833
     },
     {
       "lid": "DRWT2",
@@ -1441,6 +1447,12 @@
       "name": "Sabine River near Gladewater",
       "latitude": 32.526944444444,
       "longitude": -94.96
+    },
+    {
+      "lid": "GERT2",
+      "name": "North Fork of the San Gabriel River near Georgetown",
+      "latitude": 30.661666666667,
+      "longitude": -97.711111111111
     },
     {
       "lid": "GETT2",
@@ -2385,6 +2397,12 @@
       "longitude": -94.420833333333
     },
     {
+      "lid": "LNXT2",
+      "name": "South Fork Guadalupe River at Lynx Haven Crossing near Hunt, TX",
+      "latitude": 29.980181,
+      "longitude": -99.4423
+    },
+    {
       "lid": "LNYT2",
       "name": "Rio Grande at Foster Ranch",
       "latitude": 29.78075694,
@@ -2619,6 +2637,12 @@
       "longitude": -93.908333333333
     },
     {
+      "lid": "MDET2",
+      "name": "North Floodway West of Mercedes",
+      "latitude": 26.1416666666667,
+      "longitude": -97.9333333333333
+    },
+    {
       "lid": "MDLT2",
       "name": "Medina River at Medina Lake",
       "latitude": 29.54,
@@ -2629,6 +2653,12 @@
       "name": "Bedias Creek near Madisonville",
       "latitude": 30.8841666666667,
       "longitude": -95.7775
+    },
+    {
+      "lid": "MECT2",
+      "name": "Arroyo Colorado South of Mercedes",
+      "latitude": 26.13,
+      "longitude": -97.909444444444
     },
     {
       "lid": "MEPT2",
@@ -2677,6 +2707,12 @@
       "name": "Medio Creek near Beeville",
       "latitude": 28.482777777778,
       "longitude": -97.656388888889
+    },
+    {
+      "lid": "MITT2",
+      "name": "Banker Inlet to Main Floodway",
+      "latitude": 26.14166666666667,
+      "longitude": -98.32
     },
     {
       "lid": "MKTT2",
@@ -2803,6 +2839,12 @@
       "name": "North Texas Lakes at Pat Mayse Lake",
       "latitude": 33.852777777778,
       "longitude": -95.543888888889
+    },
+    {
+      "lid": "NADT2",
+      "name": "La Nana Creek at Nacogdoches",
+      "latitude": 31.617679,
+      "longitude": -94.641598
     },
     {
       "lid": "NAST2",
@@ -3160,7 +3202,7 @@
     },
     {
       "lid": "PPDT2",
-      "name": "Pinto Creek near Del Rio",
+      "name": "Pinto Creek near Del Rio 17SE",
       "latitude": 29.145833333333,
       "longitude": -100.71805555556
     },
@@ -3181,6 +3223,12 @@
       "name": "Rio Grande 5 miles SE of Presidio",
       "latitude": 29.52,
       "longitude": -104.28638889
+    },
+    {
+      "lid": "PRGT2",
+      "name": "Rio Grande Near Progreso Bridge",
+      "latitude": 26.063333,
+      "longitude": -97.950555
     },
     {
       "lid": "PRKT2",
@@ -3250,7 +3298,7 @@
     },
     {
       "lid": "RBFT2",
-      "name": "Red Bluff Creek near at FM 1283 near Pipe Creek",
+      "name": "Red Bluff Creek at FM 1283 near Pipe Creek",
       "latitude": 29.673,
       "longitude": -98.96
     },
@@ -3321,6 +3369,12 @@
       "longitude": -94.0432
     },
     {
+      "lid": "RGLT2",
+      "name": "Rio Grande near Los Ebanos",
+      "latitude": 26.2375,
+      "longitude": -98.5625
+    },
+    {
       "lid": "RLAT2",
       "name": "Pecos River at Red Bluff Reservoir",
       "latitude": 31.901237,
@@ -3367,6 +3421,12 @@
       "name": "Clear Fork Brazos River near Roby",
       "latitude": 32.7875,
       "longitude": -100.388333333333
+    },
+    {
+      "lid": "RRGT2",
+      "name": "Rio Grande at Roma",
+      "latitude": 26.4036111111111,
+      "longitude": -99.0180555555555
     },
     {
       "lid": "RRLT2",
@@ -3459,6 +3519,12 @@
       "longitude": -93.87
     },
     {
+      "lid": "SBST2",
+      "name": "North Floodway Near Sebastian",
+      "latitude": 26.31388888888889,
+      "longitude": -97.77638888888889
+    },
+    {
       "lid": "SBUT2",
       "name": "Sabinal River at Utopia",
       "latitude": 29.612222,
@@ -3466,7 +3532,7 @@
     },
     {
       "lid": "SCAT2",
-      "name": "Slaughter Creek at FM 1826 near Austin 6NW",
+      "name": "Slaughter Creek at FM 1826 near Austin ",
       "latitude": 30.208888888889,
       "longitude": -97.90305555555555
     },
@@ -3532,7 +3598,7 @@
     },
     {
       "lid": "SFCT2",
-      "name": "San Felipe Creek near Del Rio 2NE",
+      "name": "San Felipe Creek near Del Rio 1SE",
       "latitude": 29.330555555556,
       "longitude": -100.88888888889
     },
@@ -3559,6 +3625,12 @@
       "name": "Guadalupe River at FM 1117 near Seguin",
       "latitude": 29.536111111111,
       "longitude": -97.880833333333
+    },
+    {
+      "lid": "SGHT2",
+      "name": "San Geronimo Creek near Helotes, TX",
+      "latitude": 29.619722222222,
+      "longitude": -98.795
     },
     {
       "lid": "SGNT2",
@@ -4077,12 +4149,6 @@
       "longitude": -97.073055555556
     },
     {
-      "lid": "WBKT2",
-      "name": "Bear Creek (TX) at FM 171 Road near Wichita Falls",
-      "latitude": 33.9842778,
-      "longitude": -98.4620944
-    },
-    {
       "lid": "WBRT2",
       "name": "Beals Creek 11 miles S of Westbrook",
       "latitude": 32.1992913,
@@ -4141,12 +4207,6 @@
       "name": "Holliday Creek at Wichita Falls",
       "latitude": 33.88444,
       "longitude": -98.49889
-    },
-    {
-      "lid": "WFRT2",
-      "name": "Wichita River at River Road at Wichita Falls",
-      "latitude": 33.931055,
-      "longitude": -98.459805
     },
     {
       "lid": "WGRT2",
@@ -4233,6 +4293,12 @@
       "longitude": -97.5852
     },
     {
+      "lid": "WSLT2",
+      "name": "Main Floodway South of Weslaco",
+      "latitude": 26.12,
+      "longitude": -98
+    },
+    {
       "lid": "WTTT2",
       "name": "Atascosa River at Whitsett",
       "latitude": 28.621944444444,
@@ -4243,12 +4309,6 @@
       "name": "North Texas Lakes at Whitney Lake",
       "latitude": 31.865277777778,
       "longitude": -97.371666666667
-    },
-    {
-      "lid": "WUCT2",
-      "name": "Unnamed Creek at FM 171 Road near Wichita Falls",
-      "latitude": 33.97043889,
-      "longitude": -98.4638056
     },
     {
       "lid": "WWVT2",

@@ -102,11 +102,13 @@ async function refresh() {
         latitude: g.latitude,
         longitude: g.longitude,
       }));
+      // Pretty-printed: this file is committed, so a readable diff matters
+      // more than the few KB saved by minifying.
       const body = JSON.stringify({
         fetchedAt: new Date().toISOString(),
         source: 'nwps-v1-list',
         gauges: slim,
-      });
+      }, null, 2);
       await mkdir(dirname(OUT), { recursive: true });
       await writeFile(OUT + '.tmp', body);
       await rename(OUT + '.tmp', OUT);

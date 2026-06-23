@@ -9,6 +9,8 @@ next-env.d.ts
 
 # Generated data (built by scripts/build-waterways-data.mjs)
 public/data/waterways.geojson
+public/data/waterways.geojson.br
+public/data/waterways.geojson.gz
 public/data/gauges-meta.json
 .cache/
 
@@ -17,3 +19,6 @@ public/data/gauges-meta.json
 # build-waterways-data.mjs unpacks the tarball on startup if the loose dir
 # is missing, so a fresh clone or Docker build gets the cache for free.
 data-cache/gauges/
+
+# TypeScript incremental build info (regenerated every build)
+tsconfig.tsbuildinfo

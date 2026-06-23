@@ -3,17 +3,23 @@
 # ---- deps ----
 FROM node:20-alpine AS deps
 WORKDIR /app
+ENV CI=true
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile || pnpm install
+# .npmrc carries the public-hoist-pattern that exposes eslint-config-next's
+# plugins to ESLint (next build runs lint), so it must be present at install.
+COPY package.json pnpm-lock.yaml* .npmrc* ./
+RUN pnpm install --frozen-lockfile
 
 # ---- builder ----
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV CI=true
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Fetch NHD + gauge data at build time. Can take several minutes.
+# Build the waterways data. The committed data-cache/gauges.tar.gz is unpacked
+# automatically, so this is seconds (no NHD round-trip) unless gauges were
+# added or the cache schema (CACHE_VERSION) changed.
 RUN pnpm data:build
 RUN pnpm build
 

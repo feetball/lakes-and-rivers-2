@@ -12,6 +12,7 @@
 import { writeFile, mkdir, access, rename, readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync, brotliCompressSync, constants as zlibConstants } from 'node:zlib';
 import { unpackCache } from './unpack-cache.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -28,8 +29,19 @@ const CACHE_DIR = resolve(ROOT, 'data-cache/gauges');
 // Bump when simplifyFeature / per-gauge schema changes, so old caches are
 // ignored automatically without a manual purge.
 const CACHE_VERSION = 3;
-// Cache entries older than this are refetched. Override with CACHE_TTL_DAYS=N.
-const CACHE_TTL_MS = (Number(process.env.CACHE_TTL_DAYS) || 30) * 24 * 3_600_000;
+// Cache entries older than this are refetched. NHD flowline/waterbody geometry
+// is effectively static (rivers don't move; NHDPlus HR publishes on a multi-
+// year cadence) and CACHE_VERSION already busts the cache when our per-gauge
+// schema changes — so the default is deliberately long (10 years). This is
+// what keeps the committed tarball useful: with the old 30-day default every
+// build past the first month refetched all ~700 gauges from NHD (10–20 min).
+// Override with CACHE_TTL_DAYS=N to force periodic refetches.
+const CACHE_TTL_MS = (Number(process.env.CACHE_TTL_DAYS) || 3650) * 24 * 3_600_000;
+// Decimal places to keep on output coordinates. 5 dp ≈ 1.1 m on the ground —
+// far finer than any zoom this statewide map supports, and it shrinks the
+// shipped GeoJSON ~13% raw / ~20% gzip vs the 6 dp NHD returns. The cache
+// stores full-precision geometry; rounding happens only at write time.
+const OUTPUT_COORD_DP = Number(process.env.OUTPUT_COORD_DP) || 5;
 // A gauge bundle that comes back empty is treated as a possible transient
 // upstream failure (NHD slow response, NWPS hiccup) and retried on each
 // subsequent build. After this many consecutive empty results we accept that
@@ -445,6 +457,24 @@ async function fetchGaugeBundle(g) {
   return { features, meta };
 }
 
+// Round every coordinate in a GeoJSON geometry to `dp` decimal places, in
+// place. Cuts shipped payload with no visible effect at this map's zooms (see
+// OUTPUT_COORD_DP). JSON.stringify drops trailing zeros, so rounded values
+// also serialize shorter (e.g. 30.316444 -> 30.31644 -> "30.31644").
+function roundGeometry(geom, dp) {
+  if (!geom?.coordinates) return;
+  const f = 10 ** dp;
+  const r = (a) => {
+    if (typeof a[0] === 'number') {
+      a[0] = Math.round(a[0] * f) / f;
+      a[1] = Math.round(a[1] * f) / f;
+      return;
+    }
+    for (const c of a) r(c);
+  };
+  r(geom.coordinates);
+}
+
 // Stitch all LineString reaches sharing (gaugeId, name) into one MultiLine
 // Feature. NHDPlus splits a single river into many small reach segments;
 // rendering them as separate Leaflet paths makes the river look like a chain
@@ -587,6 +617,10 @@ async function build() {
   console.log(`      total features: ${features.length}`);
   const merged = mergeFlowlinesByName(features);
   console.log(`      after merge by name: ${merged.length} features`);
+  // Trim coordinate precision on the merged output. Done here (not in the
+  // cache) so the cache keeps full-precision geometry and a future dp change
+  // doesn't require a refetch.
+  for (const f of merged) roundGeometry(f.geometry, OUTPUT_COORD_DP);
 
   const obs = await fetchObservations();
   let withObs = 0;
@@ -630,14 +664,33 @@ async function build() {
     builtAt: new Date().toISOString(),
     observationsAt: latestObsAt > 0 ? new Date(latestObsAt).toISOString() : null,
   };
+  const geojsonStr = JSON.stringify(geojson);
   // Write to a tmp path then rename, so a failed run can't wipe existing data.
-  await writeFile(WATERWAYS_OUT + '.tmp', JSON.stringify(geojson));
+  await writeFile(WATERWAYS_OUT + '.tmp', geojsonStr);
   await writeFile(GAUGES_OUT + '.tmp', JSON.stringify(metaPayload));
   await rename(WATERWAYS_OUT + '.tmp', WATERWAYS_OUT);
   await rename(GAUGES_OUT + '.tmp', GAUGES_OUT);
-  const sizeMb = (JSON.stringify(geojson).length / 1024 / 1024).toFixed(2);
+  const sizeMb = (geojsonStr.length / 1024 / 1024).toFixed(2);
   console.log(`      wrote ${WATERWAYS_OUT} (${sizeMb} MB)`);
   console.log(`      wrote ${GAUGES_OUT} (${gaugesMeta.length} gauges)`);
+
+  // Precompress the waterways payload so /api/waterways can serve brotli/gzip
+  // straight off disk (cheap, no per-request CPU). brotli ~halves gzip here.
+  // Static files under public/ are only gzip-compressed by the Next standalone
+  // server, so this is where the brotli win comes from.
+  const buf = Buffer.from(geojsonStr, 'utf8');
+  const br = brotliCompressSync(buf, {
+    params: {
+      [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
+      [zlibConstants.BROTLI_PARAM_SIZE_HINT]: buf.length,
+    },
+  });
+  const gz = gzipSync(buf, { level: 9 });
+  await writeFile(WATERWAYS_OUT + '.br', br);
+  await writeFile(WATERWAYS_OUT + '.gz', gz);
+  console.log(
+    `      precompressed: br ${(br.length / 1048576).toFixed(2)} MB · gzip ${(gz.length / 1048576).toFixed(2)} MB`,
+  );
 }
 
 async function main() {
