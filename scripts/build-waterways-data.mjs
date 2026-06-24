@@ -74,6 +74,10 @@ const LIMIT = Number(process.env.GAUGE_LIMIT ?? 0) || Infinity;
 // 429/503 the per-request retry will handle it. Override with NHD_CONCURRENCY=N.
 const NHD_CONCURRENCY = Number(process.env.NHD_CONCURRENCY) || 24;
 
+// The app's FloodCategory union (see src/lib/types.ts). NWPS emits extra
+// operational strings we must not persist into meta as categories.
+const VALID_CATEGORIES = new Set(['no_flooding', 'not_defined', 'action', 'minor', 'moderate', 'major']);
+
 const NWPS_GAUGES_URL = 'https://api.water.noaa.gov/nwps/v1/gauges?state=TX';
 const NWPS_GAUGE_DETAIL = (lid) => `https://api.water.noaa.gov/nwps/v1/gauges/${lid}`;
 const NHD_BASE = 'https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer';
@@ -529,7 +533,13 @@ async function fetchObservations() {
       const observed = g.status?.observed;
       const cat = observed?.floodCategory ?? g.ObservedFloodCategory;
       obs.set(g.lid, {
-        category: typeof cat === 'string' ? cat : 'not_defined',
+        // Normalize to the app's FloodCategory union. NWPS also emits
+        // operational strings (out_of_service, obs_not_current, low_threshold)
+        // that aren't categories — collapse them to not_defined so meta never
+        // ships a non-union value (which would paint gray with broken labels).
+        // The derivation step below then upgrades not_defined from thresholds,
+        // exactly mirroring the runtime resolveCategory() path.
+        category: VALID_CATEGORIES.has(cat) ? cat : 'not_defined',
         observedStage: typeof observed?.primary === 'number' ? observed.primary : null,
         observedAt: observed?.validTime ?? null,
       });

@@ -89,14 +89,21 @@ export default function MapView() {
 
   useEffect(() => {
     let aborted = false;
-    // /api/waterways negotiates brotli/gzip from precompressed artifacts and
-    // sets long-lived caching — roughly half the transfer of the raw static
-    // file. Falls back to the static file if the route 404s (older deploys).
-    fetch('/api/waterways')
-      .then(r => {
+    // Load order is platform-aware:
+    //  - Static /data/waterways.geojson is served straight from Vercel's edge
+    //    CDN (compressed, globally cached, zero serverless cost) — the optimal
+    //    path on Vercel and what we want for first paint.
+    //  - /api/waterways is the fallback: on self-hosted standalone (whose
+    //    server only gzips static files) it serves precompressed brotli
+    //    (~1.8 MB vs ~3 MB gzip); it also covers any case where the static
+    //    asset is unavailable. Whichever responds with valid JSON wins.
+    const loadFrom = (url: string) =>
+      fetch(url).then(r => {
         if (!r.ok) throw new Error(`waterways ${r.status}`);
         return r.json();
-      })
+      });
+    loadFrom('/data/waterways.geojson')
+      .catch(() => loadFrom('/api/waterways'))
       .then(json => { if (!aborted) setWaterways(json); })
       .catch(err => { if (!aborted) setLoadError(String(err)); });
     return () => { aborted = true; };

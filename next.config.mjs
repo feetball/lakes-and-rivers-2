@@ -19,9 +19,14 @@ const nextConfig = {
   // the serverless functions on Vercel (the standalone server already copies
   // all of public/ in postbuild, so this is the Vercel-path safety net).
   outputFileTracingIncludes: {
-    '/api/waterways': ['./public/data/waterways.geojson*'],
+    '/api/waterways': ['./public/data/waterways.geojson.br', './public/data/waterways.geojson.gz'],
     '/api/gauges/history': ['./public/data/gauges-meta.json'],
     '/api/gauges': ['./public/data/gauges-meta.json'],
+    // The cron route warms the SHARED Next Data Cache via getCachedGauges() ->
+    // loadMeta(), which reads gauges-meta.json. Without tracing it here, the
+    // cron function ENOENTs the file on Vercel and writes a thresholdless
+    // result into the shared cache, re-graying every threshold-derived gauge.
+    '/api/cron/refresh-gauges': ['./public/data/gauges-meta.json'],
   },
   // Inline package.json#version into the client bundle so the Legend can
   // show which release is loaded. Bumped via `pnpm release` before each

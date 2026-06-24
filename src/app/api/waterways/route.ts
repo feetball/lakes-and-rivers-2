@@ -4,11 +4,13 @@ import { resolve } from 'path';
 
 // Serves public/data/waterways.geojson with brotli/gzip negotiated from
 // precompressed artifacts written at build time (see build-waterways-data.mjs).
-// The Next standalone server only gzips static public/ files; routing the
-// payload through here lets us ship brotli (~half the gzip size for this data)
-// and set long-lived caching. The geometry only changes on redeploy, so we
-// cache aggressively and revalidate with an ETag derived from file size+mtime.
-export const dynamic = 'force-dynamic';
+// Primarily a fallback for self-hosted standalone (whose server only gzips
+// static files) — the client prefers the static CDN asset on Vercel. The route
+// reads request headers (Accept-Encoding / If-None-Match) so it's dynamic, but
+// we set CDN-Cache-Control with s-maxage so Vercel's edge caches the response
+// per-encoding and we don't pay a Lambda on every request. ETag (file
+// size+mtime) gives cheap 304 revalidation. We deliberately don't set
+// `dynamic = 'force-dynamic'` — that opts the response out of the edge cache.
 
 const DATA_DIR = resolve(process.cwd(), 'public/data');
 const BASE = resolve(DATA_DIR, 'waterways.geojson');
@@ -66,7 +68,12 @@ export async function GET(req: Request) {
   const accept = req.headers.get('accept-encoding') ?? '';
   const headers = new Headers({
     'Content-Type': 'application/geo+json; charset=utf-8',
+    // Browser cache (max-age) + Vercel edge cache (CDN-Cache-Control). The
+    // geometry only changes on redeploy, so the edge can hold it for a day and
+    // serve stale while revalidating. Without s-maxage/CDN-Cache-Control every
+    // cold client would invoke the function.
     'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+    'CDN-Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
     ETag: data.etag,
     Vary: 'Accept-Encoding',
   });

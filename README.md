@@ -67,7 +67,9 @@ Backed by the Next.js data cache (shared across instances on Vercel). On a cold 
 
 ### `GET /api/waterways`
 
-The river/lake GeoJSON the map renders (≈12 MB raw). Negotiates `Content-Encoding` from precompressed artifacts written at build time — **brotli (~1.8 MB)** for browsers that accept it, gzip (~3 MB) otherwise — and sets `Cache-Control: public, max-age=3600, stale-while-revalidate=86400` with an `ETag` for cheap 304 revalidation. The Next standalone server only gzips static `public/` files, so routing this payload through an API route is what unlocks brotli and long-lived caching.
+The river/lake GeoJSON the map renders (≈12 MB raw), **as a fallback**. Negotiates `Content-Encoding` from precompressed artifacts written at build time — **brotli (~1.8 MB)** for browsers that accept it, gzip (~3 MB) otherwise — with an `ETag` (cheap 304s), browser `Cache-Control`, and `CDN-Cache-Control: s-maxage` so Vercel's edge caches it.
+
+The client actually requests the **static** `/data/waterways.geojson` first and only falls back to this route on error. On Vercel the static asset is served straight from the edge CDN (globally cached, compressed, zero serverless cost) — the optimal path. This route exists for self-hosted standalone, whose server only gzips static files; it ships precompressed brotli (~1.8 MB vs ~3 MB gzip) for that case.
 
 ### `GET /api/gauges/history?at=<ISO>`
 
@@ -75,30 +77,40 @@ Historical gauge state at the given moment. `at` must be within the last 7 days.
 
 ### `GET /api/cron/refresh-gauges`
 
-Refresh the live gauge cache. Invalidates the `gauges` cache tag, schedules a background fetch via `after()`, and returns immediately so the caller doesn't time out (NWPS sometimes takes 60–120 s).
+Refresh the live gauge cache. Invalidates the `gauges` cache tag, then **awaits** the refetch within the function budget so the shared Next data cache is actually repopulated before it responds, and the caller gets a real status. The upstream fetch is bounded by `NWPS_TIMEOUT_MS` (default 45 s) so it fits Vercel's function cap.
 
 **Auth:** if the `CRON_SECRET` env var is set, the request must include `Authorization: Bearer <CRON_SECRET>`. Otherwise the endpoint is unauthenticated.
 
 ```bash
 curl -fsS -H "Authorization: Bearer $CRON_SECRET" \
   https://your-app.example.com/api/cron/refresh-gauges
-# {"ok":true,"status":"refresh scheduled"}
+# {"ok":true,"status":"refreshed","count":721}
 ```
 
-The repo ships a docker-compose sidecar (`gauge-cron`) that pings this endpoint every 30 min — see `docker-compose.yml`. Vercel Cron also works; attach `CRON_SECRET` as a project env var and Vercel will include the `Authorization` header automatically.
+The repo ships a docker-compose sidecar (`gauge-cron`) that pings this endpoint every 30 min — see `docker-compose.yml`. On Vercel, `vercel.json` registers a Cron for the same endpoint; set `CRON_SECRET` as a project env var and Vercel includes the `Authorization` header automatically. (Hobby triggers crons once daily; the gauge cache also self-revalidates every 30 min on read, so freshness doesn't depend on the cron.)
 
 ## How rendering works
 
 - `scripts/build-waterways-data.mjs` produces `public/data/waterways.geojson` once at build time. For each gauge it probes NHDPlus HR for the nearest flowline (≤ 500 m) and lake polygon (≤ 250 m). If the host flowline has a `GNIS_NAME`, every reach with the same name within 40 km is pulled in. Reaches that fall inside the radius of multiple gauges are assigned to the closest gauge (nearest-vertex distance), so a gauge's color extends along the river to roughly halfway to the next gauge.
-- The client (`src/components/MapView.tsx`) fetches that GeoJSON once from `/api/waterways` (brotli-compressed), mounts a single Leaflet `<GeoJSON>` layer, and pushes fresh styles via `setStyle` on each gauge tick — no remount.
+- The client (`src/components/MapView.tsx`) fetches that GeoJSON once — the static `/data/waterways.geojson` (edge-CDN-served on Vercel) with `/api/waterways` (brotli) as a fallback — mounts a single Leaflet `<GeoJSON>` layer, and pushes fresh styles via `setStyle` on each gauge tick — no remount.
 - River/stream lines are hidden below zoom 8 so the state-wide view only paints lakes; the default zoom is set to that threshold so the first paint always shows rivers.
+
+## Deploying to Vercel
+
+Import the repo; the defaults work. Notes:
+
+- **Build:** `prebuild` runs `data:build`, which unpacks the committed cache and regenerates `public/data/*` (gitignored, so they're produced fresh each deploy). The generated files ship as static assets *and* are traced into the API functions via `outputFileTracingIncludes` (`next.config.mjs`) — this is essential: the gauge routes read `gauges-meta.json` at runtime for flood thresholds, and without it on Vercel the file ENOENTs and **rivers render gray** (the symptom this addresses).
+- **Data delivery:** the 12 MB waterways GeoJSON is served as a static asset from Vercel's edge CDN (compressed, globally cached, no function invocation).
+- **Cache warming:** `vercel.json` registers a Cron on `/api/cron/refresh-gauges`. Set **`CRON_SECRET`** as a project env var to authenticate it (Vercel attaches the bearer token automatically). The live cache also self-revalidates every 30 min on read, and the `/api/gauges` cold path falls back to build-time data within 4 s, so the map is never blocked on the upstream NWPS fetch.
+- **Function limits:** route `maxDuration` is 60 s (Hobby cap) and the upstream fetch is bounded by `NWPS_TIMEOUT_MS` (45 s) so background warming completes within budget.
 
 ## Configuration
 
 | Env var | Used by | Description |
 | --- | --- | --- |
-| `CRON_SECRET` | `/api/cron/refresh-gauges`, docker sidecar | Bearer token required on the refresh endpoint. |
+| `CRON_SECRET` | `/api/cron/refresh-gauges`, docker sidecar, Vercel Cron | Bearer token required on the refresh endpoint. |
 | `NEXT_PUBLIC_APP_VERSION` | UI footer | Optional version label shown in the legend. |
+| `NWPS_TIMEOUT_MS` | `/api/gauges`, `/api/cron` | Per-attempt upstream fetch timeout (default 45000). |
 | `CACHE_TTL_DAYS`, `OUTPUT_COORD_DP`, `NHD_CONCURRENCY`, `GAUGE_LIMIT`, `REFRESH` | `data:build` | See *Scripts*. |
 
 ## License
