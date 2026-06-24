@@ -1,4 +1,4 @@
-import { NextResponse, after } from 'next/server';
+import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { GAUGES_CACHE_TAG, getCachedGauges } from '@/lib/gauges-fetch';
 
@@ -15,7 +15,9 @@ import { GAUGES_CACHE_TAG, getCachedGauges } from '@/lib/gauges-fetch';
 // this automatically when CRON_SECRET is set on the project; the docker
 // sidecar passes the same value.
 export const dynamic = 'force-dynamic';
-export const maxDuration = 90;
+// 60s is Vercel Hobby's cap; the awaited refresh below is bounded by
+// NWPS_TIMEOUT_MS (default 45s) so it completes within budget.
+export const maxDuration = 60;
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -26,11 +28,19 @@ export async function GET(req: Request) {
     }
   }
 
+  // Invalidate the shared cache tag, then AWAIT the refetch within the function
+  // budget. The previous after()-based approach deferred the fetch past the
+  // response, where Vercel can freeze/kill the instance before it finishes —
+  // leaving the cache stale and giving the caller a misleading "ok". Awaiting
+  // guarantees the shared Data Cache is repopulated when we 200, and gives the
+  // external pinger (docker sidecar / Vercel Cron) a real success/fail signal.
   revalidateTag(GAUGES_CACHE_TAG);
-  after(
-    getCachedGauges()
-      .then(data => console.log(`[cron] refreshed ${Object.keys(data.gauges).length} gauges at ${data.updatedAt}`))
-      .catch(err => console.warn('[cron] refresh failed:', err)),
-  );
-  return NextResponse.json({ ok: true, status: 'refresh scheduled' });
+  try {
+    const data = await getCachedGauges();
+    console.log(`[cron] refreshed ${Object.keys(data.gauges).length} gauges at ${data.updatedAt}`);
+    return NextResponse.json({ ok: true, status: 'refreshed', count: Object.keys(data.gauges).length });
+  } catch (err) {
+    console.warn('[cron] refresh failed:', err);
+    return NextResponse.json({ ok: false, status: 'refresh failed', detail: String(err) }, { status: 502 });
+  }
 }

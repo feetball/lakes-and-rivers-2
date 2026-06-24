@@ -2,12 +2,14 @@
   "name": "texas-flood-map",
   "version": "0.1.2",
   "private": true,
+  "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "node .next/standalone/server.js",
     "postbuild": "cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "data:build": "node scripts/build-waterways-data.mjs",
     "data:build:refresh": "node scripts/build-waterways-data.mjs --refresh",
     "data:refresh-list": "node scripts/refresh-gauges-list.mjs",
@@ -19,23 +21,30 @@
   },
   "dependencies": {
     "leaflet": "^1.9.4",
-    "next": "^15.5.18",
+    "next": "^15.5.19",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-leaflet": "^5.0.0",
     "swr": "^2.3.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
     "@types/geojson": "^7946.0.16",
     "@types/leaflet": "^1.9.16",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^15.5.19",
     "typescript": "^5.7.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "sharp"
-    ]
+      "sharp",
+      "unrs-resolver"
+    ],
+    "overrides": {
+      "postcss@<8.5.10": ">=8.5.10"
+    }
   }
 }

@@ -9,7 +9,9 @@ import { getCachedGauges, fallbackFromMeta } from '@/lib/gauges-fetch';
 // cache is empty — we race the fetch against a short budget and fall back to
 // the static gauge list if it doesn't return in time.
 export const dynamic = 'force-dynamic';
-export const maxDuration = 90;
+// 60s is Vercel Hobby's cap; the upstream fetch is bounded below that
+// (NWPS_TIMEOUT_MS, default 45s) so the post-response after() warm fits.
+export const maxDuration = 60;
 
 const COLD_BUDGET_MS = 4_000;
 
@@ -22,8 +24,14 @@ export async function GET() {
         setTimeout(() => rej(new Error('cold-budget')), COLD_BUDGET_MS),
       ),
     ]);
+    // Success path: let Vercel's edge cache hold the fresh response briefly so
+    // many clients polling /api/gauges collapse into ~one origin hit per
+    // minute. Only on the success path — see the fallback below.
     return NextResponse.json(body, {
-      headers: { 'Cache-Control': 'public, max-age=60' },
+      headers: {
+        'Cache-Control': 'public, max-age=60',
+        'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+      },
     });
   } catch {
     // Cache empty + slow upstream — keep the fetch alive past response so the
