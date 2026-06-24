@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readFile, stat } from 'fs/promises';
 import { resolve } from 'path';
+import { gunzipSync } from 'zlib';
 
 // Serves public/data/waterways.geojson with brotli/gzip negotiated from
 // precompressed artifacts written at build time (see build-waterways-data.mjs).
@@ -18,8 +19,20 @@ const BASE = resolve(DATA_DIR, 'waterways.geojson');
 type Variant = { path: string; encoding: string };
 
 // In-memory per-instance cache of the encoded payloads + ETag. The files are
-// immutable for the life of a deploy, so read them once.
-let cached: { etag: string; variants: Record<string, Buffer>; raw: Buffer | null } | null = null;
+// immutable for the life of a deploy, so read them once. `identity` is the
+// uncompressed body, computed lazily (from the raw file if present, else by
+// inflating the gzip variant) so clients that accept no compression still get
+// a correctly-labeled response.
+let cached: { etag: string; variants: Record<string, Buffer>; raw: Buffer | null; identity?: Buffer | null } | null = null;
+
+// Resolve an uncompressed body without requiring the (untraced on Vercel) raw
+// file to be present: prefer raw, otherwise inflate gzip once and memoize.
+function identityBody(data: NonNullable<typeof cached>): Buffer | null {
+  if (data.identity !== undefined) return data.identity;
+  if (data.raw) { data.identity = data.raw; return data.identity; }
+  data.identity = data.variants.gzip ? gunzipSync(data.variants.gzip) : null;
+  return data.identity;
+}
 
 async function load() {
   if (cached) return cached;
@@ -84,6 +97,9 @@ export async function GET(req: Request) {
   const view = (b: Buffer): BodyInit =>
     new Uint8Array(b.buffer, b.byteOffset, b.byteLength) as unknown as BodyInit;
 
+  // Serve the best variant the client actually accepts, always with a matching
+  // Content-Encoding. Never label a body with an encoding the client didn't ask
+  // for (that yields an undecodable response for identity/non-gzip clients).
   if (data.variants.br && accept.includes('br')) {
     headers.set('Content-Encoding', 'br');
     return new NextResponse(view(data.variants.br), { headers });
@@ -92,9 +108,12 @@ export async function GET(req: Request) {
     headers.set('Content-Encoding', 'gzip');
     return new NextResponse(view(data.variants.gzip), { headers });
   }
-  // No matching precompressed variant. Prefer the raw file (Next gzips it on
-  // the wire); otherwise send gzip — every real browser accepts it.
-  if (data.raw) return new NextResponse(view(data.raw), { headers });
-  headers.set('Content-Encoding', 'gzip');
-  return new NextResponse(view(data.variants.gzip), { headers });
+  // Client accepts neither br nor gzip (identity, or a stripping proxy): send
+  // the uncompressed body with no Content-Encoding.
+  const body = identityBody(data);
+  if (body) return new NextResponse(view(body), { headers });
+  return NextResponse.json(
+    { error: 'waterways data not available in a servable encoding' },
+    { status: 503 },
+  );
 }
