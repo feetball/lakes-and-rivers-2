@@ -87,7 +87,7 @@ curl -fsS -H "Authorization: Bearer $CRON_SECRET" \
 # {"ok":true,"status":"refreshed","count":721}
 ```
 
-The repo ships a docker-compose sidecar (`gauge-cron`) that pings this endpoint every 30 min — see `docker-compose.yml`. On Vercel, `vercel.json` registers a Cron for the same endpoint; set `CRON_SECRET` as a project env var and Vercel includes the `Authorization` header automatically. (Hobby triggers crons once daily; the gauge cache also self-revalidates every 30 min on read, so freshness doesn't depend on the cron.)
+The repo ships a docker-compose sidecar (`gauge-cron`) that pings this endpoint every 30 min — see `docker-compose.yml`. On Vercel, `vercel.json` registers a Cron for the same endpoint (daily, `0 6 * * *` — the Vercel Hobby plan only allows once-daily schedules; Pro can run it more often); set `CRON_SECRET` as a project env var and Vercel includes the `Authorization` header automatically. The cron is just a backstop — the gauge cache self-revalidates every 30 min on read, so freshness doesn't depend on it.
 
 ## How rendering works
 
@@ -101,7 +101,7 @@ Import the repo; the defaults work. Notes:
 
 - **Build:** `prebuild` runs `data:build`, which unpacks the committed cache and regenerates `public/data/*` (gitignored, so they're produced fresh each deploy). The generated files ship as static assets *and* are traced into the API functions via `outputFileTracingIncludes` (`next.config.mjs`) — this is essential: the gauge routes read `gauges-meta.json` at runtime for flood thresholds, and without it on Vercel the file ENOENTs and **rivers render gray** (the symptom this addresses).
 - **Data delivery:** the 12 MB waterways GeoJSON is served as a static asset from Vercel's edge CDN (compressed, globally cached, no function invocation).
-- **Cache warming:** `vercel.json` registers a Cron on `/api/cron/refresh-gauges`. Set **`CRON_SECRET`** as a project env var to authenticate it (Vercel attaches the bearer token automatically). The live cache also self-revalidates every 30 min on read, and the `/api/gauges` cold path falls back to build-time data within 4 s, so the map is never blocked on the upstream NWPS fetch.
+- **Cache warming:** `vercel.json` registers a daily Cron on `/api/cron/refresh-gauges` (Hobby allows once-daily schedules only; bump the frequency on Pro). Set **`CRON_SECRET`** as a project env var to authenticate it (Vercel attaches the bearer token automatically). The cron is only a backstop — the live cache self-revalidates every 30 min on read, and the `/api/gauges` cold path falls back to build-time data within 4 s, so the map is never blocked on the upstream NWPS fetch.
 - **Function limits:** route `maxDuration` is 60 s (Hobby cap) and the upstream fetch is bounded by `NWPS_TIMEOUT_MS` (45 s) so background warming completes within budget.
 
 ## Configuration
