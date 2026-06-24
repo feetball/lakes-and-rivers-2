@@ -36,8 +36,17 @@ async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observatio
       parsed.gauges.map(g => [g.id, { ...g, thresholds: sanitizeThresholds(g.thresholds) }]),
     );
     metaCache = { entries, observationsAt: parsed.observationsAt ?? null };
-  } catch {
-    metaCache = { entries: new Map(), observationsAt: null };
+  } catch (err) {
+    // A failed read here is the silent failure mode behind "rivers render
+    // gray": no thresholds means gauges NWPS reports as not_defined can't be
+    // upgraded to a real flood category. On Vercel this happens when
+    // gauges-meta.json isn't traced into the function bundle (see
+    // outputFileTracingIncludes in next.config.mjs). Log it loudly so a path
+    // regression shows up in function logs instead of looking like upstream
+    // behavior. Don't cache the empty result, so a transient read error can
+    // recover on the next request.
+    console.error('[gauges] failed to load gauges-meta.json — thresholds unavailable, gauges will be uncolored:', err);
+    return { entries: new Map(), observationsAt: null };
   }
   return metaCache;
 }
@@ -65,11 +74,23 @@ function resolveCategory(
   return categorizeByStage(stage, thresholds);
 }
 
+// Per-attempt upstream timeout. NWPS's TX list is ~13 MB and takes ~40 s on a
+// good day (and can hang ~60 s before a 504), so this must exceed ~40 s for a
+// healthy fetch yet abort before Vercel's function cap.
+const NWPS_TIMEOUT_MS = Number(process.env.NWPS_TIMEOUT_MS) || 45_000;
+// Attempts per call. Default 1: one ~45 s attempt fits comfortably inside
+// Vercel Hobby's 60 s function budget (the cron awaits this, and /api/gauges
+// warms it via after() on the same clock). NWPS is flaky, but a missed refresh
+// is invisible — users always get the 4 s build-time fallback — and the cache
+// retries every 30 min (revalidate) plus on each cron tick. Self-hosters with
+// no time cap can set NWPS_MAX_ATTEMPTS=2+ for more resilience.
+const NWPS_MAX_ATTEMPTS = Math.max(1, Number(process.env.NWPS_MAX_ATTEMPTS) || 1);
+
 async function fetchFreshGauges(): Promise<GaugesResponse> {
   let lastErr: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < NWPS_MAX_ATTEMPTS; attempt++) {
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 90_000);
+    const t = setTimeout(() => ctl.abort(), NWPS_TIMEOUT_MS);
     try {
       const res = await fetch(NWPS_LIST, {
         cache: 'no-store',
@@ -102,7 +123,10 @@ async function fetchFreshGauges(): Promise<GaugesResponse> {
       return { gauges, updatedAt: new Date().toISOString() };
     } catch (e) {
       lastErr = e;
-      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+      // Only back off if another attempt follows — don't sleep then throw.
+      if (attempt < NWPS_MAX_ATTEMPTS - 1) {
+        await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+      }
     } finally {
       clearTimeout(t);
     }
@@ -126,7 +150,11 @@ export async function fallbackFromMeta(): Promise<GaugesResponse> {
   for (const g of entries.values()) {
     gauges[g.id] = {
       id: g.id, name: g.name, lat: g.lat, lon: g.lon,
-      category: g.category ?? 'not_defined',
+      // Defense-in-depth: older meta files may carry raw NWPS operational
+      // strings (out_of_service / obs_not_current / low_threshold) that aren't
+      // FloodCategory members and would render as gray with broken labels.
+      // normalizeCategory collapses anything unknown to not_defined.
+      category: normalizeCategory(g.category),
       observedStage: g.observedStage ?? null,
       observedAt: g.observedAt ?? null,
       unit: g.unit, thresholds: g.thresholds,

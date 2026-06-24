@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMapEvents }
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, PathOptions, Layer } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
-import { CATEGORY_ORDER, colorFor, CATEGORY_LABELS } from '@/lib/floodStatus';
+import { colorFor, CATEGORY_LABELS } from '@/lib/floodStatus';
 import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
 import GaugeSheet from './GaugeSheet';
@@ -89,11 +89,21 @@ export default function MapView() {
 
   useEffect(() => {
     let aborted = false;
-    fetch('/data/waterways.geojson')
-      .then(r => {
+    // Load order is platform-aware:
+    //  - Static /data/waterways.geojson is served straight from Vercel's edge
+    //    CDN (compressed, globally cached, zero serverless cost) — the optimal
+    //    path on Vercel and what we want for first paint.
+    //  - /api/waterways is the fallback: on self-hosted standalone (whose
+    //    server only gzips static files) it serves precompressed brotli
+    //    (~1.8 MB vs ~3 MB gzip); it also covers any case where the static
+    //    asset is unavailable. Whichever responds with valid JSON wins.
+    const loadFrom = (url: string) =>
+      fetch(url).then(r => {
         if (!r.ok) throw new Error(`waterways ${r.status}`);
         return r.json();
-      })
+      });
+    loadFrom('/data/waterways.geojson')
+      .catch(() => loadFrom('/api/waterways'))
       .then(json => { if (!aborted) setWaterways(json); })
       .catch(err => { if (!aborted) setLoadError(String(err)); });
     return () => { aborted = true; };
@@ -132,7 +142,6 @@ export default function MapView() {
       const tip = (child as any).getTooltip?.();
       if (tip) tip.setContent(label);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gaugeMap]);
 
   // Drop tiny/minor stream segments below STREAM_MIN_ZOOM. Lakes always
@@ -277,7 +286,7 @@ export default function MapView() {
             borderRadius: 8, fontSize: 13, zIndex: 1000,
           }}
         >
-          Couldn't load waterways data ({loadError}). Run <code>pnpm data:build</code>.
+          Couldn&apos;t load waterways data ({loadError}). Run <code>pnpm data:build</code>.
         </div>
       )}
       {hoverChart && <HoverHydrograph gauge={hoverChart.gauge} x={hoverChart.x} y={hoverChart.y} />}
