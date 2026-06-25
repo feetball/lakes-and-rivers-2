@@ -28,7 +28,10 @@ const GAUGES_LIST_SEED = resolve(OUT_DIR, 'gauges-list.json');
 const CACHE_DIR = resolve(ROOT, 'data-cache/gauges');
 // Bump when simplifyFeature / per-gauge schema changes, so old caches are
 // ignored automatically without a manual purge.
-const CACHE_VERSION = 3;
+// v4: host-resolution rewrite — prefer a NAMED host reach when the nearest is
+// unnamed, and chain the river across reservoir reaches (FTYPE 558/334/566),
+// not just 460. Fixes ~195 gauges that shipped no river or a 0 km stub.
+const CACHE_VERSION = 4;
 // Cache entries older than this are refetched. NHD flowline/waterbody geometry
 // is effectively static (rivers don't move; NHDPlus HR publishes on a multi-
 // year cadence) and CACHE_VERSION already busts the cache when our per-gauge
@@ -65,7 +68,13 @@ const REFRESH = ARGS.has('--refresh') || process.env.REFRESH === '1';
 //      roughly halfway between gauges.
 const HOST_PROBE_RADIUS_M = 500;
 const HOST_PROBE_MAX = 5;
-const HOST_WATERBODY_RADIUS_M = 250;
+// Was 250 m, which combined with nearest-vertex picking caused gauges sitting
+// just inside a large lake to grab an adjacent sliver polygon. pickWaterbody
+// now prefers the polygon that CONTAINS the gauge, so a wider probe just gives
+// it the candidates to choose from (the containment/size test, not the radius,
+// decides the winner). HOST_WATERBODY_MAX bounds how many we pull.
+const HOST_WATERBODY_RADIUS_M = 1000;
+const HOST_WATERBODY_MAX = 12;
 const HOST_RIVER_RADIUS_M = 40000;
 const HOST_RIVER_MAX = 400;
 // Cap number of gauges processed (useful for smoke tests).
@@ -83,6 +92,17 @@ const NWPS_GAUGE_DETAIL = (lid) => `https://api.water.noaa.gov/nwps/v1/gauges/${
 const NHD_BASE = 'https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer';
 const FLOWLINE_LAYER = 3; // NetworkNHDFlowline
 const WATERBODY_LAYER = 9; // NHDWaterbody
+
+// Flowline FTYPEs that carry a river's course. 460=StreamRiver is the obvious
+// one, but NHD threads a river THROUGH lakes/reservoirs as 558=ArtificialPath
+// (and occasionally 566=Coastline/connector reaches), and 334=Connector
+// bridges gaps. Restricting expansion to 460 (the old behaviour) left a hole
+// wherever a gauge sat on an impoundment reach — e.g. the Colorado at San Saba
+// and below Lake Buchanan — because the host reach was a 558 with no name, so
+// nothing chained the named river across it. Expanding by name across all of
+// these stitches the river back together through reservoirs.
+const RIVER_FLOWLINE_FTYPES = [460, 558, 334, 566];
+const RIVER_FTYPE_SQL = `FTYPE IN (${RIVER_FLOWLINE_FTYPES.join(', ')})`;
 
 async function exists(p) {
   try { await access(p); return true; } catch { return false; }
@@ -269,7 +289,7 @@ async function queryNhd(layer, geometry, radiusM, extraWhere = '1=1', maxRecords
     distance: String(radiusM),
     units: 'esriSRUnit_Meter',
     where: extraWhere,
-    outFields: 'GNIS_NAME,FTYPE,PERMANENT_IDENTIFIER',
+    outFields: 'GNIS_NAME,FTYPE,PERMANENT_IDENTIFIER,AREASQKM',
     returnGeometry: 'true',
     // ~5 m in WGS84. Anything coarser collapses river curves to straight
     // chords whose endpoints don't line up with adjacent reaches, which
@@ -400,35 +420,117 @@ function pickNearest(features, lat, lon) {
   return best;
 }
 
+// GNIS name off a feature, normalized. ArcGIS `f=geojson` lower-cases field
+// names, so accept both casings.
+function gnisName(feat) {
+  const p = feat?.properties ?? {};
+  return (p.gnis_name ?? p.GNIS_NAME ?? '').trim() || null;
+}
+
+// Ray-casting point-in-polygon against a single linear ring ([[lon,lat],...]).
+function pointInRing(lon, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = (yi > lat) !== (yj > lat)
+      && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// Does the gauge point fall inside this (Multi)Polygon? Outer ring contains,
+// holes subtract — standard even-odd across all rings of the part.
+function pointInPolygon(lon, lat, geom) {
+  if (!geom) return false;
+  const polys = geom.type === 'Polygon' ? [geom.coordinates]
+    : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+  for (const rings of polys) {
+    let inside = false;
+    for (const ring of rings) if (pointInRing(lon, lat, ring)) inside = !inside;
+    if (inside) return true;
+  }
+  return false;
+}
+
+// Pick the host WATERBODY for a gauge. nearest-vertex (pickNearest) is wrong
+// here: NHD overlays a big lake with tiny unnamed sliver polygons whose edge
+// can be closer to the gauge than the lake's, so the gauge ends up tagged with
+// a 3 km² sliver instead of the 89 km² lake (this is why Lake Buchanan looked
+// "missing" — we shipped the sliver, not the lake). Prefer, in order: a
+// polygon that CONTAINS the gauge and is named; any polygon that contains it;
+// then a named one; then nearest. Among ties, the larger polygon wins.
+function pickWaterbody(features, lat, lon) {
+  if (!features?.length) return null;
+  const area = (f) => {
+    const p = f.properties ?? {};
+    return Number(p.areasqkm ?? p.AREASQKM ?? 0) || 0;
+  };
+  const contains = features.filter(f => pointInPolygon(lon, lat, f.geometry));
+  const pool = contains.length ? contains : features;
+  const named = pool.filter(gnisName);
+  const candidates = named.length ? named : pool;
+  // Largest among the best-tier candidates — the real lake, not a sliver.
+  return candidates.reduce((best, f) => (area(f) > area(best) ? f : best), candidates[0]);
+}
+
+// Resolve the host river NAME for a gauge. The nearest reach is often unnamed
+// even when it's part of a named river — a 558 ArtificialPath through a
+// reservoir, or just an unnamed 460 reach within e.g. the Leon/Nueces/Rio
+// Grande. So: take the nearest reach as the host geometry, but for the NAME we
+// scan all probed candidates and pick the closest one that actually has a
+// GNIS name. That name then drives the same-name expansion. Returns the host
+// feature (for the unnamed-fallback case) and the resolved name separately.
+function resolveHost(features, lat, lon) {
+  const host = pickNearest(features, lat, lon);
+  if (!host) return { host: null, name: null };
+  // Prefer the nearest NAMED candidate's name for expansion. Sort candidates
+  // by distance and take the first with a name.
+  const named = (features ?? [])
+    .filter(gnisName)
+    .map(f => ({ f, d: nearestVertexDistSq(lat, lon, f.geometry) }))
+    .sort((a, b) => a.d - b.d)[0];
+  return { host, name: named ? gnisName(named.f) : gnisName(host) };
+}
+
 async function fetchGaugeBundle(g) {
   const lid = g.lid;
   const lat = g.latitude;
   const lon = g.longitude;
   const point = { x: lon, y: lat, spatialReference: { wkid: 4326 } };
 
-  // Stage 1: probe the gauge location for its host waterway.
+  // Stage 1: probe the gauge location for its host waterway. We probe for any
+  // river-carrying flowline (460 StreamRiver + 558/334/566 through-water
+  // reaches) so a gauge sitting on a reservoir reach still finds a host, and
+  // pull up to HOST_PROBE_MAX candidates so resolveHost can reach past an
+  // unnamed nearest reach to the named river it belongs to.
   const [hostFlowJson, hostWbJson, detail] = await Promise.all([
-    queryNhd(FLOWLINE_LAYER, point, HOST_PROBE_RADIUS_M, '1=1', HOST_PROBE_MAX).catch(() => null),
-    // FTYPE 390=LakePond, 436=Reservoir. Tight radius — only a lake the
-    // gauge actually sits on/in counts as a host waterbody.
-    queryNhd(WATERBODY_LAYER, point, HOST_WATERBODY_RADIUS_M, 'FTYPE IN (390, 436)', 5).catch(() => null),
+    queryNhd(FLOWLINE_LAYER, point, HOST_PROBE_RADIUS_M, RIVER_FTYPE_SQL, HOST_PROBE_MAX).catch(() => null),
+    // FTYPE 390=LakePond, 436=Reservoir. pickWaterbody picks the polygon that
+    // contains the gauge (preferring named + largest), so we can afford a wider
+    // probe and more candidates than the old nearest-vertex pick allowed.
+    queryNhd(WATERBODY_LAYER, point, HOST_WATERBODY_RADIUS_M, 'FTYPE IN (390, 436)', HOST_WATERBODY_MAX).catch(() => null),
     fetchJson(NWPS_GAUGE_DETAIL(lid), { timeoutMs: 30_000, retries: 2 }).catch(() => null),
   ]);
 
-  const hostFlow = pickNearest(hostFlowJson?.features, lat, lon);
-  const hostWaterbody = pickNearest(hostWbJson?.features, lat, lon);
-  const hostName = (hostFlow?.properties?.gnis_name ?? hostFlow?.properties?.GNIS_NAME ?? '').trim() || null;
+  const { host: hostFlow, name: hostName } = resolveHost(hostFlowJson?.features, lat, lon);
+  const hostWaterbody = pickWaterbody(hostWbJson?.features, lat, lon);
 
-  // Stage 2: if the host has a name, pull every same-named reach within
-  // range so coverage extends toward adjacent gauges. Unnamed hosts only
-  // contribute their single nearest segment — we don't have a stable key
-  // to chain unnamed reaches together.
+  // Stage 2: if we resolved a host name, pull every same-named reach within
+  // range — across all river-carrying FTYPEs so the river stays connected
+  // through reservoirs — so coverage extends toward adjacent gauges. When the
+  // host truly has no name anywhere nearby, fall back to its single nearest
+  // reach (we have no stable key to chain unnamed reaches together).
   let riverFeatures = [];
   if (hostName) {
     const safe = hostName.replace(/'/g, "''");
-    const where = `GNIS_NAME = '${safe}' AND FTYPE = 460`;
+    const where = `GNIS_NAME = '${safe}' AND ${RIVER_FTYPE_SQL}`;
     const riverJson = await queryNhd(FLOWLINE_LAYER, point, HOST_RIVER_RADIUS_M, where, HOST_RIVER_MAX).catch(() => null);
     riverFeatures = riverJson?.features ?? [];
+    // Guard: if the name-expansion somehow returned nothing (transient NHD
+    // hiccup), still ship the host reach so the gauge isn't left blank.
+    if (!riverFeatures.length && hostFlow) riverFeatures = [hostFlow];
   } else if (hostFlow) {
     riverFeatures = [hostFlow];
   }
