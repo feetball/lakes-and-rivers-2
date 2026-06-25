@@ -1,0 +1,24 @@
+# Standalone gauge-refresher. Run on any Docker host that can reach the main
+# app. Independent of the main app's docker-compose.yml.
+#
+# Setup:
+#   cp .env.example .env   # then edit REFRESH_URL and CRON_SECRET
+#   docker compose up -d --build
+#   docker compose logs -f
+services:
+  gauge-refresher:
+    build: .
+    image: gauge-refresher:local
+    container_name: gauge-refresher
+    restart: unless-stopped
+    environment:
+      # Full URL of the cron refresh endpoint on the main app.
+      - REFRESH_URL=${REFRESH_URL:?set REFRESH_URL in .env}
+      # Must match the main app's CRON_SECRET. Leave blank only if the app has
+      # no CRON_SECRET configured.
+      - CRON_SECRET=${CRON_SECRET:-}
+      # Every 10 minutes by default. Standard 5-field cron syntax.
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-*/10 * * * *}
+      - CURL_TIMEOUT=${CURL_TIMEOUT:-90}
+      # Set so cron timestamps in logs match your local time, e.g. America/Chicago.
+      - TZ=${TZ:-UTC}
