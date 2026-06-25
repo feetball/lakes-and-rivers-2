@@ -3,18 +3,26 @@
 import { useState } from 'react';
 import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/floodStatus';
 import type { FloodCategory } from '@/lib/types';
+import AdminControls from './AdminControls';
 
 interface Props {
   counts: Record<FloodCategory, number>;
   updatedAt?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
+  // Re-read gauge data after an admin server-side force refresh.
+  onForceRefreshed?: () => void;
 }
 
-export default function Legend({ counts, updatedAt, onRefresh, refreshing }: Props) {
+export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed }: Props) {
   const [open, setOpen] = useState(true);
   const updatedLabel = updatedAt
-    ? new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    ? new Date(updatedAt).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     : '—';
 
   return (
@@ -100,6 +108,7 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing }: Pro
             )}
             <span>· refreshes every 10 min</span>
           </div>
+          <AdminControls onRefreshed={onForceRefreshed} />
           {process.env.NEXT_PUBLIC_APP_VERSION && (
             <div style={{ marginTop: 4, color: '#6b7280', fontSize: 10 }}>
               v{process.env.NEXT_PUBLIC_APP_VERSION}

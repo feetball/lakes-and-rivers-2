@@ -103,12 +103,15 @@ Import the repo; the defaults work. Notes:
 - **Data delivery:** the 12 MB waterways GeoJSON is served as a static asset from Vercel's edge CDN (compressed, globally cached, no function invocation).
 - **Cache warming:** `vercel.json` registers a daily Cron on `/api/cron/refresh-gauges` (Hobby allows once-daily schedules only; bump the frequency on Pro). Set **`CRON_SECRET`** as a project env var to authenticate it (Vercel attaches the bearer token automatically). The cron is only a backstop — the live cache self-revalidates every 30 min on read, and the `/api/gauges` cold path falls back to build-time data within 4 s, so the map is never blocked on the upstream NWPS fetch.
 - **Function limits:** route `maxDuration` is 60 s (Hobby cap) and the upstream fetch is bounded by `NWPS_TIMEOUT_MS` (45 s) so background warming completes within budget.
+- **Admin force refresh:** set **`ADMIN_PASSWORD`** to enable an in-app **Admin** login in the legend. Once signed in, a **Force refresh data** button invalidates the shared gauge cache and pulls fresh NWPS data on demand (same effect as the cron, but session-gated via a signed HTTP-only cookie). The session is signed with `SESSION_SECRET` (falls back to `ADMIN_PASSWORD`).
 
 ## Configuration
 
 | Env var | Used by | Description |
 | --- | --- | --- |
 | `CRON_SECRET` | `/api/cron/refresh-gauges`, docker sidecar, Vercel Cron | Bearer token required on the refresh endpoint. |
+| `ADMIN_PASSWORD` | `/api/admin/*` | Enables the in-app **Admin** login in the legend. Unset = admin controls are hidden. |
+| `SESSION_SECRET` | `/api/admin/*` | HMAC key for signing the admin session cookie. Optional — falls back to `ADMIN_PASSWORD`; set it to rotate sessions independently of the password. |
 | `NEXT_PUBLIC_APP_VERSION` | UI footer | Optional version label shown in the legend. |
 | `NWPS_TIMEOUT_MS` | `/api/gauges`, `/api/cron` | Per-attempt upstream fetch timeout (default 45000). |
 | `CACHE_TTL_DAYS`, `OUTPUT_COORD_DP`, `NHD_CONCURRENCY`, `GAUGE_LIMIT`, `REFRESH` | `data:build` | See *Scripts*. |

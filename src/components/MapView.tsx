@@ -257,6 +257,7 @@ export default function MapView() {
           updatedAt={gaugeData?.updatedAt}
           onRefresh={() => { refreshGauges(); }}
           refreshing={gaugesValidating}
+          onForceRefreshed={() => { refreshGauges(); }}
         />
       </DraggablePanel>
       <DraggablePanel
