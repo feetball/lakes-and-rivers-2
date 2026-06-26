@@ -19,6 +19,7 @@ SCHEDULE="${CRON_SCHEDULE:-*/10 * * * *}"
   echo "export INGEST_URL='${INGEST_URL:-}'"
   echo "export REFRESH_URL='${REFRESH_URL:-}'"
   echo "export NWPS_URL='${NWPS_URL:-}'"
+  echo "export NWPS_ATTEMPTS='${NWPS_ATTEMPTS:-4}'"
   echo "export CRON_SECRET='${CRON_SECRET:-}'"
   echo "export CURL_TIMEOUT='${CURL_TIMEOUT:-120}'"
 } > /etc/refresh.env

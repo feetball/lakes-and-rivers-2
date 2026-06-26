@@ -37,11 +37,24 @@ fi
 ingest_mode() {
   echo "[$(ts)] fetch NWPS -> ${NWPS_URL}"
   tmp="$(mktemp)"
-  # Fetch the raw NWPS list into a temp file. Generous timeout — NWPS takes
-  # ~60 s. -f makes curl fail on HTTP errors (e.g. NWPS 504).
-  if ! curl -fsS -m "${TIMEOUT}" -A 'texas-flood-map-refresher/1.0' "${NWPS_URL}" -o "${tmp}"; then
-    status=$?
-    echo "[$(ts)] NWPS fetch FAILED (curl exit ${status}) - will retry next tick" >&2
+  # The bulk NWPS TX list sits right at ~60 s and intermittently 504s even from
+  # an unbounded client, so retry a few times with backoff before giving up and
+  # waiting for the next cron tick. -f makes curl fail (exit 22) on HTTP errors.
+  attempts="${NWPS_ATTEMPTS:-4}"
+  i=1
+  ok=0
+  while [ "${i}" -le "${attempts}" ]; do
+    # Capture curl's real exit status. Don't use `if ! curl`: that swallows the
+    # actual code (it would report the negated test's status, not curl's).
+    status=0
+    curl -fsS -m "${TIMEOUT}" -A 'texas-flood-map-refresher/1.0' "${NWPS_URL}" -o "${tmp}" || status=$?
+    if [ "${status}" -eq 0 ]; then ok=1; break; fi
+    echo "[$(ts)] NWPS fetch attempt ${i}/${attempts} failed (curl exit ${status})" >&2
+    i=$((i + 1))
+    [ "${i}" -le "${attempts}" ] && sleep $((i * 10))
+  done
+  if [ "${ok}" -ne 1 ]; then
+    echo "[$(ts)] NWPS fetch FAILED after ${attempts} attempts - will retry next tick" >&2
     rm -f "${tmp}"
     return 1
   fi
@@ -54,16 +67,17 @@ ingest_mode() {
   else
     set --
   fi
-  if body=$(curl -fsS -m "${TIMEOUT}" -X POST \
+  status=0
+  body=$(curl -fsS -m "${TIMEOUT}" -X POST \
       -H 'Content-Type: application/json' \
       "$@" \
       --data-binary "@${tmp}" \
-      "${INGEST_URL}"); then
+      "${INGEST_URL}") || status=$?
+  if [ "${status}" -eq 0 ]; then
     echo "[$(ts)] ingest ok: ${body}"
     rm -f "${tmp}"
     return 0
   else
-    status=$?
     echo "[$(ts)] ingest POST FAILED (curl exit ${status}) - will retry next tick" >&2
     rm -f "${tmp}"
     return 1
