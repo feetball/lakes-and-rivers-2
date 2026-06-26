@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
+import AnalyticsPanel from './AnalyticsPanel';
 
 interface Props {
   // Called after a successful server-side force refresh so the caller can
   // re-read /api/gauges (e.g. SWR mutate).
   onRefreshed?: () => void;
+  // gaugeId -> display name, for friendlier labels in the analytics panel.
+  gaugeNames?: Record<string, string>;
 }
 
 const linkBtn: React.CSSProperties = {
@@ -21,7 +24,7 @@ const linkBtn: React.CSSProperties = {
 
 // Admin login + force-refresh, rendered inside the Legend. Hidden entirely
 // when admin login isn't configured on the server (no ADMIN_PASSWORD).
-export default function AdminControls({ onRefreshed }: Props) {
+export default function AdminControls({ onRefreshed, gaugeNames }: Props) {
   const { authed, configured, login, logout } = useAdmin();
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState('');
@@ -89,6 +92,7 @@ export default function AdminControls({ onRefreshed }: Props) {
           </button>
         </div>
         {forceMsg && <span style={{ color: '#6b7280' }}>{forceMsg}</span>}
+        <AnalyticsPanel gaugeNames={gaugeNames} />
       </div>
     );
   }

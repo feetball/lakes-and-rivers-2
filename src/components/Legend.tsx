@@ -12,9 +12,11 @@ interface Props {
   refreshing?: boolean;
   // Re-read gauge data after an admin server-side force refresh.
   onForceRefreshed?: () => void;
+  // gaugeId -> display name, passed through to the admin analytics panel.
+  gaugeNames?: Record<string, string>;
 }
 
-export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed }: Props) {
+export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames }: Props) {
   const [open, setOpen] = useState(true);
   // epoch-0 (1970-01-01T00:00:00Z) is the "no real observation yet" sentinel
   // the API ships when the live NWPS cache is still cold. Formatting it
@@ -115,7 +117,7 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
             )}
             <span>· refreshes every 10 min</span>
           </div>
-          <AdminControls onRefreshed={onForceRefreshed} />
+          <AdminControls onRefreshed={onForceRefreshed} gaugeNames={gaugeNames} />
           {process.env.NEXT_PUBLIC_APP_VERSION && (
             <div style={{ marginTop: 4, color: '#6b7280', fontSize: 10 }}>
               v{process.env.NEXT_PUBLIC_APP_VERSION}
