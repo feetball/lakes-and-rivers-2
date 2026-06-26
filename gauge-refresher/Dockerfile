@@ -11,7 +11,7 @@ RUN chmod +x /usr/local/bin/refresh.sh /usr/local/bin/entrypoint.sh
 
 # INGEST_URL (preferred) or REFRESH_URL must be supplied at runtime;
 # CRON_SECRET / CRON_SCHEDULE / NWPS_URL optional.
-ENV CRON_SCHEDULE="*/10 * * * *" \
+ENV CRON_SCHEDULE="*/30 * * * *" \
     CURL_TIMEOUT="120"
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -1,0 +1,12 @@
+{
+  "_comment": "Hand-verified corrections for waterway features whose gaugeId the build's nearest-waterbody heuristic (pickWaterbody in build-waterways-data.mjs) assigned wrong. The nearest NHD waterbody to a gauge isn't always the lake the gauge actually measures, so big named reservoirs sometimes got tagged to an adjacent lake's gauge (e.g. Lake Travis -> Marble Falls). Keyed by the feature's `name` property; value is the correct gauge lid from gauges-list.json. Applied at build time and by scripts/apply-gauge-overrides.mjs. Add an entry only after confirming the lid is the reservoir's own gauge (watch for creek-at-town gauges that share the lake's town name, e.g. LIVT2 'Long King Creek at Livingston' is NOT Lake Livingston; LVDT2 'Trinity River at Lake Livingston' is).",
+  "byName": {
+    "Lake Travis": "MSDT2",
+    "Lake Meredith": "MRIT2",
+    "Lake Livingston": "LVDT2",
+    "Amistad Reservoir": "AMIT2",
+    "O. H. Ivie Reservoir": "OHIT2",
+    "Lake Amon G Carter": "BCAT2",
+    "Palo Pinto Creek Reservoir": "LPPT2"
+  }
+}

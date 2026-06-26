@@ -22,8 +22,8 @@ services:
       - NWPS_URL=${NWPS_URL:-https://api.water.noaa.gov/nwps/v1/gauges?state=TX}
       # Must match the main app's CRON_SECRET (required for ingest).
       - CRON_SECRET=${CRON_SECRET:-}
-      # Every 10 minutes by default. Standard 5-field cron syntax.
-      - CRON_SCHEDULE=${CRON_SCHEDULE:-*/10 * * * *}
+      # Every 30 minutes by default. Standard 5-field cron syntax.
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-*/30 * * * *}
       - CURL_TIMEOUT=${CURL_TIMEOUT:-120}
       # Set so cron timestamps in logs match your local time, e.g. America/Chicago.
       - TZ=${TZ:-UTC}

@@ -14,6 +14,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync, brotliCompressSync, constants as zlibConstants } from 'node:zlib';
 import { unpackCache } from './unpack-cache.mjs';
+import { loadOverrides, applyGaugeOverrides } from './apply-gauge-overrides.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -766,6 +767,14 @@ async function build() {
 
   console.log('[3/3] Writing output files…');
   await mkdir(OUT_DIR, { recursive: true });
+  // Correct any lake polygons the nearest-waterbody heuristic mis-tagged (see
+  // public/data/gauge-overrides.json). Done here, just before write, so the
+  // committed artifacts already reflect the corrections.
+  const overrides = await loadOverrides();
+  const ovChanges = applyGaugeOverrides(merged, overrides);
+  if (ovChanges.length) {
+    console.log(`      applied ${ovChanges.length} gauge override(s): ${ovChanges.map((c) => c.name).join(', ')}`);
+  }
   const geojson = { type: 'FeatureCollection', features: merged };
   // observationsAt records the most recent observation time across the
   // shipped gauges so the runtime fallback can return that as updatedAt
