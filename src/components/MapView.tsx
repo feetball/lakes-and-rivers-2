@@ -13,6 +13,7 @@ import HoverHydrograph from './HoverHydrograph';
 import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
 import DraggablePanel from './DraggablePanel';
+import { track } from '@/lib/track';
 
 // Below this zoom, hide stream/river lines and only paint waterbodies.
 // Painting thousands of canvas polylines while panning the whole state is
@@ -69,6 +70,12 @@ export default function MapView() {
   const [waterways, setWaterways] = useState<Waterways | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<GaugeStatus | null>(null);
+  // Open a gauge sheet and record the open for analytics. Both click paths
+  // (marker + waterway) go through here so tracking can't be forgotten on one.
+  const selectGauge = (g: GaugeStatus) => {
+    setSelected(g);
+    track({ type: 'gauge_open', gaugeId: g.id });
+  };
   const [hoverChart, setHoverChart] = useState<{ gauge: GaugeStatus; x: number; y: number } | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
   // null = live; ISO = historical snapshot.
@@ -161,7 +168,7 @@ export default function MapView() {
     layer.bindTooltip(label, { sticky: true, direction: 'top', opacity: 0.9 });
     layer.on('click', () => {
       const live = gid ? gaugeMapRef.current[gid] : undefined;
-      if (live) setSelected(live);
+      if (live) selectGauge(live);
     });
   };
 
@@ -169,6 +176,12 @@ export default function MapView() {
   // current observation) come through as `not_defined` and render in gray —
   // they're still useful as "a gauge exists here" markers.
   const gaugeList = useMemo(() => Object.values(gaugeMap), [gaugeMap]);
+  // id -> name, for friendly labels in the admin analytics panel.
+  const gaugeNames = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const g of gaugeList) m[g.id] = g.name;
+    return m;
+  }, [gaugeList]);
   const categoryCounts = useMemo(() => {
     const counts: Record<FloodCategory, number> = {
       not_defined: 0, no_flooding: 0, action: 0, minor: 0, moderate: 0, major: 0,
@@ -221,7 +234,7 @@ export default function MapView() {
               fillOpacity: 1,
             }}
             eventHandlers={{
-              click: () => setSelected(g),
+              click: () => selectGauge(g),
               mouseover: (e) => {
                 const { clientX, clientY } = (e.originalEvent as MouseEvent) ?? { clientX: 0, clientY: 0 };
                 const timer = window.setTimeout(() => {
@@ -258,6 +271,7 @@ export default function MapView() {
           onRefresh={() => { refreshGauges(); }}
           refreshing={gaugesValidating}
           onForceRefreshed={() => { refreshGauges(); }}
+          gaugeNames={gaugeNames}
         />
       </DraggablePanel>
       <DraggablePanel
