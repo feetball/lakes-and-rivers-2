@@ -16,14 +16,21 @@ interface Props {
 
 export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed }: Props) {
   const [open, setOpen] = useState(true);
-  const updatedLabel = updatedAt
-    ? new Date(updatedAt).toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '—';
+  // epoch-0 (1970-01-01T00:00:00Z) is the "no real observation yet" sentinel
+  // the API ships when the live NWPS cache is still cold. Formatting it
+  // verbatim renders as "Dec 31" in US timezones, which reads like a real (and
+  // alarmingly stale) timestamp — so surface it as "Updating…" instead.
+  const updatedMs = updatedAt ? new Date(updatedAt).getTime() : NaN;
+  const updatedLabel = !updatedAt
+    ? '—'
+    : !Number.isFinite(updatedMs) || updatedMs === 0
+      ? 'Updating…'
+      : new Date(updatedMs).toLocaleString([], {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
 
   return (
     <div

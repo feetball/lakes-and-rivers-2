@@ -13,16 +13,17 @@ export const dynamic = 'force-dynamic';
 // (NWPS_TIMEOUT_MS, default 45s) so the post-response after() warm fits.
 export const maxDuration = 60;
 
-// Budget for getCachedGauges() to return. A WARM read from the shared Data
-// Cache (kept hot by /api/cron/refresh-gauges) resolves in well under a
-// second, so any healthy request returns the live, cron-refreshed value. The
-// fallback path below exists only for the genuinely COLD case — an empty Data
-// Cache racing a ~45 s NWPS fetch on a fresh deploy — so we give the read most
-// of the function budget before giving up. The previous 4 s budget was too
-// tight: it lost the race even on warm-but-not-instant reads (e.g. right after
-// the cron's revalidateTag forced a revalidation), so EVERY request fell back
-// to the stale build-time snapshot and the UI froze at the build timestamp.
-const READ_BUDGET_MS = 50_000;
+// Budget for getCachedGauges() to return on the user-facing fast path. A WARM
+// read from the shared Data Cache (kept hot by /api/cron/refresh-gauges)
+// resolves in well under a second, so any healthy request returns the live,
+// cron-refreshed value almost immediately. We deliberately keep this SHORT:
+// the NWPS upstream list is ~13 MB and routinely takes ~59 s or 504s at
+// Vercel's 60 s function cap, so a cold read can't realistically win the race.
+// Rather than make the user wait ~50 s only to fall back anyway, we give up
+// after a few seconds, serve the build-time snapshot instantly, and let the
+// fetch finish in the background (after()) to populate the cache for the next
+// request — which the client re-polls for every 15 s while data is cold.
+const READ_BUDGET_MS = Number(process.env.GAUGES_READ_BUDGET_MS) || 6_000;
 
 export async function GET() {
   const cachedPromise = getCachedGauges();

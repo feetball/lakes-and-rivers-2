@@ -277,6 +277,11 @@ export default function MapView() {
               : atIso ? 'Loading historical gauge data…'
               : 'Loading live gauge data…'
           }
+          sublabel={
+            !waterways ? 'Drawing the map…'
+              : atIso ? 'Fetching the selected snapshot…'
+              : 'Live readings come from NWPS, which can be slow — fetching the latest…'
+          }
         />
       )}
       {loadError && (
