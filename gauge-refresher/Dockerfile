@@ -9,8 +9,9 @@ COPY refresh.sh /usr/local/bin/refresh.sh
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/refresh.sh /usr/local/bin/entrypoint.sh
 
-# REFRESH_URL must be supplied at runtime; CRON_SECRET / CRON_SCHEDULE optional.
+# INGEST_URL (preferred) or REFRESH_URL must be supplied at runtime;
+# CRON_SECRET / CRON_SCHEDULE / NWPS_URL optional.
 ENV CRON_SCHEDULE="*/10 * * * *" \
-    CURL_TIMEOUT="90"
+    CURL_TIMEOUT="120"
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

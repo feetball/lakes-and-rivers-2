@@ -1,6 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import type { GaugesResponse } from '@/lib/types';
 import { getCachedGauges, fallbackFromMeta } from '@/lib/gauges-fetch';
+import { readGaugesBlob } from '@/lib/gauges-store';
 
 // The NWPS list response is ~13 MB and the upstream fetch can take up to 60 s.
 // We rely on getCachedGauges (Next.js data cache, shared across instances on
@@ -26,6 +27,22 @@ export const maxDuration = 60;
 const READ_BUDGET_MS = Number(process.env.GAUGES_READ_BUDGET_MS) || 6_000;
 
 export async function GET() {
+  // Fast path: the snapshot written by the external refresher (docker
+  // gauge-refresher → /api/gauges/ingest → Vercel Blob). This is the only path
+  // that reliably carries LIVE data, because the slow NWPS fetch happens in the
+  // container where there's no 60 s function cap. Read it first; a populated
+  // blob means real, recent observations with no upstream round-trip here.
+  const blob = await readGaugesBlob();
+  if (blob && Object.keys(blob.gauges).length > 0) {
+    return NextResponse.json(blob, {
+      headers: {
+        'Cache-Control': 'public, max-age=60',
+        'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'X-Cache': 'BLOB',
+      },
+    });
+  }
+
   const cachedPromise = getCachedGauges();
   try {
     const body = await Promise.race<GaugesResponse>([

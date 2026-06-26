@@ -20,6 +20,7 @@
     "release": "pnpm version patch -m \"chore(release): %s\" && git push --follow-tags"
   },
   "dependencies": {
+    "@vercel/blob": "^2.5.0",
     "leaflet": "^1.9.4",
     "next": "^15.5.19",
     "react": "^19.0.0",

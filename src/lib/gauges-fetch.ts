@@ -86,6 +86,36 @@ const NWPS_TIMEOUT_MS = Number(process.env.NWPS_TIMEOUT_MS) || 45_000;
 // no time cap can set NWPS_MAX_ATTEMPTS=2+ for more resilience.
 const NWPS_MAX_ATTEMPTS = Math.max(1, Number(process.env.NWPS_MAX_ATTEMPTS) || 1);
 
+// Turn a raw NWPS gauge list (the ~13 MB JSON from NWPS_LIST, or the `gauges`
+// array within it) into our compact GaugesResponse. Pulls thresholds from the
+// build-time meta so categories resolve identically to the live path. Exported
+// so the ingest endpoint — which receives the raw list fetched by an external
+// worker that isn't bound by Vercel's 60 s cap — can reuse the exact same
+// processing instead of duplicating it.
+export async function processNwpsList(list: any[]): Promise<GaugesResponse> {
+  const meta = (await loadMeta()).entries;
+  const gauges: Record<string, GaugeStatus> = {};
+  for (const g of list) {
+    if (!g?.lid || g?.state?.abbreviation !== 'TX') continue;
+    const obs = g.status?.observed;
+    const m = meta.get(g.lid);
+    const stage = typeof obs?.primary === 'number' ? obs.primary : null;
+    const thresholds = m?.thresholds ?? null;
+    gauges[g.lid] = {
+      id: g.lid,
+      name: g.name ?? g.lid,
+      lat: g.latitude,
+      lon: g.longitude,
+      category: resolveCategory(obs?.floodCategory ?? g.ObservedFloodCategory, stage, thresholds),
+      observedStage: stage,
+      observedAt: obs?.validTime ?? null,
+      unit: obs?.primaryUnit ?? g.flood?.stageUnits ?? m?.unit ?? null,
+      thresholds,
+    };
+  }
+  return { gauges, updatedAt: new Date().toISOString() };
+}
+
 async function fetchFreshGauges(): Promise<GaugesResponse> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < NWPS_MAX_ATTEMPTS; attempt++) {
@@ -100,27 +130,7 @@ async function fetchFreshGauges(): Promise<GaugesResponse> {
       if (!res.ok) throw new Error(`NWPS ${res.status}`);
       const data: any = await res.json();
       const list: any[] = Array.isArray(data) ? data : data.gauges ?? [];
-      const meta = (await loadMeta()).entries;
-      const gauges: Record<string, GaugeStatus> = {};
-      for (const g of list) {
-        if (!g?.lid || g?.state?.abbreviation !== 'TX') continue;
-        const obs = g.status?.observed;
-        const m = meta.get(g.lid);
-        const stage = typeof obs?.primary === 'number' ? obs.primary : null;
-        const thresholds = m?.thresholds ?? null;
-        gauges[g.lid] = {
-          id: g.lid,
-          name: g.name ?? g.lid,
-          lat: g.latitude,
-          lon: g.longitude,
-          category: resolveCategory(obs?.floodCategory ?? g.ObservedFloodCategory, stage, thresholds),
-          observedStage: stage,
-          observedAt: obs?.validTime ?? null,
-          unit: obs?.primaryUnit ?? g.flood?.stageUnits ?? m?.unit ?? null,
-          thresholds,
-        };
-      }
-      return { gauges, updatedAt: new Date().toISOString() };
+      return await processNwpsList(list);
     } catch (e) {
       lastErr = e;
       // Only back off if another attempt follows — don't sleep then throw.
