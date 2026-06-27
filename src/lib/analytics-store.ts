@@ -1,4 +1,4 @@
-import { put, list, del } from '@vercel/blob';
+import { put, list, del, get } from '@vercel/blob';
 
 // Self-hosted, Blob-backed analytics. Replaces the need for Vercel's paid Web
 // Analytics for the metrics this app cares about (pageviews, unique visitors,
@@ -92,11 +92,17 @@ function foldEvent(agg: DayAggregate, ev: TrackEvent, seenVisitors: Set<string>)
   }
 }
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+// Read a PRIVATE blob's JSON body. Events/rollups are written with
+// access:'private', which are NOT fetchable by plain URL — they must be read
+// through the SDK's get(..., { access:'private' }), same as gauges-store.ts.
+// (The previous fetch(b.url) silently returned null for every blob, so every
+// aggregate came back as zeros even though events were being written.)
+async function readJson<T>(pathname: string): Promise<T | null> {
   try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
+    const result = await get(pathname, { access: 'private' });
+    if (!result || result.statusCode !== 200) return null;
+    const text = await new Response(result.stream).text();
+    return JSON.parse(text) as T;
   } catch {
     return null;
   }
@@ -110,7 +116,7 @@ async function aggregateRawDay(day: string): Promise<DayAggregate> {
   let cursor: string | undefined;
   do {
     const page = await list({ prefix: `${RAW_PREFIX}${day}/`, cursor, limit: 1000 });
-    const events = await Promise.all(page.blobs.map((b) => fetchJson<TrackEvent>(b.url)));
+    const events = await Promise.all(page.blobs.map((b) => readJson<TrackEvent>(b.pathname)));
     for (const ev of events) if (ev) foldEvent(agg, ev, seen);
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
@@ -171,7 +177,7 @@ export async function getAnalyticsSummary(today: string): Promise<{
     let cursor: string | undefined;
     do {
       const page = await list({ prefix: ROLLUP_PREFIX, cursor, limit: 1000 });
-      const loaded = await Promise.all(page.blobs.map((b) => fetchJson<DayAggregate>(b.url)));
+      const loaded = await Promise.all(page.blobs.map((b) => readJson<DayAggregate>(b.pathname)));
       for (const d of loaded) if (d) rollupDays.push(d);
       cursor = page.hasMore ? page.cursor : undefined;
     } while (cursor);
