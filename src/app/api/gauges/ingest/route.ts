@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
+import { gunzipSync } from 'node:zlib';
 import type { GaugesResponse } from '@/lib/types';
 import { processNwpsList, GAUGES_CACHE_TAG } from '@/lib/gauges-fetch';
 import { writeGaugesBlob } from '@/lib/gauges-store';
@@ -40,9 +41,17 @@ export async function POST(req: Request) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
+  // The worker gzips the body (Content-Encoding: gzip) because the raw NWPS TX
+  // list is ~13 MB — over Vercel's 4.5 MB request-body cap, which returns 413
+  // before this function runs. Decompress here when the header is set.
   let body: any;
   try {
-    body = await req.json();
+    if (req.headers.get('content-encoding') === 'gzip') {
+      const raw = Buffer.from(await req.arrayBuffer());
+      body = JSON.parse(gunzipSync(raw).toString('utf8'));
+    } else {
+      body = await req.json();
+    }
   } catch {
     return NextResponse.json({ ok: false, error: 'invalid JSON body' }, { status: 400 });
   }

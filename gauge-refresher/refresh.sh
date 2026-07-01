@@ -59,27 +59,39 @@ ingest_mode() {
     return 1
   fi
   size=$(wc -c < "${tmp}" 2>/dev/null || echo '?')
-  echo "[$(ts)] fetched ${size} bytes; POST -> ${INGEST_URL}"
 
-  # POST the raw list to the ingest endpoint, which processes + stores it.
+  # Gzip the body before POSTing. The raw NWPS TX list is ~13 MB, well over
+  # Vercel's 4.5 MB request-body cap (which returns 413 before the function
+  # even runs). Gzipped it drops to well under that. The ingest endpoint
+  # decompresses based on Content-Encoding: gzip.
+  gz="${tmp}.gz"
+  if ! gzip -c "${tmp}" > "${gz}"; then
+    echo "[$(ts)] gzip FAILED - will retry next tick" >&2
+    rm -f "${tmp}" "${gz}"
+    return 1
+  fi
+  gzsize=$(wc -c < "${gz}" 2>/dev/null || echo '?')
+  echo "[$(ts)] fetched ${size} bytes (gzip ${gzsize}); POST -> ${INGEST_URL}"
+
+  # POST the gzipped raw list to the ingest endpoint, which decompresses,
+  # processes + stores it.
+  set -- -H 'Content-Encoding: gzip'
   if [ -n "${AUTH_HEADER}" ]; then
-    set -- -H "${AUTH_HEADER}"
-  else
-    set --
+    set -- "$@" -H "${AUTH_HEADER}"
   fi
   status=0
   body=$(curl -fsS -m "${TIMEOUT}" -X POST \
       -H 'Content-Type: application/json' \
       "$@" \
-      --data-binary "@${tmp}" \
+      --data-binary "@${gz}" \
       "${INGEST_URL}") || status=$?
   if [ "${status}" -eq 0 ]; then
     echo "[$(ts)] ingest ok: ${body}"
-    rm -f "${tmp}"
+    rm -f "${tmp}" "${gz}"
     return 0
   else
     echo "[$(ts)] ingest POST FAILED (curl exit ${status}) - will retry next tick" >&2
-    rm -f "${tmp}"
+    rm -f "${tmp}" "${gz}"
     return 1
   fi
 }
