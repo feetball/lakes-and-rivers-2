@@ -31,6 +31,8 @@ const TX_BOUNDS: [[number, number], [number, number]] = [
   [36.6, -93.5],
 ];
 const VIEW_KEY = 'tfm:view';
+const LEGEND_VISIBLE_KEY = 'tfm:legend-visible';
+const TIMELINE_VISIBLE_KEY = 'tfm:timeline-visible';
 
 type SavedView = { lat: number; lon: number; zoom: number };
 function loadView(): SavedView | null {
@@ -44,6 +46,22 @@ function loadView(): SavedView | null {
     }
   } catch {}
   return null;
+}
+
+// Defaults to visible when the key is missing or unparsable.
+function loadVisible(key: string): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === null) return true;
+    return JSON.parse(raw) === true;
+  } catch {
+    return true;
+  }
+}
+
+function saveVisible(key: string, visible: boolean) {
+  try { window.localStorage.setItem(key, JSON.stringify(visible)); } catch {}
 }
 
 function ViewPersister() {
@@ -93,6 +111,14 @@ export default function MapView() {
   });
   const [zoom, setZoom] = useState<number>(initialView.zoom);
   const geoJsonRef = useRef<LeafletGeoJSON | null>(null);
+  const [legendVisible, setLegendVisible] = useState<boolean>(() => loadVisible(LEGEND_VISIBLE_KEY));
+  const [timelineVisible, setTimelineVisible] = useState<boolean>(() => loadVisible(TIMELINE_VISIBLE_KEY));
+  const hideLegend = () => { setLegendVisible(false); saveVisible(LEGEND_VISIBLE_KEY, false); };
+  const showLegend = () => { setLegendVisible(true); saveVisible(LEGEND_VISIBLE_KEY, true); };
+  // Hiding the timeline also snaps back to live — otherwise the map could be
+  // left stuck on a historical snapshot with no visible control to leave it.
+  const hideTimeline = () => { setTimelineVisible(false); saveVisible(TIMELINE_VISIBLE_KEY, false); setAtIso(null); };
+  const showTimeline = () => { setTimelineVisible(true); saveVisible(TIMELINE_VISIBLE_KEY, true); };
 
   useEffect(() => {
     let aborted = false;
@@ -258,32 +284,72 @@ export default function MapView() {
         ))}
       </MapContainer>
 
-      <DraggablePanel
-        storageKey="tfm:legend-pos"
-        defaultAnchor={{
-          bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
-          left: 12,
-        }}
-      >
-        <Legend
-          counts={categoryCounts}
-          updatedAt={gaugeData?.updatedAt}
-          onRefresh={() => { refreshGauges(); }}
-          refreshing={gaugesValidating}
-          onForceRefreshed={() => { refreshGauges(); }}
-          gaugeNames={gaugeNames}
-        />
-      </DraggablePanel>
-      <DraggablePanel
-        storageKey="tfm:timeline-pos"
-        defaultAnchor={{
-          bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-        }}
-      >
-        <TimelineSlider value={atIso} onChange={setAtIso} loading={gaugesValidating} />
-      </DraggablePanel>
+      {legendVisible && (
+        <DraggablePanel
+          storageKey="tfm:legend-pos"
+          defaultAnchor={{
+            bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
+            left: 12,
+          }}
+          onHide={hideLegend}
+        >
+          <Legend
+            counts={categoryCounts}
+            updatedAt={gaugeData?.updatedAt}
+            onRefresh={() => { refreshGauges(); }}
+            refreshing={gaugesValidating}
+            onForceRefreshed={() => { refreshGauges(); }}
+            gaugeNames={gaugeNames}
+          />
+        </DraggablePanel>
+      )}
+      {timelineVisible && (
+        <DraggablePanel
+          storageKey="tfm:timeline-pos"
+          defaultAnchor={{
+            bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+          }}
+          onHide={hideTimeline}
+        >
+          <TimelineSlider value={atIso} onChange={setAtIso} loading={gaugesValidating} />
+        </DraggablePanel>
+      )}
+      {(!legendVisible || !timelineVisible) && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 12,
+            bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          {!legendVisible && (
+            <button
+              type="button"
+              onClick={showLegend}
+              aria-label="Show legend"
+              style={restoreButtonStyle}
+            >
+              Show legend
+            </button>
+          )}
+          {!timelineVisible && (
+            <button
+              type="button"
+              onClick={showTimeline}
+              aria-label="Show timeline"
+              style={restoreButtonStyle}
+            >
+              Show timeline
+            </button>
+          )}
+        </div>
+      )}
       {(!waterways || (gaugesLoading && !gaugeData) || (gaugeData?.updatedAt && new Date(gaugeData.updatedAt).getTime() === 0)) && (
         <LoadingBanner
           label={
@@ -314,3 +380,16 @@ export default function MapView() {
     </div>
   );
 }
+
+const restoreButtonStyle: React.CSSProperties = {
+  background: 'rgba(17,24,39,0.92)',
+  backdropFilter: 'blur(6px)',
+  color: '#e5e7eb',
+  border: '1px solid #374151',
+  borderRadius: 8,
+  padding: '6px 10px',
+  fontSize: 12,
+  fontWeight: 600,
+  cursor: 'pointer',
+  boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+};
