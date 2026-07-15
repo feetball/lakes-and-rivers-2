@@ -17,6 +17,7 @@ interface Props {
   storageKey: string;
   defaultAnchor: PanelAnchor;
   zIndex?: number;
+  onHide?: () => void;
   children: React.ReactNode;
 }
 
@@ -33,7 +34,7 @@ function loadPos(key: string): SavedPos | null {
   return null;
 }
 
-export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 1000, children }: Props) {
+export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 1000, onHide, children }: Props) {
   const [pos, setPos] = useState<SavedPos | null>(() => loadPos(storageKey));
   const elRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -136,6 +137,7 @@ export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 100
         aria-label="Drag to move panel (double-click to reset)"
         title="Drag to move · double-click to reset"
         style={{
+          position: 'relative',
           height: 14,
           borderTopLeftRadius: 10,
           borderTopRightRadius: 10,
@@ -154,6 +156,31 @@ export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 100
         <span style={dotStyle} />
         <span style={dotStyle} />
         <span style={dotStyle} />
+        {onHide && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onHide(); }}
+            aria-label="Hide panel"
+            title="Hide panel"
+            style={{
+              position: 'absolute',
+              right: 2,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              height: 14,
+              lineHeight: '14px',
+              padding: '0 4px',
+              border: 'none',
+              background: 'none',
+              color: '#9ca3af',
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            ×
+          </button>
+        )}
       </div>
       {children}
     </div>
