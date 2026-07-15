@@ -1,11 +1,47 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/floodStatus';
 import type { GaugeStatus } from '@/lib/types';
 
 interface Props {
   gauge: GaugeStatus;
   onClose: () => void;
+}
+
+interface FloodRecord {
+  date: string;
+  stage: number;
+  isRecord: boolean;
+}
+
+interface GaugeRecordsResponse {
+  siteNo: string | null;
+  records: FloodRecord[];
+  updatedAt: string;
+}
+
+// USGS peak dates are calendar dates with no time-of-day meaning; parsing the
+// raw string directly with `new Date()` treats it as UTC midnight, which can
+// display as the previous day once formatted in a US timezone. Build the Date
+// from local year/month/day parts instead so formatting never shifts a day.
+function formatPeakDate(raw: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString([], {
+      year: 'numeric', month: 'short', day: 'numeric',
+    });
+  }
+  if (/^\d{4}-\d{2}$/.test(raw)) {
+    const [year, month] = raw.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString([], {
+      year: 'numeric', month: 'short',
+    });
+  }
+  if (/^\d{4}$/.test(raw)) {
+    return raw;
+  }
+  return raw;
 }
 
 export default function GaugeSheet({ gauge, onClose }: Props) {
@@ -15,6 +51,30 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
       })
     : null;
+
+  const [records, setRecords] = useState<FloodRecord[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setRecords([]);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/gauges/${encodeURIComponent(gauge.id)}/records`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data: GaugeRecordsResponse = await res.json();
+        setRecords(data.records ?? []);
+      } catch {
+        // Fail silently, same graceful-degradation approach as the hydrograph image.
+      }
+    })();
+
+    return () => controller.abort();
+  }, [gauge.id]);
+
+  const record = records.find(r => r.isRecord);
 
   return (
     <>
@@ -108,6 +168,24 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
                   </div>
                 );
               })}
+              {record && (
+                <div
+                  style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 13,
+                    borderLeft: `3px solid ${CATEGORY_COLORS.major}`,
+                    gridColumn: '1 / -1',
+                  }}
+                >
+                  <span>
+                    <span style={{ color: CATEGORY_COLORS.major, marginRight: 6, fontSize: 11 }}>
+                      Record
+                    </span>
+                    {formatPeakDate(record.date)}
+                  </span>
+                  <span>{record.stage} ft</span>
+                </div>
+              )}
             </div>
           </div>
         )}
