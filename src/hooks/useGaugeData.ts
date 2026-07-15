@@ -9,11 +9,18 @@ const fetcher = async (url: string): Promise<GaugesResponse> => {
   return res.json();
 };
 
-// When `atIso` is null we pull live data (polled), otherwise we request the
-// historical snapshot from /api/gauges/history. Historical responses are
-// static for a given timestamp so we don't poll.
+// When `atIso` is null we pull live data (polled). When it's in the past we
+// request the historical snapshot from /api/gauges/history; when it's in the
+// future we request the forecast snapshot from /api/gauges/forecast. Both
+// historical and forecast responses are static for a given timestamp so we
+// don't poll either — only live data polls.
 export function useGaugeData(atIso: string | null) {
-  const url = atIso ? `/api/gauges/history?at=${encodeURIComponent(atIso)}` : '/api/gauges';
+  const isFuture = atIso !== null && new Date(atIso).getTime() > Date.now();
+  const url = !atIso
+    ? '/api/gauges'
+    : isFuture
+      ? `/api/gauges/forecast?at=${encodeURIComponent(atIso)}`
+      : `/api/gauges/history?at=${encodeURIComponent(atIso)}`;
   return useSWR<GaugesResponse>(url, fetcher, {
     refreshInterval: (latest) => {
       if (atIso) return 0;

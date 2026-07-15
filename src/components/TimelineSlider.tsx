@@ -10,9 +10,13 @@ interface Props {
   loading?: boolean;
 }
 
-const WINDOW_HOURS = 24 * 7;     // 7 days back
+const HISTORY_HOURS = 24 * 7;    // 7 days back
+const FORECAST_HOURS = 24 * 5;   // 5 days forward
 const STEP_MINUTES = 15;         // 15-min grain matches USGS IV cadence
-const STEPS = (WINDOW_HOURS * 60) / STEP_MINUTES;
+const HIST_STEPS = (HISTORY_HOURS * 60) / STEP_MINUTES;
+const FCST_STEPS = (FORECAST_HOURS * 60) / STEP_MINUTES;
+const NOW_STEP = HIST_STEPS;
+const MAX_STEP = HIST_STEPS + FCST_STEPS;
 
 // Playback: at 1× speed we want 1 hour of gauge data to advance per 5 s of
 // wall time → 4 steps (4 × 15 min) per 5 s → 1.25 s per step. Higher speed
@@ -22,23 +26,29 @@ const SPEEDS = [0.25, 0.5, 1, 2, 4, 8, 16] as const;
 type Speed = (typeof SPEEDS)[number];
 
 function stepToIso(step: number, nowMs: number): string | null {
-  if (step >= STEPS) return null; // rightmost = live
-  const minutesBack = (STEPS - step) * STEP_MINUTES;
-  return new Date(nowMs - minutesBack * 60_000).toISOString();
+  if (step === NOW_STEP) return null; // exactly "now" = live
+  if (step < NOW_STEP) {
+    const minutesBack = (NOW_STEP - step) * STEP_MINUTES;
+    return new Date(nowMs - minutesBack * 60_000).toISOString();
+  }
+  const minutesForward = (step - NOW_STEP) * STEP_MINUTES;
+  return new Date(nowMs + minutesForward * 60_000).toISOString();
 }
 
 function isoToStep(iso: string | null, nowMs: number): number {
-  if (!iso) return STEPS;
-  const diffMin = Math.max(0, (nowMs - new Date(iso).getTime()) / 60_000);
-  return Math.max(0, STEPS - Math.round(diffMin / STEP_MINUTES));
+  if (!iso) return NOW_STEP;
+  const diffMin = (new Date(iso).getTime() - nowMs) / 60_000;
+  const step = NOW_STEP + Math.round(diffMin / STEP_MINUTES);
+  return Math.max(0, Math.min(MAX_STEP, step));
 }
 
-function formatLabel(iso: string | null): string {
+function formatLabel(iso: string | null, nowMs: number): string {
   if (!iso) return 'Live';
   const d = new Date(iso);
-  return d.toLocaleString([], {
+  const formatted = d.toLocaleString([], {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+  return d.getTime() > nowMs ? `Forecast · ${formatted}` : formatted;
 }
 
 export default function TimelineSlider({ value, onChange, loading }: Props) {
@@ -56,17 +66,18 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
   // Keep the local step in sync when the parent resets to Live.
   useEffect(() => { setStep(isoToStep(value, nowMs)); }, [value, nowMs]);
 
-  // Stop playback automatically if we've reached Live.
-  useEffect(() => { if (step >= STEPS && playing) setPlaying(false); }, [step, playing]);
+  // Stop playback automatically once we've reached the end of the forecast
+  // window (not at Live — playback now continues past Live into forecast).
+  useEffect(() => { if (step >= MAX_STEP && playing) setPlaying(false); }, [step, playing]);
 
   useEffect(() => {
     if (!playing) return;
     const intervalMs = Math.max(50, PLAYBACK_BASE_MS_PER_STEP / speed);
     const id = window.setInterval(() => {
       const next = stepRef.current + 1;
-      if (next >= STEPS) {
-        setStep(STEPS);
-        onChange(null);
+      if (next >= MAX_STEP) {
+        setStep(MAX_STEP);
+        onChange(stepToIso(MAX_STEP, nowMs));
         setPlaying(false);
         return;
       }
@@ -76,8 +87,9 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
     return () => window.clearInterval(id);
   }, [playing, speed, nowMs, onChange]);
 
-  const label = useMemo(() => formatLabel(stepToIso(step, nowMs)), [step, nowMs]);
-  const atLive = step >= STEPS;
+  const label = useMemo(() => formatLabel(stepToIso(step, nowMs), nowMs), [step, nowMs]);
+  const atLive = step === NOW_STEP;
+  const isFuture = step > NOW_STEP;
 
   const onSlide = (e: React.ChangeEvent<HTMLInputElement>) => {
     const s = Number(e.target.value);
@@ -90,7 +102,7 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
   const goLive = () => {
     const now = Date.now();
     setNowMs(now);
-    setStep(STEPS);
+    setStep(NOW_STEP);
     onChange(null);
     setPlaying(false);
   };
@@ -98,7 +110,7 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
   const togglePlay = () => {
     if (atLive) {
       // Starting playback from Live doesn't make sense — rewind a bit.
-      const startStep = Math.max(0, STEPS - 24); // 6 h back
+      const startStep = Math.max(0, NOW_STEP - 24); // 6 h back
       setStep(startStep);
       onChange(stepToIso(startStep, nowMs));
       setPlaying(true);
@@ -163,19 +175,40 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
           Live
         </button>
       </div>
-      <input
-        type="range"
-        min={0}
-        max={STEPS}
-        step={1}
-        value={step}
-        onChange={onSlide}
-        style={{ width: '100%', accentColor: playing ? '#f97316' : atLive ? '#2563eb' : '#f97316' }}
-        aria-label="Select time"
-      />
-      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#9ca3af', fontSize: 11, marginTop: 2 }}>
-        <span>7 days ago</span>
-        <span>now</span>
+      <div style={{ position: 'relative' }}>
+        <input
+          type="range"
+          min={0}
+          max={MAX_STEP}
+          step={1}
+          value={step}
+          onChange={onSlide}
+          style={{
+            width: '100%',
+            accentColor: isFuture ? '#a855f7' : playing ? '#f97316' : atLive ? '#2563eb' : '#f97316',
+          }}
+          aria-label="Select time"
+        />
+        {/* Thin tick marking "now" on the track — purely decorative, so it's
+            layered on top with pointer-events disabled to avoid stealing
+            drag/click from the native range input. */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: `${(NOW_STEP / MAX_STEP) * 100}%`,
+            top: 2,
+            bottom: 2,
+            width: 1,
+            background: 'rgba(156,163,175,0.6)',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+      <div style={{ position: 'relative', color: '#9ca3af', fontSize: 11, marginTop: 2, height: 14 }}>
+        <span style={{ position: 'absolute', left: 0 }}>7 days ago</span>
+        <span style={{ position: 'absolute', left: `${(NOW_STEP / MAX_STEP) * 100}%`, transform: 'translateX(-50%)' }}>now</span>
+        <span style={{ position: 'absolute', right: 0 }}>+5 days</span>
       </div>
     </div>
   );
