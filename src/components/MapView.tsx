@@ -91,6 +91,13 @@ export default function MapView() {
   // Open a gauge sheet and record the open for analytics. Both click paths
   // (marker + waterway) go through here so tracking can't be forgotten on one.
   const selectGauge = (g: GaugeStatus) => {
+    // Belt-and-suspenders: dismiss any pending/active hover preview so it
+    // can never linger on top of the sheet we're about to open.
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoverChart(null);
     setSelected(g);
     track({ type: 'gauge_open', gaugeId: g.id });
   };
@@ -262,6 +269,9 @@ export default function MapView() {
             eventHandlers={{
               click: () => selectGauge(g),
               mouseover: (e) => {
+                // Touch taps fire mouseover but never mouseout, so the hover
+                // preview would otherwise get stuck open after a tap.
+                if (window.matchMedia('(hover: none)').matches) return;
                 const { clientX, clientY } = (e.originalEvent as MouseEvent) ?? { clientX: 0, clientY: 0 };
                 const timer = window.setTimeout(() => {
                   setHoverChart({ gauge: g, x: clientX, y: clientY });
