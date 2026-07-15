@@ -17,6 +17,7 @@ const HIST_STEPS = (HISTORY_HOURS * 60) / STEP_MINUTES;
 const FCST_STEPS = (FORECAST_HOURS * 60) / STEP_MINUTES;
 const NOW_STEP = HIST_STEPS;
 const MAX_STEP = HIST_STEPS + FCST_STEPS;
+const STEPS_PER_HOUR = 60 / STEP_MINUTES;
 
 // Playback: at 1× speed we want 1 hour of gauge data to advance per 5 s of
 // wall time → 4 steps (4 × 15 min) per 5 s → 1.25 s per step. Higher speed
@@ -119,6 +120,14 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
     setPlaying(p => !p);
   };
 
+  const stepForwardHour = () => {
+    const s = Math.min(MAX_STEP, step + STEPS_PER_HOUR);
+    setStep(s);
+    onChange(stepToIso(s, nowMs));
+    // Manual step advance pauses playback, same as scrubbing.
+    if (playing) setPlaying(false);
+  };
+
   return (
     <div
       style={{
@@ -153,6 +162,27 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
           }}
         >
           {playing ? <PauseIcon /> : <PlayIcon />}
+        </button>
+        <button
+          onClick={stepForwardHour}
+          disabled={step >= MAX_STEP}
+          aria-label="Advance 1 hour"
+          title="Step forward 1 hour"
+          style={{
+            background: '#1f2937',
+            color: step >= MAX_STEP ? '#6b7280' : '#9ca3af',
+            border: 'none',
+            borderRadius: 6,
+            width: 32,
+            height: 26,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: step >= MAX_STEP ? 'default' : 'pointer',
+            padding: 0,
+          }}
+        >
+          <SkipForwardIcon />
         </button>
         <span style={{ fontWeight: 600, minWidth: 130 }}>{label}</span>
         {loading && <LoadingDot />}
@@ -261,6 +291,15 @@ function PauseIcon() {
     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
       <rect x="2.5" y="1.5" width="2.5" height="9" fill="currentColor" />
       <rect x="7" y="1.5" width="2.5" height="9" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SkipForwardIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path d="M1 1.5 L6 6 L1 10.5 Z" fill="currentColor" />
+      <rect x="7.5" y="1.5" width="2" height="9" fill="currentColor" />
     </svg>
   );
 }
