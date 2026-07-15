@@ -21,6 +21,8 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/api/waterways': ['./public/data/waterways.geojson.br', './public/data/waterways.geojson.gz'],
     '/api/gauges/history': ['./public/data/gauges-meta.json'],
+    '/api/gauges/forecast': ['./public/data/gauges-meta.json'],
+    '/api/gauges/[id]/records': ['./public/data/gauges-meta.json'],
     '/api/gauges': ['./public/data/gauges-meta.json'],
     // The cron route warms the SHARED Next Data Cache via getCachedGauges() ->
     // loadMeta(), which reads gauges-meta.json. Without tracing it here, the
