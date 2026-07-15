@@ -4,9 +4,14 @@ import { resolve } from 'path';
 
 export const dynamic = 'force-dynamic';
 
-// USGS Peak Streamflow service — decades-old, RDB-only (no JSON option).
+// USGS Peak Streamflow service — decades-old, RDB-only (no JSON option), and
+// never migrated to the waterservices.usgs.gov REST API like IV/DV data —
+// it's still served from the legacy NWISWeb CGI host. Confirmed against
+// USGS's own dataretrieval-python client (dataretrieval/nwis.py + rdb.py),
+// which hits this same host/path.
 // Returns each water year's peak discharge/stage on record for a site.
-const USGS_PEAK = (siteNo: string) => `https://waterservices.usgs.gov/nwis/peak/?site_no=${siteNo}&format=rdb`;
+const USGS_PEAK = (siteNo: string) =>
+  `https://nwis.waterdata.usgs.gov/nwis/peaks?site_no=${siteNo}&agency_cd=USGS&format=rdb`;
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_RECORDS = 8;
 // Peak-flow records only update ~once per year after each water year closes
