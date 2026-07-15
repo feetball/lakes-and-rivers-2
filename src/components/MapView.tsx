@@ -354,11 +354,13 @@ export default function MapView() {
         <LoadingBanner
           label={
             !waterways ? 'Loading rivers & lakes…'
+              : atIso && new Date(atIso).getTime() > Date.now() ? 'Loading forecast gauge data…'
               : atIso ? 'Loading historical gauge data…'
               : 'Loading live gauge data…'
           }
           sublabel={
             !waterways ? 'Drawing the map…'
+              : atIso && new Date(atIso).getTime() > Date.now() ? 'Fetching NWS forecast levels…'
               : atIso ? 'Fetching the selected snapshot…'
               : 'Live readings come from NWPS, which can be slow — fetching the latest…'
           }
