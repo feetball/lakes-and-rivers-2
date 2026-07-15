@@ -74,6 +74,8 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
     return () => controller.abort();
   }, [gauge.id]);
 
+  const record = records.find(r => r.isRecord);
+
   return (
     <>
       <div
@@ -166,34 +168,24 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {records.length > 0 && (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Flood records</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {records.map((r, i) => (
+              {record && (
                 <div
-                  key={`${r.date}-${i}`}
                   style={{
                     display: 'flex', justifyContent: 'space-between',
                     background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 13,
-                    borderLeft: r.isRecord ? `3px solid ${CATEGORY_COLORS.major}` : undefined,
+                    borderLeft: `3px solid ${CATEGORY_COLORS.major}`,
+                    gridColumn: '1 / -1',
                   }}
                 >
                   <span>
-                    {formatPeakDate(r.date)}
-                    {r.isRecord && (
-                      <span style={{ color: CATEGORY_COLORS.major, marginLeft: 6, fontSize: 11 }}>
-                        Record
-                      </span>
-                    )}
+                    <span style={{ color: CATEGORY_COLORS.major, marginRight: 6, fontSize: 11 }}>
+                      Record
+                    </span>
+                    {formatPeakDate(record.date)}
                   </span>
-                  <span>{r.stage} ft</span>
+                  <span>{record.stage} ft</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
