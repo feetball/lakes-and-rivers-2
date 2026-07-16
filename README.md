@@ -107,7 +107,7 @@ Import the repo; the defaults work. Notes:
 
 ## Deploying to Cloudflare
 
-Cloudflare **Pages** can't host this app (its Next.js adapter is deprecated and was Edge-runtime-only). The supported route is Cloudflare **Workers** via the OpenNext adapter, which requires a few app changes (asset-binding reads instead of runtime `fs`, a Cron Trigger instead of `vercel.json`). See [docs/deploying-to-cloudflare.md](docs/deploying-to-cloudflare.md) for the full guide.
+Cloudflare **Pages** can't host this app (its Next.js adapter is deprecated and was Edge-runtime-only), but Cloudflare **Workers** via the OpenNext adapter is fully wired up: `wrangler.jsonc` + `open-next.config.ts` configure the Worker (R2-backed data cache, D1-backed tag cache, a 30-min Cron Trigger), and the data routes read `public/data/*` through the assets binding instead of `fs` at runtime. Quick start: `npx wrangler login`, create the R2 bucket + D1 database, then `pnpm cf:deploy`. See [docs/deploying-to-cloudflare.md](docs/deploying-to-cloudflare.md) for the beginner-friendly step-by-step guide (account setup, secrets, custom domains, costs).
 
 ## Configuration
 

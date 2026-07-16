@@ -22,3 +22,8 @@ data-cache/gauges/
 
 # TypeScript incremental build info (regenerated every build)
 tsconfig.tsbuildinfo
+
+# Cloudflare (OpenNext adapter + wrangler)
+.open-next/
+.wrangler/
+.dev.vars

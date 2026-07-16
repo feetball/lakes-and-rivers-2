@@ -1,197 +1,246 @@
-# Deploying to Cloudflare
+# Deploying to Cloudflare (Workers)
 
 ## TL;DR
 
-**Don't target Cloudflare Pages — target Cloudflare Workers.** Cloudflare's
-Next.js adapter for Pages (`@cloudflare/next-on-pages`) is deprecated, and it
-required every route to run on the Edge runtime anyway, which this app can't
-do (several routes declare `export const runtime = 'nodejs'` and read files
-with `fs`). Cloudflare's officially recommended path for Next.js is now the
-[OpenNext Cloudflare adapter](https://opennext.js.org/cloudflare)
-(`@opennextjs/cloudflare`) deployed to **Workers**, which supports the Node.js
-runtime via `nodejs_compat`. Workers has the same free tier, custom domains,
-and git-driven deploys (via Workers Builds) that Pages has.
+**This repo is already wired for Cloudflare Workers.** You don't deploy to
+Cloudflare *Pages* — its Next.js adapter (`@cloudflare/next-on-pages`) is
+deprecated and only ever supported the Edge runtime, which this app can't use.
+The supported path for Next.js on Cloudflare is the
+[OpenNext adapter](https://opennext.js.org/cloudflare) (`@opennextjs/cloudflare`)
+deployed to **Workers**, and that's what this branch implements.
 
-That said, this app is fairly Vercel-shaped, so a Cloudflare deploy is a small
-migration, not just a config change. The sections below cover what has to
-change and the step-by-step setup.
-
-## Why this app doesn't fit Cloudflare Pages
-
-| App feature | Where | Problem on Pages |
-| --- | --- | --- |
-| `runtime = 'nodejs'` API routes | `src/app/api/admin/*`, `/api/track` | `next-on-pages` (deprecated) only supported the Edge runtime |
-| Runtime `fs.readFile` of `public/data/*` | `/api/waterways`, `/api/gauges/*` (`src/lib/gauges-fetch.ts`) | No filesystem on the Pages/Workers runtime |
-| `output: 'standalone'` + `postbuild` copy | `next.config.mjs`, `package.json` | Assumes a long-lived Node server |
-| Vercel Cron | `vercel.json` | Pages has no cron; Workers does (Cron Triggers) |
-| `@vercel/blob` snapshot store | `src/lib/gauges-store.ts`, `src/lib/analytics-store.ts` | Works anywhere via HTTP with `BLOB_READ_WRITE_TOKEN`, but R2 is the native fit |
-| `instrumentation.ts` warm-up `setInterval` | `src/instrumentation.ts` | Workers forbid timers/IO at global scope; there is no long-lived process |
-| `unstable_cache` + `revalidateTag` | `src/lib/gauges-fetch.ts`, refresh routes | Needs OpenNext cache bindings (R2 incremental cache + D1/DO tag cache) to work across isolates |
-
-## Deploying to Cloudflare Workers (OpenNext)
-
-### 1. Install the adapter
+What's left for you is one-time account setup. The short version:
 
 ```bash
-pnpm add @opennextjs/cloudflare
-pnpm add -D wrangler
-```
-
-### 2. Add `wrangler.jsonc`
-
-```jsonc
-{
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "texas-flood-map",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2026-07-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
-  // Required by OpenNext for ISR/data-cache revalidation self-calls.
-  "services": [
-    { "binding": "WORKER_SELF_REFERENCE", "service": "texas-flood-map" }
-  ],
-  // Backs the Next Data Cache (unstable_cache in src/lib/gauges-fetch.ts).
-  "r2_buckets": [
-    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "texas-flood-map-cache" }
-  ],
-  // Backs revalidateTag() (cron + admin refresh routes).
-  "d1_databases": [
-    { "binding": "NEXT_TAG_CACHE_D1", "database_name": "texas-flood-map-tags", "database_id": "<create with: wrangler d1 create texas-flood-map-tags>" }
-  ]
-}
-```
-
-Create the resources first:
-
-```bash
+pnpm install
+npx wrangler login                                  # opens a browser
 npx wrangler r2 bucket create texas-flood-map-cache
-npx wrangler d1 create texas-flood-map-tags   # paste the returned id into wrangler.jsonc
-```
-
-### 3. Add `open-next.config.ts`
-
-```ts
-import { defineCloudflareConfig } from '@opennextjs/cloudflare';
-import r2IncrementalCache from '@opennextjs/cloudflare/overrides/incremental-cache/r2-incremental-cache';
-import d1NextTagCache from '@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache';
-
-export default defineCloudflareConfig({
-  incrementalCache: r2IncrementalCache,
-  tagCache: d1NextTagCache,
-});
-```
-
-### 4. Code changes required
-
-These are the parts of the app that assume a Node server or Vercel and need
-adjusting before the Worker will run correctly:
-
-1. **Runtime `fs` reads of `public/data/*`.** `/api/waterways`,
-   `/api/gauges/*`, and `src/lib/gauges-fetch.ts` read
-   `public/data/gauges-meta.json` and `public/data/waterways.geojson.*` from
-   disk via `process.cwd()`. There is no filesystem in the Worker. Since these
-   files already ship as static assets, the drop-in replacement is to fetch
-   them through the assets binding instead:
-
-   ```ts
-   import { getCloudflareContext } from '@opennextjs/cloudflare';
-   const { env } = getCloudflareContext();
-   const res = await env.ASSETS.fetch(new URL('/data/gauges-meta.json', request.url));
-   const meta = await res.json();
-   ```
-
-   The `/api/waterways` brotli-negotiation route can simply be skipped on
-   Cloudflare — the client already prefers the static
-   `/data/waterways.geojson`, and Cloudflare's CDN serves static assets
-   compressed, which is the same "optimal path" the README describes for
-   Vercel.
-
-2. **`next.config.mjs`.** Remove `output: 'standalone'` (the adapter manages
-   its own output) and drop the `postbuild` script for this target. Also call
-   `initOpenNextCloudflareForDev()` in the config so `next dev` can access
-   bindings locally (see the OpenNext docs).
-
-3. **`instrumentation.ts`.** The warm-up `setTimeout`/`setInterval` and the
-   daily gauge-list refresh cannot run in a Worker (no global timers, no
-   writable `public/`). Gate the whole `register()` body behind the same kind
-   of check used for Vercel — e.g. skip when `process.env.CLOUDFLARE === '1'`
-   (set it as a Worker env var) or just set `DISABLE_GAUGE_LIST_REFRESH=1`
-   and guard the timers. The cron trigger (below) replaces the warming.
-
-4. **Blob storage.** `@vercel/blob` keeps working from a Worker if you set
-   `BLOB_READ_WRITE_TOKEN` (it's a plain HTTPS API), so this can be deferred.
-   The native migration is to swap `src/lib/gauges-store.ts` and
-   `src/lib/analytics-store.ts` to an R2 binding (`env.BUCKET.put/get`) —
-   they're already isolated behind small read/write helpers, so it's a
-   contained change.
-
-### 5. Environment variables & secrets
-
-Set for the Worker (dashboard → Worker → Settings → Variables, or CLI):
-
-```bash
+npx wrangler d1 create texas-flood-map-tags        # paste the printed id into wrangler.jsonc
+pnpm cf:deploy                                      # builds + deploys; prints your workers.dev URL
 npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put CRON_SECRET
-npx wrangler secret put BLOB_READ_WRITE_TOKEN   # only if staying on Vercel Blob
 ```
 
-For local preview, put the same keys in a `.dev.vars` file (gitignored).
+Each step is explained below, assuming no prior Cloudflare experience.
 
-### 6. Build, preview, deploy
+## Cloudflare concepts in 60 seconds
+
+If you've only used Vercel, here's the mental mapping:
+
+| Concept | What it is | Vercel equivalent |
+| --- | --- | --- |
+| **Worker** | Your app, running as a serverless function on Cloudflare's edge. One Worker serves this whole Next.js app (pages, API routes, static files). | The whole Vercel project |
+| **wrangler** | Cloudflare's CLI (`npx wrangler …`). Reads `wrangler.jsonc` at the repo root — that file is to Cloudflare what `vercel.json` is to Vercel. | `vercel` CLI |
+| **Binding** | A named handle your code uses to reach another Cloudflare resource (a bucket, a database, the static assets). Declared in `wrangler.jsonc`, available to code at runtime. | Environment-provided integrations |
+| **R2** | Object storage (like S3). Here it backs Next's Data Cache so the cached gauge list survives across serverless instances. | Vercel's built-in Data Cache |
+| **D1** | A small serverless SQLite database. Here it backs `revalidateTag()`. | Also part of Vercel's cache layer |
+| **Cron Trigger** | A schedule that invokes the Worker. Replaces `vercel.json`'s `crons`. | Vercel Cron |
+| **Secret** | An encrypted environment variable (`wrangler secret put NAME`). | Vercel env var |
+| **workers.dev** | Free `https://<name>.<your-subdomain>.workers.dev` URL every Worker gets. | `*.vercel.app` |
+
+## What this branch changed (already done)
+
+You don't need to do any of this — it's context for code review and future work:
+
+| Change | Files | Why |
+| --- | --- | --- |
+| Added the OpenNext adapter + wrangler | `package.json` | The build/deploy toolchain (`pnpm cf:*` scripts) |
+| Worker config with R2/D1/assets bindings + a 30-min Cron Trigger | `wrangler.jsonc` | Replaces `vercel.json` on Cloudflare |
+| Cache wiring: R2 for the Data Cache, D1 for tags | `open-next.config.ts` | Makes `unstable_cache`/`revalidateTag` in `src/lib/gauges-fetch.ts` work across isolates, like on Vercel |
+| Custom Worker entrypoint with a `scheduled` handler | `worker.ts` | Cron Triggers invoke `scheduled()`, which self-calls `/api/cron/refresh-gauges` with the `CRON_SECRET` bearer token |
+| Runtime reads of `public/data/*` now work without a filesystem | `src/lib/data-assets.ts` + the gauges/waterways routes | Workers have no `fs`; the same files ship as static assets and are read back through the `ASSETS` binding |
+| `/api/waterways` serves an uncompressed body on Workers | `src/app/api/waterways/route.ts` | workerd owns response compression — hand-rolled `Content-Encoding` on a pre-compressed body gets stripped, corrupting the response. (Mostly moot: the client prefers the static `/data/waterways.geojson`, which Cloudflare's CDN compresses.) |
+| Warm-up timers skipped on Workers | `src/instrumentation.ts` | No long-lived process; the Cron Trigger replaces them |
+| Opt-in dev bindings | `next.config.mjs` | `CLOUDFLARE_DEV=1 pnpm dev` if you ever need R2/D1/ASSETS inside `next dev`; normal dev is untouched |
+
+Vercel and Docker deploys are unaffected — every change is gated on actually
+running inside the Workers runtime.
+
+## Step-by-step setup
+
+### 0. Prerequisites
+
+- Node 20+ and pnpm (`corepack enable`), same as regular development.
+- A Cloudflare account — free signup at [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up).
+  You do **not** need to move your domain's DNS to Cloudflare to deploy a Worker.
+- `pnpm install` in the repo root (this also compiles the local Workers
+  runtime used by `pnpm cf:preview`).
+
+### 1. Log in the CLI
 
 ```bash
-npx opennextjs-cloudflare build     # runs `next build` (incl. prebuild data step), transforms output
-npx opennextjs-cloudflare preview   # run locally in the real workerd runtime — test /api/gauges here
-npx opennextjs-cloudflare deploy
+npx wrangler login
 ```
 
-Wire these into `package.json` as `preview`/`deploy` scripts, and/or connect
-the repo to **Workers Builds** in the Cloudflare dashboard for deploy-on-push
-(build command: `npx opennextjs-cloudflare build`, deploy command:
-`npx opennextjs-cloudflare deploy`).
+Opens a browser window; approve the request. On a headless machine, create an
+API token instead (dashboard → My Profile → API Tokens → "Edit Cloudflare
+Workers" template) and export it as `CLOUDFLARE_API_TOKEN`.
 
-### 7. Replace the Vercel Cron
+### 2. Create the R2 bucket (cache storage)
 
-`vercel.json`'s cron won't run on Cloudflare. Add a Cron Trigger:
-
-```jsonc
-// wrangler.jsonc
-"triggers": { "crons": ["0 6 * * *"] }
+```bash
+npx wrangler r2 bucket create texas-flood-map-cache
 ```
 
-The OpenNext worker only serves HTTP, so the simplest wiring is a tiny
-custom entrypoint that re-exports the OpenNext worker and adds a `scheduled`
-handler which self-fetches the refresh route with the bearer token Vercel
-used to attach automatically:
+First time only: the dashboard may ask you to enable R2 for the account, which
+requires a payment method on file even though usage here stays inside the free
+tier (10 GB stored, ~1 M writes/month — this app stores one ~2 MB cache entry).
 
-```ts
-// worker.ts (set "main" to this file's build output per OpenNext's custom-worker docs)
-import worker from './.open-next/worker.js';
+The bucket name matches what `wrangler.jsonc` already declares, so there's
+nothing to edit.
 
-export default {
-  fetch: worker.fetch,
-  async scheduled(_event, env) {
-    await env.WORKER_SELF_REFERENCE.fetch('https://self/api/cron/refresh-gauges', {
-      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
-    });
-  },
-} satisfies ExportedHandler<CloudflareEnv>;
+### 3. Create the D1 database (revalidation tags)
+
+```bash
+npx wrangler d1 create texas-flood-map-tags
 ```
 
-Note: unlike Vercel Hobby, Workers cron has no once-daily restriction — you
-can match the docker sidecar's 30-minute cadence (`*/30 * * * *`) for free.
+This prints a `database_id` (a UUID). **Paste it into `wrangler.jsonc`**,
+replacing the `REPLACE_WITH_ID_FROM_wrangler_d1_create` placeholder. The
+required table is created automatically during deploy. (Free tier: 5 GB, 100k
+writes/day — this app writes one row per cache refresh.)
 
-## Alternative: keep it simpler
+### 4. First deploy
 
-If the goal is just "host this somewhere", note that the repo already has two
-zero-surprise deploy targets that need no code changes:
+```bash
+pnpm cf:deploy
+```
 
-- **Vercel** — first-class (see `README.md` § "Deploying to Vercel");
-- **Docker** — `docker-compose.yml` runs the standalone server plus the
-  `gauge-cron`/`gauge-refresher` sidecars on any VPS.
+This runs `opennextjs-cloudflare build` (which itself runs `next build`,
+including the waterways data prebuild — allow a few minutes the first time)
+and then deploys. On the first deploy wrangler asks you to pick a
+`workers.dev` subdomain; when it finishes it prints your live URL:
 
-A middle path is Cloudflare-as-CDN in front of either of those (free plan,
-just DNS + proxy), which gets you Cloudflare's edge caching for the static
-waterways GeoJSON without migrating the runtime.
+```
+https://texas-flood-map.<your-subdomain>.workers.dev
+```
+
+Open it — the map should render with rivers and gauges (using build-time data
+until the first cron refresh lands).
+
+### 5. Set the secrets
+
+```bash
+npx wrangler secret put ADMIN_PASSWORD    # admin panel login
+npx wrangler secret put SESSION_SECRET    # signs admin session cookies
+npx wrangler secret put CRON_SECRET       # bearer token for the refresh routes
+```
+
+Each command prompts for the value and takes effect immediately (no redeploy).
+`CRON_SECRET` can be any long random string (`openssl rand -hex 32`); the
+scheduled handler in `worker.ts` sends it automatically. Optional:
+`BLOB_READ_WRITE_TOKEN` if you keep using Vercel Blob (see below).
+
+### 6. Verify the cron
+
+The Cron Trigger (`*/30 * * * *` in `wrangler.jsonc`) is registered at deploy
+time. To watch it work: dashboard → Workers & Pages → texas-flood-map →
+**Logs** (live tail), or trigger the route by hand:
+
+```bash
+curl -H "Authorization: Bearer <your CRON_SECRET>" \
+  https://texas-flood-map.<your-subdomain>.workers.dev/api/cron/refresh-gauges
+```
+
+A successful refresh returns `{"ok":true,"status":"refreshed","count":…}` and
+subsequent `/api/gauges` responses carry live observations. Note the upstream
+NOAA fetch takes ~45 s — that's normal.
+
+## Local preview (optional but recommended)
+
+Run the actual Worker build in Cloudflare's real runtime (workerd) on your
+machine, with local simulations of R2/D1:
+
+```bash
+cp .dev.vars.example .dev.vars   # fill in local secrets
+pnpm cf:preview                  # build + serve on http://localhost:8787
+```
+
+Use this to test Workers-specific behavior before deploying. For everyday
+feature work keep using `pnpm dev` — nothing about normal development changed.
+
+## Deploy-on-push (like Vercel's git integration)
+
+Cloudflare **Workers Builds** deploys on every push, like Vercel:
+
+1. Dashboard → Workers & Pages → texas-flood-map → Settings → **Builds** →
+   connect your GitHub repo.
+2. Build command: `pnpm cf:build`
+3. Deploy command: `npx opennextjs-cloudflare deploy`
+4. Non-production branches get preview URLs; pushes to `main` deploy prod.
+
+Alternatively keep deploying from your machine with `pnpm cf:deploy`.
+
+## Custom domain
+
+Dashboard → Workers & Pages → texas-flood-map → Settings → **Domains &
+Routes** → Add → Custom domain. If the domain's DNS is on Cloudflare it's
+one click; otherwise you'll be guided to point DNS at Cloudflare first.
+
+## Costs and limits — read this once
+
+Workers **Free** is enough to host the map, with one real caveat:
+
+| | Free | Paid ($5/mo) |
+| --- | --- | --- |
+| Requests | 100k/day | 10 M included/mo |
+| **CPU time per invocation** | **10 ms** | 30 s |
+| Cron Triggers | 5 schedules | 250 |
+| Worker size (gzipped) | 3 MB (this app: ~1.2 MB ✓) | 10 MB |
+
+The caveat: the cron refresh downloads and parses NOAA's ~13 MB gauge list.
+Parsing that much JSON costs far more than 10 ms of CPU, so **on the free plan
+the periodic live refresh will likely be killed mid-run**, and the map keeps
+serving the build-time snapshot (it still works — flood categories are just as
+of the last deploy). Serving cached data, the map page, and static assets are
+all comfortably inside free limits.
+
+**Recommendation:** if you want live-updating data on Cloudflare, enable
+Workers Paid ($5/mo flat) — dashboard → Workers & Pages → Plans. R2 and D1
+stay free-tier either way at this app's usage.
+
+## Vercel Blob (optional carry-over)
+
+`/api/gauges` prefers a snapshot written to Vercel Blob by the external
+docker `gauge-refresher` sidecar, and the admin analytics store also lives in
+Vercel Blob. Both work unchanged from a Worker — it's a plain HTTPS API — if
+you set the secret:
+
+```bash
+npx wrangler secret put BLOB_READ_WRITE_TOKEN
+```
+
+Without it the app simply skips those paths: gauges come from the R2-backed
+cache/cron, and `/api/track` + the admin analytics panel are no-ops. A native
+migration of `src/lib/gauges-store.ts` / `src/lib/analytics-store.ts` to an R2
+binding is a contained future change (both are isolated behind small
+read/write helpers).
+
+## Troubleshooting
+
+- **Deploy fails mentioning `database_id`** — you skipped step 3: create the
+  D1 database and paste its id into `wrangler.jsonc`.
+- **`wrangler: command not found` / postinstall warnings** — dependencies with
+  native binaries (workerd, esbuild) must be allowed to run install scripts.
+  They're allowlisted in `package.json` (`pnpm.onlyBuiltDependencies`); if you
+  still see "Ignored build scripts", run `pnpm rebuild esbuild workerd`.
+- **Rivers/gauges render gray** — the Worker couldn't read
+  `gauges-meta.json`. Check Logs for `[gauges] failed to load gauges-meta.json`;
+  it ships automatically in the assets dir (`.open-next/assets/data/`), so a
+  gray map usually means a stale/partial build — rerun `pnpm cf:deploy`.
+- **First request after deploy shows "Loading live gauge data"** — expected:
+  the shared cache is empty until the first cron tick (≤30 min) or a manual
+  hit of the cron route (step 6).
+- **`Request was cancelled` noise in `cf:preview` logs** — harmless; wrangler
+  tries to fetch real geo metadata for the fake local request.
+- **Waterways/gauge data is stale after editing data scripts** — the data is
+  baked at build time; redeploy (`pnpm cf:deploy`) to rebuild it.
+
+## Alternatives, for completeness
+
+- **Vercel** — first-class, zero changes (README § "Deploying to Vercel").
+- **Docker/VPS** — `docker-compose.yml` runs the standalone server + refresh
+  sidecars; also unchanged by this migration.
+- **Cloudflare as CDN only** — point Cloudflare DNS (proxied) at either of the
+  above for edge caching without changing the runtime.

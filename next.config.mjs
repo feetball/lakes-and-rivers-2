@@ -6,6 +6,17 @@ const pkg = JSON.parse(
   readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8'),
 );
 
+// Opt-in: let `next dev` access Cloudflare bindings (ASSETS/R2/D1) through a
+// local miniflare, for testing the Workers-specific code paths in dev:
+//   CLOUDFLARE_DEV=1 pnpm dev
+// Off by default because normal dev doesn't need it (src/lib/data-assets.ts
+// reads from the local filesystem in Node) and it would make every dev/build
+// config load spin up wrangler's workerd runtime.
+if (process.env.CLOUDFLARE_DEV === '1') {
+  const { initOpenNextCloudflareForDev } = await import('@opennextjs/cloudflare');
+  await initOpenNextCloudflareForDev();
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',

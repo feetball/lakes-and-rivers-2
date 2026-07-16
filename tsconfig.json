@@ -19,5 +19,11 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // Imports the OpenNext-generated .open-next/worker.js, which only exists
+    // after `opennextjs-cloudflare build`; wrangler bundles it independently.
+    "worker.ts",
+    ".open-next"
+  ]
 }

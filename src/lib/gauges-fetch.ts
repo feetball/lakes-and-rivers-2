@@ -1,6 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { readFile } from 'fs/promises';
-import { resolve } from 'path';
+import { readPublicDataText } from '@/lib/data-assets';
 import type { FloodCategory, GaugeStatus, GaugesResponse } from '@/lib/types';
 import { sanitizeThresholds, categorizeByStage } from '@/lib/floodStatus';
 
@@ -30,7 +29,8 @@ let metaCache: { entries: Map<string, MetaEntry>; observationsAt: string | null 
 async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observationsAt: string | null }> {
   if (metaCache && metaCache.entries.size > 0) return metaCache;
   try {
-    const raw = await readFile(resolve(process.cwd(), 'public/data/gauges-meta.json'), 'utf8');
+    const raw = await readPublicDataText('gauges-meta.json');
+    if (raw === null) throw new Error('gauges-meta.json not found (fs or ASSETS binding)');
     const parsed = JSON.parse(raw) as MetaFile;
     const entries = new Map(
       parsed.gauges.map(g => [g.id, { ...g, thresholds: sanitizeThresholds(g.thresholds) }]),
@@ -41,10 +41,11 @@ async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observatio
     // gray": no thresholds means gauges NWPS reports as not_defined can't be
     // upgraded to a real flood category. On Vercel this happens when
     // gauges-meta.json isn't traced into the function bundle (see
-    // outputFileTracingIncludes in next.config.mjs). Log it loudly so a path
-    // regression shows up in function logs instead of looking like upstream
-    // behavior. Don't cache the empty result, so a transient read error can
-    // recover on the next request.
+    // outputFileTracingIncludes in next.config.mjs); on Cloudflare, when the
+    // ASSETS binding can't resolve /data/gauges-meta.json. Log it loudly so a
+    // path regression shows up in function logs instead of looking like
+    // upstream behavior. Don't cache the empty result, so a transient read
+    // error can recover on the next request.
     console.error('[gauges] failed to load gauges-meta.json — thresholds unavailable, gauges will be uncolored:', err);
     return { entries: new Map(), observationsAt: null };
   }

@@ -11,6 +11,11 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
   if (process.env.NEXT_PHASE?.includes('build')) return;
+  // Cloudflare Workers (OpenNext): no long-lived process, no reliable timers
+  // outside a request, no writable filesystem — and no need for any of this:
+  // the Cron Trigger in wrangler.jsonc handles the periodic refresh, and R2
+  // makes the data cache durable across isolates.
+  if (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers') return;
 
   const isVercel = process.env.VERCEL === '1';
   const port = process.env.PORT || '3000';

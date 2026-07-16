@@ -1,0 +1,54 @@
+// Cloudflare Workers config for the OpenNext deployment.
+// See docs/deploying-to-cloudflare.md for the full setup walkthrough.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "texas-flood-map",
+  // Custom entrypoint wrapping the OpenNext-generated worker so the Cron
+  // Trigger below can hit /api/cron/refresh-gauges (see worker.ts).
+  "main": "worker.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Static assets (public/ + Next's client bundles). The binding lets server
+  // code read public/data/* at runtime — see src/lib/data-assets.ts.
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // Required by OpenNext: lets the worker call itself (cache revalidation,
+  // and our scheduled handler uses it to invoke the cron route).
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "texas-flood-map" }
+  ],
+
+  // Backs Next's Data Cache (the unstable_cache in src/lib/gauges-fetch.ts),
+  // shared across all worker isolates. Create with:
+  //   npx wrangler r2 bucket create texas-flood-map-cache
+  "r2_buckets": [
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "texas-flood-map-cache" }
+  ],
+
+  // Backs revalidateTag() (the cron + admin refresh routes). Create with:
+  //   npx wrangler d1 create texas-flood-map-tags
+  // then paste the database_id it prints below.
+  "d1_databases": [
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "texas-flood-map-tags",
+      "database_id": "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+    }
+  ],
+
+  // Replaces vercel.json's cron. Every 30 min the scheduled handler in
+  // worker.ts refreshes the gauge cache (Workers cron has no once-a-day
+  // free-tier restriction, so this matches the docker sidecar's cadence).
+  "triggers": {
+    "crons": ["*/30 * * * *"]
+  },
+
+  // Worker logs (invocations, console.*, errors) in the Cloudflare dashboard.
+  "observability": {
+    "enabled": true
+  }
+}
