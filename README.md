@@ -105,6 +105,10 @@ Import the repo; the defaults work. Notes:
 - **Function limits:** route `maxDuration` is 60 s (Hobby cap) and the upstream fetch is bounded by `NWPS_TIMEOUT_MS` (45 s) so background warming completes within budget.
 - **Admin force refresh:** set **`ADMIN_PASSWORD`** to enable an in-app **Admin** login in the legend. Once signed in, a **Force refresh data** button invalidates the shared gauge cache and pulls fresh NWPS data on demand (same effect as the cron, but session-gated via a signed HTTP-only cookie). The session is signed with `SESSION_SECRET` (falls back to `ADMIN_PASSWORD`).
 
+## Deploying to Cloudflare
+
+Cloudflare **Pages** can't host this app (its Next.js adapter is deprecated and was Edge-runtime-only). The supported route is Cloudflare **Workers** via the OpenNext adapter, which requires a few app changes (asset-binding reads instead of runtime `fs`, a Cron Trigger instead of `vercel.json`). See [docs/deploying-to-cloudflare.md](docs/deploying-to-cloudflare.md) for the full guide.
+
 ## Configuration
 
 | Env var | Used by | Description |
