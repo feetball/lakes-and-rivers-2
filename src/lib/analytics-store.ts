@@ -57,14 +57,18 @@ function dayOf(iso: string): string {
   return iso.slice(0, 10);
 }
 
-// Append one event. Best-effort: never throws into the request path (the
-// /api/track route ignores failures so a Blob hiccup never breaks the page).
-export async function recordEvent(ev: TrackEvent, rand: string): Promise<void> {
-  if (!hasBlobToken()) return;
-  const day = dayOf(ev.at);
+// Append a batch of events as a single blob (one `put()` per batch instead of
+// per event — put/list/delete are Blob's billed "Advanced Operations", so
+// batching client-side flushes is what keeps that volume down). Best-effort:
+// never throws into the request path (the /api/track route ignores failures
+// so a Blob hiccup never breaks the page). Assumes all events fall on the
+// same day, which holds because the route stamps one `at` for the whole batch.
+export async function recordEvents(events: TrackEvent[], rand: string): Promise<void> {
+  if (!hasBlobToken() || events.length === 0) return;
+  const day = dayOf(events[0].at);
   // rand is supplied by the caller (crypto.randomUUID in the route) so this
   // module stays free of the Date.now/random ban and keys never collide.
-  await put(`${RAW_PREFIX}${day}/${rand}.json`, JSON.stringify(ev), {
+  await put(`${RAW_PREFIX}${day}/${rand}.json`, JSON.stringify(events), {
     access: 'private',
     contentType: 'application/json',
     cacheControlMaxAge: 0,
@@ -108,6 +112,14 @@ async function readJson<T>(pathname: string): Promise<T | null> {
   }
 }
 
+// A raw blob holds either a batch (TrackEvent[], current format) or a single
+// legacy event (pre-batching format) — normalize both to an array.
+async function readEvents(pathname: string): Promise<TrackEvent[]> {
+  const parsed = await readJson<TrackEvent | TrackEvent[]>(pathname);
+  if (!parsed) return [];
+  return Array.isArray(parsed) ? parsed : [parsed];
+}
+
 // Aggregate all raw events for one day into a DayAggregate. Fetches every raw
 // blob for that day — bounded because compaction removes past days' raw events.
 async function aggregateRawDay(day: string): Promise<DayAggregate> {
@@ -116,8 +128,8 @@ async function aggregateRawDay(day: string): Promise<DayAggregate> {
   let cursor: string | undefined;
   do {
     const page = await list({ prefix: `${RAW_PREFIX}${day}/`, cursor, limit: 1000 });
-    const events = await Promise.all(page.blobs.map((b) => readJson<TrackEvent>(b.pathname)));
-    for (const ev of events) if (ev) foldEvent(agg, ev, seen);
+    const batches = await Promise.all(page.blobs.map((b) => readEvents(b.pathname)));
+    for (const events of batches) for (const ev of events) foldEvent(agg, ev, seen);
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   return agg;
@@ -160,16 +172,27 @@ async function compactDay(day: string): Promise<DayAggregate> {
   return agg;
 }
 
+type AnalyticsSummary = { totals: Omit<DayAggregate, 'day'>; byDay: DayAggregate[] };
+
+// Short-lived cache for the admin summary. Each call to getAnalyticsSummary
+// otherwise re-lists both the rollup and raw prefixes (and may re-compact),
+// all Blob "Advanced Operations" — a TTL means repeated admin dashboard loads
+// within the window skip that work. Best-effort only: it's per-warm-instance,
+// not shared across regions/cold starts, so it doesn't need invalidation.
+const SUMMARY_CACHE_TTL_MS = 60_000;
+let summaryCache: { today: string; at: number; data: AnalyticsSummary } | null = null;
+
 // Build the admin analytics summary. `today` (YYYY-MM-DD, UTC) is passed in by
 // the route so this module avoids the Date ban. Steps:
 //   1. Load existing rollups (past days, already compacted).
 //   2. Find raw-event days; compact any that are < today; aggregate today live.
 //   3. Merge everything into totals + a per-day series.
-export async function getAnalyticsSummary(today: string): Promise<{
-  totals: Omit<DayAggregate, 'day'>;
-  byDay: DayAggregate[];
-}> {
+export async function getAnalyticsSummary(today: string): Promise<AnalyticsSummary> {
   if (!hasBlobToken()) return { totals: { pageviews: 0, visitors: 0, gaugeOpens: {}, referrers: {} }, byDay: [] };
+
+  if (summaryCache && summaryCache.today === today && Date.now() - summaryCache.at < SUMMARY_CACHE_TTL_MS) {
+    return summaryCache.data;
+  }
 
   // 1. Existing rollups.
   const rollupDays: DayAggregate[] = [];
@@ -221,5 +244,7 @@ export async function getAnalyticsSummary(today: string): Promise<{
   const liveSet = new Set(liveDays.map((d) => d.day));
   const allDays = [...rollupDays.filter((d) => !liveSet.has(d.day)), ...liveDays].sort((a, b) => a.day.localeCompare(b.day));
 
-  return { totals: mergeDays(allDays), byDay: allDays };
+  const result = { totals: mergeDays(allDays), byDay: allDays };
+  summaryCache = { today, at: Date.now(), data: result };
+  return result;
 }
