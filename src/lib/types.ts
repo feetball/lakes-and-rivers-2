@@ -34,3 +34,33 @@ export interface WaterwayProperties {
   ftype: number | null;
   nhdId: string | null;
 }
+
+// USGS HIVIS/NIMS streamgage webcam, normalized for the client.
+export interface Webcam {
+  id: string; // NIMS camId, e.g. "TX_Blanco_River_at_Wimberley"
+  name: string;
+  description: string | null;
+  lat: number;
+  lon: number;
+  nwisId: string | null; // associated USGS site number
+  imageUrl: string | null; // latest 720px still, derived from newestImageDT
+  thumbUrl: string | null;
+  hivisUrl: string; // human-facing HIVIS camera page
+  hasTimelapse: boolean;
+  newestImageAt: string | null; // ISO timestamp of the latest still
+}
+
+export interface WebcamsResponse {
+  webcams: Webcam[];
+  updatedAt: string;
+}
+
+export interface WebcamFrame {
+  filename: string;
+  url: string;
+  takenAt: string | null;
+}
+
+export interface WebcamFramesResponse {
+  frames: WebcamFrame[];
+}
