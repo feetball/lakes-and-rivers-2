@@ -35,3 +35,6 @@ button {
 
 /* Hide Leaflet default marker shadow; we use a custom circle marker. */
 .leaflet-marker-shadow { display: none; }
+
+/* Leaflet's div-icon default is a white box; our webcam icon draws its own chip. */
+.tfm-webcam-marker { background: transparent; border: none; }

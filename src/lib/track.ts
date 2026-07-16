@@ -2,7 +2,7 @@
 // /api/track. Uses sendBeacon when available (survives page unload) and falls
 // back to fetch with keepalive. Never throws and never blocks the UI.
 
-type TrackBody = { type: 'pageview' } | { type: 'gauge_open'; gaugeId: string };
+type TrackBody = { type: 'pageview' } | { type: 'gauge_open'; gaugeId: string } | { type: 'webcam_open'; webcamId: string };
 
 export function track(body: TrackBody): void {
   if (typeof window === 'undefined') return;

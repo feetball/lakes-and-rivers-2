@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Cap accepted event types so a malicious client can't flood arbitrary keys.
-const ALLOWED_TYPES = new Set(['pageview', 'gauge_open']);
+const ALLOWED_TYPES = new Set(['pageview', 'gauge_open', 'webcam_open']);
 
 // Client IP from the platform-provided headers (Vercel sets x-forwarded-for /
 // x-real-ip). Only ever used to derive the daily hash; never stored.

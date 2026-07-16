@@ -1,19 +1,37 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, Marker, Tooltip, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, PathOptions, Layer } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
+import useWebcamData from '@/hooks/useWebcamData';
 import { colorFor, CATEGORY_LABELS } from '@/lib/floodStatus';
-import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
+import type { FloodCategory, GaugeStatus, WaterwayProperties, Webcam } from '@/lib/types';
 import Legend from './Legend';
 import GaugeSheet from './GaugeSheet';
+import WebcamSheet from './WebcamSheet';
 import HoverHydrograph from './HoverHydrograph';
 import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
 import DraggablePanel from './DraggablePanel';
 import { track } from '@/lib/track';
+
+// Neutral chip (not a flood-status color) so it reads distinctly from gauge
+// dots. Kept visually smaller/quieter than the 10px gauge markers.
+const webcamIcon = L.divIcon({
+  className: 'tfm-webcam-marker',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+  html: `
+    <svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="20" height="20" rx="5" fill="#e5e7eb" stroke="#0b1220" stroke-width="1.5"/>
+      <path d="M6.5 8.2c0-.66.54-1.2 1.2-1.2h1.02c.34 0 .66-.16.86-.44l.5-.68c.19-.26.5-.42.82-.42h1.2c.32 0 .63.16.82.42l.5.68c.2.28.52.44.86.44h1.02c.66 0 1.2.54 1.2 1.2v5.1c0 .66-.54 1.2-1.2 1.2H7.7c-.66 0-1.2-.54-1.2-1.2V8.2z" fill="#0b1220"/>
+      <circle cx="11" cy="10.8" r="2" fill="#e5e7eb"/>
+    </svg>
+  `,
+});
 
 // Below this zoom, hide stream/river lines and only paint waterbodies.
 // Painting thousands of canvas polylines while panning the whole state is
@@ -33,6 +51,7 @@ const TX_BOUNDS: [[number, number], [number, number]] = [
 const VIEW_KEY = 'tfm:view';
 const LEGEND_VISIBLE_KEY = 'tfm:legend-visible';
 const TIMELINE_VISIBLE_KEY = 'tfm:timeline-visible';
+const WEBCAMS_VISIBLE_KEY = 'tfm:webcams-visible';
 
 type SavedView = { lat: number; lon: number; zoom: number };
 function loadView(): SavedView | null {
@@ -88,6 +107,7 @@ export default function MapView() {
   const [waterways, setWaterways] = useState<Waterways | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<GaugeStatus | null>(null);
+  const [selectedWebcam, setSelectedWebcam] = useState<Webcam | null>(null);
   // Open a gauge sheet and record the open for analytics. Both click paths
   // (marker + waterway) go through here so tracking can't be forgotten on one.
   const selectGauge = (g: GaugeStatus) => {
@@ -98,8 +118,20 @@ export default function MapView() {
       hoverTimerRef.current = null;
     }
     setHoverChart(null);
+    setSelectedWebcam(null); // sheets are exclusive — never stack
     setSelected(g);
     track({ type: 'gauge_open', gaugeId: g.id });
+  };
+  // Open a webcam sheet, mirroring selectGauge above.
+  const selectWebcam = (w: Webcam) => {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoverChart(null);
+    setSelected(null); // sheets are exclusive — never stack
+    setSelectedWebcam(w);
+    track({ type: 'webcam_open', webcamId: w.id });
   };
   const [hoverChart, setHoverChart] = useState<{ gauge: GaugeStatus; x: number; y: number } | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
@@ -111,6 +143,8 @@ export default function MapView() {
     isValidating: gaugesValidating,
     mutate: refreshGauges,
   } = useGaugeData(atIso);
+  const { data: webcamData } = useWebcamData();
+  const webcams = webcamData?.webcams ?? [];
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
     const saved = loadView();
@@ -120,8 +154,16 @@ export default function MapView() {
   const geoJsonRef = useRef<LeafletGeoJSON | null>(null);
   const [legendVisible, setLegendVisible] = useState<boolean>(() => loadVisible(LEGEND_VISIBLE_KEY));
   const [timelineVisible, setTimelineVisible] = useState<boolean>(() => loadVisible(TIMELINE_VISIBLE_KEY));
+  const [webcamsVisible, setWebcamsVisible] = useState<boolean>(() => loadVisible(WEBCAMS_VISIBLE_KEY));
   const hideLegend = () => { setLegendVisible(false); saveVisible(LEGEND_VISIBLE_KEY, false); };
   const showLegend = () => { setLegendVisible(true); saveVisible(LEGEND_VISIBLE_KEY, true); };
+  const toggleWebcams = () => {
+    setWebcamsVisible(v => {
+      const next = !v;
+      saveVisible(WEBCAMS_VISIBLE_KEY, next);
+      return next;
+    });
+  };
   // Hiding the timeline also snaps back to live — otherwise the map could be
   // left stuck on a historical snapshot with no visible control to leave it.
   const hideTimeline = () => { setTimelineVisible(false); saveVisible(TIMELINE_VISIBLE_KEY, false); setAtIso(null); };
@@ -292,6 +334,16 @@ export default function MapView() {
             </Tooltip>
           </CircleMarker>
         ))}
+        {webcamsVisible && webcams.map(w => (
+          <Marker
+            key={w.id}
+            position={[w.lat, w.lon]}
+            icon={webcamIcon}
+            eventHandlers={{ click: () => selectWebcam(w) }}
+          >
+            <Tooltip direction="top" offset={[0, -10]}>{w.name} — webcam</Tooltip>
+          </Marker>
+        ))}
       </MapContainer>
 
       {legendVisible && (
@@ -310,6 +362,9 @@ export default function MapView() {
             refreshing={gaugesValidating}
             onForceRefreshed={() => { refreshGauges(); }}
             gaugeNames={gaugeNames}
+            webcamsVisible={webcamsVisible}
+            onToggleWebcams={toggleWebcams}
+            webcamCount={webcams.length}
           />
         </DraggablePanel>
       )}
@@ -389,6 +444,7 @@ export default function MapView() {
       )}
       {hoverChart && <HoverHydrograph gauge={hoverChart.gauge} x={hoverChart.x} y={hoverChart.y} />}
       {selected && <GaugeSheet gauge={selected} onClose={() => setSelected(null)} />}
+      {selectedWebcam && <WebcamSheet webcam={selectedWebcam} onClose={() => setSelectedWebcam(null)} />}
     </div>
   );
 }

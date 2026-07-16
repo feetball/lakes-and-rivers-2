@@ -14,9 +14,15 @@ interface Props {
   onForceRefreshed?: () => void;
   // gaugeId -> display name, passed through to the admin analytics panel.
   gaugeNames?: Record<string, string>;
+  webcamsVisible?: boolean;
+  onToggleWebcams?: () => void;
+  webcamCount?: number;
 }
 
-export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames }: Props) {
+export default function Legend({
+  counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames,
+  webcamsVisible, onToggleWebcams, webcamCount,
+}: Props) {
   const [open, setOpen] = useState(true);
   // epoch-0 (1970-01-01T00:00:00Z) is the "no real observation yet" sentinel
   // the API ships when the live NWPS cache is still cold. Formatting it
@@ -82,6 +88,30 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
               <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{counts[cat]}</span>
             </div>
           ))}
+          {onToggleWebcams && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 14,
+                  height: 14,
+                  borderRadius: 3,
+                  background: '#9ca3af',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+                aria-hidden
+              />
+              <span style={{ flex: 1 }}>Webcams</span>
+              <input
+                type="checkbox"
+                checked={!!webcamsVisible}
+                onChange={onToggleWebcams}
+                aria-label="Toggle webcams layer"
+                style={{ margin: 0, cursor: 'pointer' }}
+              />
+              <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{webcamCount ?? 0}</span>
+            </div>
+          )}
           <div
             style={{
               marginTop: 6,
