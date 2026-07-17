@@ -32,7 +32,7 @@ SCHEDULE="${CRON_SCHEDULE:-*/10 * * * *}"
 echo "${SCHEDULE} . /etc/refresh.env && /usr/local/bin/refresh.sh >> /proc/1/fd/1 2>> /proc/1/fd/2" > /etc/crontabs/root
 
 echo "[entrypoint] schedule: ${SCHEDULE}"
-echo "[entrypoint] mode:     ${INGEST_URL:+ingest}${INGEST_URL:-ping}"
+echo "[entrypoint] mode:     $([ -n "${INGEST_URL:-}" ] && echo ingest || echo ping)"
 echo "[entrypoint] target:   ${INGEST_URL:-${REFRESH_URL:-}}"
 if [ -n "${SECONDARY_REFRESH_URL:-}" ]; then
   echo "[entrypoint] secondary: ${SECONDARY_REFRESH_URL}"
