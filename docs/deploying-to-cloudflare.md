@@ -103,6 +103,19 @@ writes/day — this app writes one row per cache refresh.)
 
 ### 4. First deploy
 
+> **⚠️ On native Windows, don't `pnpm cf:deploy` — use [Workers Builds](#deploy-on-push-like-vercels-git-integration) or WSL instead.**
+> OpenNext's bundler is not reliable on Windows (it prints its own
+> `not fully compatible with Windows` warning). A Windows-produced bundle
+> deploys "successfully" but then throws `Dynamic require of "…middleware-manifest.json"
+> is not supported` / `Wasm code generation disallowed` on **every** request,
+> so the whole site 500s. The build is fine on Linux/macOS. Windows users
+> should build on Linux via either **Workers Builds** (Cloudflare builds on
+> their own Linux runners — recommended, see below) or **WSL**
+> (`wsl --install -d Ubuntu`, then run these commands from inside Ubuntu
+> under `/mnt/c/...`). The one-time resource setup above (login, R2, D1,
+> secrets) works fine from native Windows — only the build/deploy step needs
+> Linux.
+
 ```bash
 pnpm cf:deploy
 ```
@@ -162,15 +175,24 @@ feature work keep using `pnpm dev` — nothing about normal development changed.
 
 ## Deploy-on-push (like Vercel's git integration)
 
-Cloudflare **Workers Builds** deploys on every push, like Vercel:
+Cloudflare **Workers Builds** deploys on every push, like Vercel — and because
+it builds on Cloudflare's own Linux runners, it's the **recommended path on
+Windows** (see the warning under step 4).
 
-1. Dashboard → Workers & Pages → texas-flood-map → Settings → **Builds** →
+1. Commit `wrangler.jsonc` with the real D1 `database_id` filled in (step 3) —
+   CI builds from the repo, so the placeholder must be replaced and pushed.
+   The id is not a secret; it's safe to commit.
+2. Dashboard → Workers & Pages → texas-flood-map → Settings → **Builds** →
    connect your GitHub repo.
-2. Build command: `pnpm cf:build`
-3. Deploy command: `npx opennextjs-cloudflare deploy`
-4. Non-production branches get preview URLs; pushes to `main` deploy prod.
+3. Build command: `pnpm cf:build`
+4. Deploy command: `npx opennextjs-cloudflare deploy`
+5. Confirm the secrets (`ADMIN_PASSWORD`, `SESSION_SECRET`, `CRON_SECRET`) are
+   set on the Worker under Settings → **Variables and Secrets** — CLI-set
+   secrets persist, but verify after the first CI deploy.
+6. Non-production branches get preview URLs; pushes to `main` deploy prod.
 
-Alternatively keep deploying from your machine with `pnpm cf:deploy`.
+On macOS/Linux you can alternatively keep deploying from your machine with
+`pnpm cf:deploy`.
 
 ## Custom domain
 
@@ -219,8 +241,15 @@ read/write helpers).
 
 ## Troubleshooting
 
-- **Deploy fails mentioning `database_id`** — you skipped step 3: create the
-  D1 database and paste its id into `wrangler.jsonc`.
+- **Every request 500s with `Dynamic require of "…middleware-manifest.json" is
+  not supported` or `Wasm code generation disallowed` (seen in `wrangler
+  tail`)** — the bundle was built on native Windows, where OpenNext's bundler
+  is unreliable. The deploy succeeds but the worker is broken. Rebuild on
+  Linux: use **Workers Builds** (recommended) or **WSL**. See the warning under
+  step 4.
+- **Deploy fails with `Invalid uuid` / `database_id` mentioning
+  `REPLACE_WITH_ID...`** — you skipped step 3: create the D1 database and paste
+  its id into `wrangler.jsonc` (and commit it if you deploy via Workers Builds).
 - **`wrangler: command not found` / postinstall warnings** — dependencies with
   native binaries (workerd, esbuild) must be allowed to run install scripts.
   They're allowlisted in `package.json` (`pnpm.onlyBuiltDependencies`); if you
