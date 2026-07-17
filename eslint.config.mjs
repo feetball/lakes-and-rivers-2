@@ -13,6 +13,9 @@ const eslintConfig = [
       'public/data/**',
       'data-cache/**',
       'next-env.d.ts',
+      // Generated Cloudflare build output (opennextjs-cloudflare / wrangler)
+      '.open-next/**',
+      '.wrangler/**',
     ],
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),

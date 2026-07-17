@@ -8,6 +8,6 @@ SESSION_SECRET=change-me-too
 # Bearer token the cron/refresh routes require (worker.ts sends it)
 CRON_SECRET=change-me-three
 
-# Only if you keep using Vercel Blob for gauge snapshots + analytics
-# (optional — the app runs without it; see docs/deploying-to-cloudflare.md)
-# BLOB_READ_WRITE_TOKEN=
+# NOTE: gauge snapshots + analytics use the DATA_BUCKET R2 binding on
+# Cloudflare (simulated locally by `pnpm cf:preview`) — no token needed.
+# BLOB_READ_WRITE_TOKEN is only for the Vercel/Docker deploy targets.

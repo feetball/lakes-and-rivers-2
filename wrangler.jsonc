@@ -32,10 +32,12 @@
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
 			"bucket_name": "texas-flood-map-cache"
 		},
+		// App data: gauge snapshots (/api/gauges/ingest) + analytics events —
+		// replaces Vercel Blob on Cloudflare (see src/lib/r2-data.ts). Create:
+		//   npx wrangler r2 bucket create texas-flood-map-data
 		{
-			"bucket_name": "texas-flood-map-cache",
-			"binding": "texas_flood_map_cache",
-			"remote": true
+			"binding": "DATA_BUCKET",
+			"bucket_name": "texas-flood-map-data"
 		}
 	],
 	// Backs revalidateTag() (the cron + admin refresh routes). Create with:
@@ -46,12 +48,6 @@
 			"binding": "NEXT_TAG_CACHE_D1",
 			"database_name": "texas-flood-map-tags",
 			"database_id": "7ec2f086-0870-47e6-994a-fd971b4f59eb"
-		},
-		{
-			"binding": "texas_flood_map_tags",
-			"database_name": "texas-flood-map-tags",
-			"database_id": "7ec2f086-0870-47e6-994a-fd971b4f59eb",
-			"remote": true
 		}
 	],
 	// Replaces vercel.json's cron. Every 30 min the scheduled handler in

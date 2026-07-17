@@ -15,6 +15,7 @@ What's left for you is one-time account setup. The short version:
 pnpm install
 npx wrangler login                                  # opens a browser
 npx wrangler r2 bucket create texas-flood-map-cache
+npx wrangler r2 bucket create texas-flood-map-data
 npx wrangler d1 create texas-flood-map-tags        # paste the printed id into wrangler.jsonc
 pnpm cf:deploy                                      # builds + deploys; prints your workers.dev URL
 npx wrangler secret put ADMIN_PASSWORD
@@ -52,6 +53,7 @@ You don't need to do any of this — it's context for code review and future wor
 | Runtime reads of `public/data/*` now work without a filesystem | `src/lib/data-assets.ts` + the gauges/waterways routes | Workers have no `fs`; the same files ship as static assets and are read back through the `ASSETS` binding |
 | `/api/waterways` serves an uncompressed body on Workers | `src/app/api/waterways/route.ts` | workerd owns response compression — hand-rolled `Content-Encoding` on a pre-compressed body gets stripped, corrupting the response. (Mostly moot: the client prefers the static `/data/waterways.geojson`, which Cloudflare's CDN compresses.) |
 | Warm-up timers skipped on Workers | `src/instrumentation.ts` | No long-lived process; the Cron Trigger replaces them |
+| Gauge snapshots + analytics stored in R2 instead of Vercel Blob | `src/lib/r2-data.ts`, `src/lib/gauges-store.ts`, `src/lib/analytics-store.ts` | The `DATA_BUCKET` binding replaces `BLOB_READ_WRITE_TOKEN` on Cloudflare; Blob remains a fallback for Vercel/Docker |
 | Opt-in dev bindings | `next.config.mjs` | `CLOUDFLARE_DEV=1 pnpm dev` if you ever need R2/D1/ASSETS inside `next dev`; normal dev is untouched |
 
 Vercel and Docker deploys are unaffected — every change is gated on actually
@@ -77,17 +79,22 @@ Opens a browser window; approve the request. On a headless machine, create an
 API token instead (dashboard → My Profile → API Tokens → "Edit Cloudflare
 Workers" template) and export it as `CLOUDFLARE_API_TOKEN`.
 
-### 2. Create the R2 bucket (cache storage)
+### 2. Create the R2 buckets (cache + app data)
 
 ```bash
 npx wrangler r2 bucket create texas-flood-map-cache
+npx wrangler r2 bucket create texas-flood-map-data
 ```
+
+`…-cache` backs Next's Data Cache (managed by OpenNext); `…-data` holds the
+app's own objects — gauge snapshots POSTed to `/api/gauges/ingest` and
+analytics events (this replaces Vercel Blob on Cloudflare).
 
 First time only: the dashboard may ask you to enable R2 for the account, which
 requires a payment method on file even though usage here stays inside the free
-tier (10 GB stored, ~1 M writes/month — this app stores one ~2 MB cache entry).
+tier (10 GB stored, ~1 M writes/month — this app stores a couple of MB).
 
-The bucket name matches what `wrangler.jsonc` already declares, so there's
+The bucket names match what `wrangler.jsonc` already declares, so there's
 nothing to edit.
 
 ### 3. Create the D1 database (revalidation tags)
@@ -142,8 +149,10 @@ npx wrangler secret put CRON_SECRET       # bearer token for the refresh routes
 
 Each command prompts for the value and takes effect immediately (no redeploy).
 `CRON_SECRET` can be any long random string (`openssl rand -hex 32`); the
-scheduled handler in `worker.ts` sends it automatically. Optional:
-`BLOB_READ_WRITE_TOKEN` if you keep using Vercel Blob (see below).
+scheduled handler in `worker.ts` sends it automatically, and your own external
+refresher (if any) sends the same value to `/api/gauges/ingest`. You do NOT
+need `BLOB_READ_WRITE_TOKEN` on Cloudflare — snapshots and analytics live in
+R2 (see below).
 
 ### 6. Verify the cron
 
@@ -222,22 +231,24 @@ all comfortably inside free limits.
 Workers Paid ($5/mo flat) — dashboard → Workers & Pages → Plans. R2 and D1
 stay free-tier either way at this app's usage.
 
-## Vercel Blob (optional carry-over)
+## Gauge snapshots & analytics (R2 — no Vercel Blob needed)
 
-`/api/gauges` prefers a snapshot written to Vercel Blob by the external
-docker `gauge-refresher` sidecar, and the admin analytics store also lives in
-Vercel Blob. Both work unchanged from a Worker — it's a plain HTTPS API — if
-you set the secret:
+On Cloudflare, the two app-data stores write to the `texas-flood-map-data` R2
+bucket through the `DATA_BUCKET` binding — no tokens, no third-party service:
 
-```bash
-npx wrangler secret put BLOB_READ_WRITE_TOKEN
-```
+- **Gauge snapshots** — an external refresher (e.g. the docker
+  `gauge-refresher` sidecar, or any cron job you run) POSTs the NWPS list to
+  `/api/gauges/ingest` with `Authorization: Bearer $CRON_SECRET`; the
+  processed snapshot lands in R2 and `/api/gauges` serves it as the freshest
+  source. Point an existing refresher at
+  `https://texas-flood-map.<your-subdomain>.workers.dev/api/gauges/ingest`.
+- **Analytics** — `/api/track` events and the admin panel's aggregates live
+  under `analytics/` in the same bucket.
 
-Without it the app simply skips those paths: gauges come from the R2-backed
-cache/cron, and `/api/track` + the admin analytics panel are no-ops. A native
-migration of `src/lib/gauges-store.ts` / `src/lib/analytics-store.ts` to an R2
-binding is a contained future change (both are isolated behind small
-read/write helpers).
+The Vercel Blob code paths still exist as a fallback for the Vercel/Docker
+deploy targets (used only when `BLOB_READ_WRITE_TOKEN` is set and the R2
+binding is absent), so the storage chain is: R2 binding → Vercel Blob token →
+disabled. On Cloudflare you should NOT set `BLOB_READ_WRITE_TOKEN`.
 
 ## Troubleshooting
 
