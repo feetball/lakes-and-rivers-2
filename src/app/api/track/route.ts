@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createHash, randomUUID } from 'node:crypto';
-import { recordEvent, analyticsEnabled, type TrackEvent } from '@/lib/analytics-store';
+import { recordEvents, analyticsEnabled, type TrackEvent } from '@/lib/analytics-store';
 
 // Public, unauthenticated event sink for self-hosted analytics. The client
-// posts small events (pageview, gauge_open) here; we derive a privacy-safe
-// visitor hash server-side and append the event to Blob. Best-effort: any
-// failure returns 204 so it never disturbs the page.
+// batches small events (pageview, gauge_open) client-side and posts them here
+// as a single array; we derive a privacy-safe visitor hash server-side and
+// append the whole batch to Blob as one blob (one `put()` per batch, not per
+// event). Best-effort: any failure returns 204 so it never disturbs the page.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Cap accepted event types so a malicious client can't flood arbitrary keys.
 const ALLOWED_TYPES = new Set(['pageview', 'gauge_open']);
+// Cap batch size so a malicious client can't force one oversized blob write.
+const MAX_EVENTS_PER_BATCH = 50;
 
 // Client IP from the platform-provided headers (Vercel sets x-forwarded-for /
 // x-real-ip). Only ever used to derive the daily hash; never stored.
@@ -42,15 +45,17 @@ function referrerHost(ref: string | null, selfHost: string | null): string | und
 export async function POST(req: Request) {
   if (!analyticsEnabled()) return new NextResponse(null, { status: 204 });
 
-  let body: { type?: string; gaugeId?: string } = {};
+  let body: { events?: Array<{ type?: string; gaugeId?: string }> } = {};
   try {
     body = await req.json();
   } catch {
     return new NextResponse(null, { status: 204 });
   }
-  const type = typeof body.type === 'string' ? body.type : '';
-  if (!ALLOWED_TYPES.has(type)) return new NextResponse(null, { status: 204 });
+  if (!Array.isArray(body.events) || body.events.length === 0) return new NextResponse(null, { status: 204 });
 
+  // The whole batch shares one request context (one page, sent within a few
+  // seconds), so a single timestamp/visitor/referrer for all events in it is
+  // an acceptable approximation and keeps the write to one blob.
   const at = new Date().toISOString();
   const day = at.slice(0, 10);
   const ip = clientIp(req);
@@ -62,17 +67,25 @@ export async function POST(req: Request) {
       return null;
     }
   })();
+  const visitor = visitorHash(ip, ua, day);
+  const referrer = referrerHost(req.headers.get('referer'), selfHost);
 
-  const ev: TrackEvent = {
-    type,
-    at,
-    visitor: visitorHash(ip, ua, day),
-    referrer: referrerHost(req.headers.get('referer'), selfHost),
-    gaugeId: type === 'gauge_open' && typeof body.gaugeId === 'string' ? body.gaugeId.slice(0, 32) : undefined,
-  };
+  const events: TrackEvent[] = [];
+  for (const raw of body.events.slice(0, MAX_EVENTS_PER_BATCH)) {
+    const type = typeof raw?.type === 'string' ? raw.type : '';
+    if (!ALLOWED_TYPES.has(type)) continue;
+    events.push({
+      type,
+      at,
+      visitor,
+      referrer,
+      gaugeId: type === 'gauge_open' && typeof raw?.gaugeId === 'string' ? raw.gaugeId.slice(0, 32) : undefined,
+    });
+  }
+  if (events.length === 0) return new NextResponse(null, { status: 204 });
 
   try {
-    await recordEvent(ev, randomUUID());
+    await recordEvents(events, randomUUID());
   } catch {
     // Swallow — analytics must never break the page.
   }
