@@ -50,12 +50,13 @@
 			"database_id": "7ec2f086-0870-47e6-994a-fd971b4f59eb"
 		}
 	],
-	// Replaces vercel.json's cron. Every 30 min the scheduled handler in
+	// Replaces vercel.json's cron. Every 15 min the scheduled handler in
 	// worker.ts refreshes the gauge cache (Workers cron has no once-a-day
-	// free-tier restriction, so this matches the docker sidecar's cadence).
+	// free-tier restriction; NWPS observations update on roughly the same
+	// cadence, so more frequent polling buys nothing).
 	"triggers": {
 		"crons": [
-			"*/30 * * * *"
+			"*/15 * * * *"
 		]
 	},
 	// Worker logs (invocations, console.*, errors) in the Cloudflare dashboard.

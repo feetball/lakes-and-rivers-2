@@ -47,7 +47,7 @@ You don't need to do any of this — it's context for code review and future wor
 | Change | Files | Why |
 | --- | --- | --- |
 | Added the OpenNext adapter + wrangler | `package.json` | The build/deploy toolchain (`pnpm cf:*` scripts) |
-| Worker config with R2/D1/assets bindings + a 30-min Cron Trigger | `wrangler.jsonc` | Replaces `vercel.json` on Cloudflare |
+| Worker config with R2/D1/assets bindings + a 15-min Cron Trigger | `wrangler.jsonc` | Replaces `vercel.json` on Cloudflare |
 | Cache wiring: R2 for the Data Cache, D1 for tags | `open-next.config.ts` | Makes `unstable_cache`/`revalidateTag` in `src/lib/gauges-fetch.ts` work across isolates, like on Vercel |
 | Custom Worker entrypoint with a `scheduled` handler | `worker.ts` | Cron Triggers invoke `scheduled()`, which self-calls `/api/cron/refresh-gauges` with the `CRON_SECRET` bearer token |
 | Runtime reads of `public/data/*` now work without a filesystem | `src/lib/data-assets.ts` + the gauges/waterways routes | Workers have no `fs`; the same files ship as static assets and are read back through the `ASSETS` binding |
@@ -156,7 +156,7 @@ R2 (see below).
 
 ### 6. Verify the cron
 
-The Cron Trigger (`*/30 * * * *` in `wrangler.jsonc`) is registered at deploy
+The Cron Trigger (`*/15 * * * *` in `wrangler.jsonc`) is registered at deploy
 time. To watch it work: dashboard → Workers & Pages → texas-flood-map →
 **Logs** (live tail), or trigger the route by hand:
 
@@ -270,7 +270,7 @@ disabled. On Cloudflare you should NOT set `BLOB_READ_WRITE_TOKEN`.
   it ships automatically in the assets dir (`.open-next/assets/data/`), so a
   gray map usually means a stale/partial build — rerun `pnpm cf:deploy`.
 - **First request after deploy shows "Loading live gauge data"** — expected:
-  the shared cache is empty until the first cron tick (≤30 min) or a manual
+  the shared cache is empty until the first cron tick (≤15 min) or a manual
   hit of the cron route (step 6).
 - **`Request was cancelled` noise in `cf:preview` logs** — harmless; wrangler
   tries to fetch real geo metadata for the fake local request.
