@@ -59,6 +59,13 @@
 			"*/15 * * * *"
 		]
 	},
+	// NWPS fetch resilience. The Vercel-era defaults (45 s, 1 attempt) exist to
+	// fit Vercel's 60 s function cap; Workers have no such cap, and a healthy
+	// NWPS TX-list fetch takes ~40-60 s, so give it real odds here.
+	"vars": {
+		"NWPS_TIMEOUT_MS": "120000",
+		"NWPS_MAX_ATTEMPTS": "2"
+	},
 	// Worker logs (invocations, console.*, errors) in the Cloudflare dashboard.
 	"observability": {
 		"enabled": true

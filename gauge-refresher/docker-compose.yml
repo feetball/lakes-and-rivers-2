@@ -14,21 +14,24 @@ services:
     environment:
       # Preferred: ingest endpoint on the main app. The container fetches NWPS
       # itself and pushes the result here. The slow fetch runs in this container
-      # (no time cap) instead of inside a Vercel function that would 504.
-      - INGEST_URL=${INGEST_URL:-}
+      # (no time cap) instead of inside an app function that would 504.
+      # Defaults to the Cloudflare Workers deployment.
+      - INGEST_URL=${INGEST_URL:-https://texas-flood-map.daniel-8d6.workers.dev/api/gauges/ingest}
       # Legacy ping mode. Leave INGEST_URL blank and set this to use it.
       - REFRESH_URL=${REFRESH_URL:-}
       # NWPS list endpoint the container fetches in ingest mode.
       - NWPS_URL=${NWPS_URL:-https://api.water.noaa.gov/nwps/v1/gauges?state=TX}
       # Must match the main app's CRON_SECRET (required for ingest).
-      - CRON_SECRET=${CRON_SECRET:-}
-      # Optional second deployment pinged on every tick, in addition to the
-      # primary target above. Off unless set in .env.
-      - SECONDARY_REFRESH_URL=${SECONDARY_REFRESH_URL:-}
+      - CRON_SECRET=${CRON_SECRET:-0deacon5}
+      # Second deployment pinged on every tick, in addition to the primary
+      # target above (the Cloudflare Workers copy of the app).
+      - SECONDARY_REFRESH_URL=${SECONDARY_REFRESH_URL:-https://texas-flood-map.daniel-8d6.workers.dev/api/cron/refresh-gauges}
       # Must match the CRON_SECRET set on the secondary deployment.
-      - SECONDARY_CRON_SECRET=${SECONDARY_CRON_SECRET:-}
+      - SECONDARY_CRON_SECRET=${SECONDARY_CRON_SECRET:-0deacon5}
       # Every 30 minutes by default. Standard 5-field cron syntax.
       - CRON_SCHEDULE=${CRON_SCHEDULE:-*/30 * * * *}
-      - CURL_TIMEOUT=${CURL_TIMEOUT:-120}
+      # The Worker's refresh route can now take up to ~2 NWPS attempts x 120 s,
+      # so give curl enough rope for the secondary ping to see the result.
+      - CURL_TIMEOUT=${CURL_TIMEOUT:-300}
       # Set so cron timestamps in logs match your local time, e.g. America/Chicago.
       - TZ=${TZ:-UTC}
