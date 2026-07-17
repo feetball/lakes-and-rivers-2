@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Webcam, WebcamFramesResponse } from '@/lib/types';
 
 interface Props {
@@ -39,10 +39,14 @@ export default function WebcamSheet({ webcam, onClose }: Props) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Tracks which camera is currently displayed so an in-flight refresh for a
+  // camera the user has since navigated away from can't clobber state.
+  const webcamIdRef = useRef(webcam.id);
 
   // Reset image state for the newly-selected camera, and if we have no image
   // to show yet, make one attempt at the frames endpoint to find the newest.
   useEffect(() => {
+    webcamIdRef.current = webcam.id;
     setImageUrl(webcam.imageUrl);
     setTakenAt(webcam.newestImageAt);
     setImgLoaded(false);
@@ -52,6 +56,7 @@ export default function WebcamSheet({ webcam, onClose }: Props) {
     const controller = new AbortController();
     (async () => {
       const frame = await fetchLatestFrame(webcam.id, controller.signal);
+      if (controller.signal.aborted) return;
       if (frame) {
         setImageUrl(frame.url);
         setTakenAt(frame.takenAt);
@@ -63,13 +68,17 @@ export default function WebcamSheet({ webcam, onClose }: Props) {
   }, [webcam.id, webcam.imageUrl, webcam.newestImageAt]);
 
   const handleRefresh = async () => {
+    const id = webcam.id;
     setRefreshing(true);
     try {
-      const frame = await fetchLatestFrame(webcam.id);
+      const frame = await fetchLatestFrame(id);
+      if (webcamIdRef.current !== id) return; // camera changed while this was in flight
       if (frame) {
         setImageUrl(frame.url);
+        // An identical src never re-fires <img onLoad>, so only reset the
+        // "Loading image…" overlay when the URL actually changed.
+        if (frame.url !== imageUrl) setImgLoaded(false);
         setTakenAt(frame.takenAt);
-        setImgLoaded(false);
         setImgError(false);
       }
     } finally {

@@ -143,8 +143,9 @@ export default function MapView() {
     isValidating: gaugesValidating,
     mutate: refreshGauges,
   } = useGaugeData(atIso);
-  const { data: webcamData } = useWebcamData();
+  const { data: webcamData, error: webcamsError } = useWebcamData();
   const webcams = webcamData?.webcams ?? [];
+  const webcamsUnavailable = !webcamData && !!webcamsError;
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
     const saved = loadView();
@@ -365,6 +366,7 @@ export default function MapView() {
             webcamsVisible={webcamsVisible}
             onToggleWebcams={toggleWebcams}
             webcamCount={webcams.length}
+            webcamsUnavailable={webcamsUnavailable}
           />
         </DraggablePanel>
       )}

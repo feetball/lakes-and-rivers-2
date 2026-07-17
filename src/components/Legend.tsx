@@ -17,11 +17,12 @@ interface Props {
   webcamsVisible?: boolean;
   onToggleWebcams?: () => void;
   webcamCount?: number;
+  webcamsUnavailable?: boolean;
 }
 
 export default function Legend({
   counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames,
-  webcamsVisible, onToggleWebcams, webcamCount,
+  webcamsVisible, onToggleWebcams, webcamCount, webcamsUnavailable,
 }: Props) {
   const [open, setOpen] = useState(true);
   // epoch-0 (1970-01-01T00:00:00Z) is the "no real observation yet" sentinel
@@ -90,17 +91,25 @@ export default function Legend({
           ))}
           {onToggleWebcams && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Mirrors MapView's webcamIcon marker: same light chip + dark camera glyph. */}
               <span
                 style={{
-                  display: 'inline-block',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   width: 14,
                   height: 14,
-                  borderRadius: 3,
-                  background: '#9ca3af',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 4,
+                  background: '#e5e7eb',
+                  border: '1px solid #0b1220',
                 }}
                 aria-hidden
-              />
+              >
+                <svg width="14" height="14" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6.5 8.2c0-.66.54-1.2 1.2-1.2h1.02c.34 0 .66-.16.86-.44l.5-.68c.19-.26.5-.42.82-.42h1.2c.32 0 .63.16.82.42l.5.68c.2.28.52.44.86.44h1.02c.66 0 1.2.54 1.2 1.2v5.1c0 .66-.54 1.2-1.2 1.2H7.7c-.66 0-1.2-.54-1.2-1.2V8.2z" fill="#0b1220"/>
+                  <circle cx="11" cy="10.8" r="2" fill="#e5e7eb"/>
+                </svg>
+              </span>
               <span style={{ flex: 1 }}>Webcams</span>
               <input
                 type="checkbox"
@@ -109,7 +118,11 @@ export default function Legend({
                 aria-label="Toggle webcams layer"
                 style={{ margin: 0, cursor: 'pointer' }}
               />
-              <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{webcamCount ?? 0}</span>
+              {webcamsUnavailable ? (
+                <span style={{ fontSize: 11, color: '#9ca3af', fontStyle: 'italic' }}>unavailable</span>
+              ) : (
+                <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{webcamCount ?? 0}</span>
+              )}
             </div>
           )}
           <div

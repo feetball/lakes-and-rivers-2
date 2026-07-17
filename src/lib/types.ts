@@ -43,6 +43,7 @@ export interface Webcam {
   lat: number;
   lon: number;
   nwisId: string | null; // associated USGS site number
+  smallDir: string; // validated S3 directory this camera's stills live in
   imageUrl: string | null; // latest 720px still, derived from newestImageDT
   thumbUrl: string | null;
   hivisUrl: string; // human-facing HIVIS camera page
