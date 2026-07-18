@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/floodStatus';
+import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs } from '@/lib/floodStatus';
 import type { FloodCategory } from '@/lib/types';
 import AdminControls from './AdminControls';
 
@@ -33,6 +33,10 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
           hour: '2-digit',
           minute: '2-digit',
         });
+  // Flag a timestamp old enough that the flood colors on the map can't be
+  // trusted, so "Updated Jul 17, 4:00 PM" a day later doesn't read as routine.
+  const updatedAge = dataAgeMs(updatedAt);
+  const updatedStale = updatedAge !== null && updatedAge > STALE_DATA_MS;
 
   return (
     <div
@@ -92,7 +96,9 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
               gap: 4,
             }}
           >
-            <span>Updated {updatedLabel}</span>
+            <span style={updatedStale ? { color: '#fbbf24', fontWeight: 600 } : undefined}>
+              {updatedStale ? '⚠ ' : ''}Updated {updatedLabel}
+            </span>
             {onRefresh && (
               <button
                 onClick={onRefresh}

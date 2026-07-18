@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMapEvents }
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, PathOptions, Layer } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
-import { colorFor, CATEGORY_LABELS } from '@/lib/floodStatus';
+import { colorFor, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
 import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
 import GaugeSheet from './GaugeSheet';
@@ -223,6 +223,12 @@ export default function MapView() {
     return counts;
   }, [gaugeList]);
 
+  // Age of the live snapshot being displayed. Only meaningful in live mode —
+  // historical/forecast snapshots are old by design. SWR re-polls live data
+  // every 10 min, so this re-evaluates regularly while the tab stays open.
+  const liveDataAge = !atIso ? dataAgeMs(gaugeData?.updatedAt) : null;
+  const liveDataStale = liveDataAge !== null && liveDataAge > STALE_DATA_MS;
+
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       <MapContainer
@@ -375,6 +381,21 @@ export default function MapView() {
               : 'Live readings come from NWPS, which can be slow — fetching the latest…'
           }
         />
+      )}
+      {liveDataStale && liveDataAge !== null && (
+        <div
+          style={{
+            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+            maxWidth: 'calc(100vw - 24px)',
+            background: 'rgba(120,53,15,0.92)', border: '1px solid #b45309',
+            color: '#fde68a', padding: '8px 12px',
+            borderRadius: 8, fontSize: 13, zIndex: 1000,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+          }}
+        >
+          ⚠ Gauge data is {formatAge(liveDataAge)} old — flood statuses may not
+          reflect current conditions.
+        </div>
       )}
       {loadError && (
         <div
