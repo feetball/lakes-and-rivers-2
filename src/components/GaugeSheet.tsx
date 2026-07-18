@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/floodStatus';
+import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
 import type { GaugeStatus } from '@/lib/types';
 
 interface Props {
@@ -51,6 +51,10 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
       })
     : null;
+  // A stale observation must not masquerade as a confident current status —
+  // e.g. a day-old "Normal" on a lake that has since risen past Action stage.
+  const obsAge = dataAgeMs(gauge.observedAt);
+  const obsStale = obsAge !== null && obsAge > STALE_DATA_MS;
 
   const [records, setRecords] = useState<FloodRecord[]>([]);
 
@@ -145,6 +149,18 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
             <div style={{ fontSize: 14, marginTop: 4 }}>
               Observed: <strong>{gauge.observedStage} {gauge.unit ?? ''}</strong>
               {observedAt && <span style={{ color: '#9ca3af', marginLeft: 6 }}>· {observedAt}</span>}
+            </div>
+          )}
+          {obsStale && obsAge !== null && (
+            <div
+              style={{
+                marginTop: 8, padding: '6px 8px', borderRadius: 6,
+                background: '#78350f55', border: '1px solid #b4530988',
+                color: '#fbbf24', fontSize: 12, lineHeight: 1.4,
+              }}
+            >
+              ⚠ This reading is {formatAge(obsAge)} old — the status above may not
+              reflect current conditions. Check the live hydrograph below.
             </div>
           )}
         </div>
