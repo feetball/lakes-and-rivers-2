@@ -4,7 +4,8 @@
     {
       "source": "/:path*",
       "destination": "https://txfloods.kuecker.us/:path*",
-      "permanent": false
+      "permanent": false,
+      "missing": [{ "type": "host", "value": "txfloods.kuecker.us" }]
     }
   ]
 }
