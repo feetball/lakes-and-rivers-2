@@ -2,8 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
-      "source": "/:path*",
-      "destination": "https://txfloods.kuecker.us/:path*",
+      "source": "/",
+      "destination": "https://txfloods.kuecker.us/",
+      "permanent": false,
+      "missing": [{ "type": "host", "value": "txfloods.kuecker.us" }]
+    },
+    {
+      "source": "/:path(.*)",
+      "destination": "https://txfloods.kuecker.us/:path",
       "permanent": false,
       "missing": [{ "type": "host", "value": "txfloods.kuecker.us" }]
     }
