@@ -1,9 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
+  "redirects": [
     {
-      "path": "/api/cron/refresh-gauges",
-      "schedule": "0 6 * * *"
+      "source": "/:path*",
+      "destination": "https://txfloods.kuecker.us/:path*",
+      "permanent": false
     }
   ]
 }
