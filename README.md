@@ -109,6 +109,10 @@ Import the repo; the defaults work. Notes:
 
 Cloudflare **Pages** can't host this app (its Next.js adapter is deprecated and was Edge-runtime-only), but Cloudflare **Workers** via the OpenNext adapter is fully wired up: `wrangler.jsonc` + `open-next.config.ts` configure the Worker (R2-backed data cache, D1-backed tag cache, a 30-min Cron Trigger), and the data routes read `public/data/*` through the assets binding instead of `fs` at runtime. Quick start: `npx wrangler login`, create the R2 bucket + D1 database, then `pnpm cf:deploy`. See [docs/deploying-to-cloudflare.md](docs/deploying-to-cloudflare.md) for the beginner-friendly step-by-step guide (account setup, secrets, custom domains, costs).
 
+## Mobile apps (iOS and Android)
+
+The same source ships as native iOS and Android apps via Capacitor: `pnpm mobile:build` produces a static export of the map (with the river/lake geometry bundled in the binary) and syncs it into the Xcode project in `ios/` and the Android Studio project in `android/`. The apps have no server of their own — they call the hosted API (`MOBILE_API_BASE`, the Cloudflare Worker by default), which sends the CORS headers they need. See [docs/mobile-app.md](docs/mobile-app.md) for the build, signing and store-submission walkthrough, and [docs/mobile-data-strategy.md](docs/mobile-data-strategy.md) for where the data comes from, what it costs, and the basemap-tile decision that has to be made before a store release.
+
 ## Configuration
 
 | Env var | Used by | Description |
@@ -118,6 +122,8 @@ Cloudflare **Pages** can't host this app (its Next.js adapter is deprecated and 
 | `SESSION_SECRET` | `/api/admin/*` | HMAC key for signing the admin session cookie. Optional — falls back to `ADMIN_PASSWORD`; set it to rotate sessions independently of the password. |
 | `NEXT_PUBLIC_APP_VERSION` | UI footer | Optional version label shown in the legend. |
 | `NWPS_TIMEOUT_MS` | `/api/gauges`, `/api/cron` | Per-attempt upstream fetch timeout (default 45000). |
+| `MOBILE_API_BASE` | `pnpm mobile:build` | Origin the mobile apps call for `/api/*` (baked in at build time). |
+| `NEXT_PUBLIC_TILE_URL`, `NEXT_PUBLIC_TILE_ATTRIBUTION` | any build | Basemap tile template + attribution (default OpenStreetMap; the store builds must use a commercial provider). |
 | `CACHE_TTL_DAYS`, `OUTPUT_COORD_DP`, `NHD_CONCURRENCY`, `GAUGE_LIMIT`, `REFRESH` | `data:build` | See *Scripts*. |
 
 ## License

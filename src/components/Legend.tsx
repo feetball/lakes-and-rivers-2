@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/floodStatus';
 import type { FloodCategory } from '@/lib/types';
+import { IS_MOBILE } from '@/lib/api';
 import AdminControls from './AdminControls';
 
 interface Props {
@@ -117,7 +118,9 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
             )}
             <span>· refreshes every 10 min</span>
           </div>
-          <AdminControls onRefreshed={onForceRefreshed} gaugeNames={gaugeNames} />
+          {/* The admin login is an operator tool for the web deploy; store
+              apps ship without it (and without the session probe it makes). */}
+          {!IS_MOBILE && <AdminControls onRefreshed={onForceRefreshed} gaugeNames={gaugeNames} />}
           {process.env.NEXT_PUBLIC_APP_VERSION && (
             <div style={{ marginTop: 4, color: '#6b7280', fontSize: 10 }}>
               v{process.env.NEXT_PUBLIC_APP_VERSION}

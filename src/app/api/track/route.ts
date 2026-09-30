@@ -42,7 +42,10 @@ function referrerHost(ref: string | null, selfHost: string | null): string | und
 export async function POST(req: Request) {
   if (!analyticsEnabled()) return new NextResponse(null, { status: 204 });
 
-  let body: { type?: string; gaugeId?: string } = {};
+  // The client sends the JSON with a text/plain Content-Type (see
+  // src/lib/track.ts — it keeps the mobile apps' cross-origin beacon
+  // preflight-free); Request.json() parses the body regardless of the type.
+  let body: { type?: string; gaugeId?: string; platform?: string } = {};
   try {
     body = await req.json();
   } catch {
@@ -50,6 +53,12 @@ export async function POST(req: Request) {
   }
   const type = typeof body.type === 'string' ? body.type : '';
   if (!ALLOWED_TYPES.has(type)) return new NextResponse(null, { status: 204 });
+  // Store apps identify themselves so the admin panel can split app users
+  // from web visitors. Filed under `referrer` as app:ios / app:android — the
+  // Referer header they send is just their local web-view origin, which is
+  // meaningless, and this way the existing "Top referrers" table shows the
+  // split with no schema change.
+  const appPlatform = body.platform === 'ios' || body.platform === 'android' ? body.platform : null;
 
   const at = new Date().toISOString();
   const day = at.slice(0, 10);
@@ -67,7 +76,7 @@ export async function POST(req: Request) {
     type,
     at,
     visitor: visitorHash(ip, ua, day),
-    referrer: referrerHost(req.headers.get('referer'), selfHost),
+    referrer: appPlatform ? `app:${appPlatform}` : referrerHost(req.headers.get('referer'), selfHost),
     gaugeId: type === 'gauge_open' && typeof body.gaugeId === 'string' ? body.gaugeId.slice(0, 32) : undefined,
   };
 

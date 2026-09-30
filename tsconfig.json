@@ -24,6 +24,10 @@
     // Imports the OpenNext-generated .open-next/worker.js, which only exists
     // after `opennextjs-cloudflare build`; wrangler bundles it independently.
     "worker.ts",
-    ".open-next"
+    ".open-next",
+    // Mobile: static export + native projects (Capacitor)
+    "out",
+    "ios",
+    "android"
   ]
 }

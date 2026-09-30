@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  App icon source (placeholder — swap for a designed one any time).
+  Rendered to the PNGs @capacitor/assets needs by scripts/render-icon-sources.mjs:
+    icon.png (1024²), icon-foreground.png / icon-background.png (Android
+    adaptive), splash.png (2732²). Keep everything inside the central ~66% so
+    Android's adaptive-icon mask and iOS's rounded corners don't clip it.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16213a"/>
+      <stop offset="1" stop-color="#0b1220"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- Texas outline, simplified, centered -->
+  <path fill="none" stroke="#334155" stroke-width="22" stroke-linejoin="round"
+        d="M372 176 L372 366 L302 366 L302 470 L228 470 L228 548 L206 590 L248 640 L340 680 L392 748 L432 830 L468 866 L536 860 L574 800 L626 760 L682 716 L740 700 L766 656 L790 610 L818 560 L790 520 L760 468 L720 458 L700 400 L660 366 L640 300 L640 176 Z"/>
+  <!-- River: three blue reaches -->
+  <path fill="none" stroke="#2563eb" stroke-width="52" stroke-linecap="round"
+        d="M300 470 C 400 430, 430 560, 520 520 S 660 470, 740 560"/>
+  <path fill="none" stroke="#3b82f6" stroke-width="30" stroke-linecap="round"
+        d="M410 690 C 470 640, 520 700, 600 660"/>
+  <!-- Gauge markers: normal / action / minor flood -->
+  <circle cx="392" cy="452" r="46" fill="#2563eb" stroke="#0b1220" stroke-width="12"/>
+  <circle cx="520" cy="520" r="46" fill="#eab308" stroke="#0b1220" stroke-width="12"/>
+  <circle cx="700" cy="530" r="46" fill="#f97316" stroke="#0b1220" stroke-width="12"/>
+</svg>
