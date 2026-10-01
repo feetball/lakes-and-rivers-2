@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import { resolve } from 'path';
+import { readPublicDataText } from '@/lib/data-assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +25,8 @@ let metaCache: Map<string, MetaEntry> | null = null;
 async function loadMeta(): Promise<Map<string, MetaEntry>> {
   if (metaCache && metaCache.size > 0) return metaCache;
   try {
-    const raw = await readFile(resolve(process.cwd(), 'public/data/gauges-meta.json'), 'utf8');
+    const raw = await readPublicDataText('gauges-meta.json');
+    if (raw === null) throw new Error('gauges-meta.json not found (fs or ASSETS binding)');
     const parsed = JSON.parse(raw) as { gauges: MetaEntry[] };
     metaCache = new Map(parsed.gauges.map(g => [g.id, { id: g.id, usgsId: g.usgsId }]));
   } catch (err) {

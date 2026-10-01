@@ -22,3 +22,14 @@ data-cache/gauges/
 
 # TypeScript incremental build info (regenerated every build)
 tsconfig.tsbuildinfo
+
+# Cloudflare (OpenNext adapter + wrangler)
+.open-next/
+.wrangler/
+.dev.vars
+
+# Mobile (Capacitor). `out/` is the static export scripts/build-mobile.mjs
+# produces and `cap sync` copies into the native projects; ios/ and android/
+# carry their own .gitignore for Pods, build/ and the copied web assets.
+out/
+src/app/_api.mobile-hidden/

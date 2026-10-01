@@ -20,6 +20,12 @@
 #   REFRESH_URL   - full URL of /api/cron/refresh-gauges (PING mode)
 #   CRON_SECRET   - bearer token; must match the main app's CRON_SECRET
 #   CURL_TIMEOUT  - max seconds per request (default 120; NWPS is slow)
+#
+# In addition to the primary mode above, a SECOND deployment can be pinged on
+# every tick (e.g. the Cloudflare Workers copy of the app, which fetches NWPS
+# itself):
+#   SECONDARY_REFRESH_URL - full URL of the second app's /api/cron/refresh-gauges
+#   SECONDARY_CRON_SECRET - bearer token for the second app
 set -eu
 
 TIMEOUT="${CURL_TIMEOUT:-120}"
@@ -111,11 +117,35 @@ ping_mode() {
   fi
 }
 
+secondary_ping() {
+  echo "[$(ts)] ping secondary -> ${SECONDARY_REFRESH_URL}"
+  if [ -n "${SECONDARY_CRON_SECRET:-}" ]; then
+    set -- -H "Authorization: Bearer ${SECONDARY_CRON_SECRET}"
+  else
+    set --
+  fi
+  if body=$(curl -fsS -m "${TIMEOUT}" "$@" "${SECONDARY_REFRESH_URL}"); then
+    echo "[$(ts)] secondary ok: ${body}"
+  else
+    status=$?
+    echo "[$(ts)] secondary FAILED (curl exit ${status}) - will retry next tick" >&2
+  fi
+}
+
+rc=0
 if [ -n "${INGEST_URL:-}" ]; then
-  ingest_mode
+  ingest_mode || rc=$?
 elif [ -n "${REFRESH_URL:-}" ]; then
-  ping_mode
-else
-  echo "[$(ts)] neither INGEST_URL nor REFRESH_URL is set - nothing to do" >&2
+  ping_mode || rc=$?
+elif [ -z "${SECONDARY_REFRESH_URL:-}" ]; then
+  echo "[$(ts)] neither INGEST_URL, REFRESH_URL nor SECONDARY_REFRESH_URL is set - nothing to do" >&2
   exit 1
 fi
+
+# The secondary target is independent of the primary, so ping it even when the
+# primary call failed.
+if [ -n "${SECONDARY_REFRESH_URL:-}" ]; then
+  secondary_ping
+fi
+
+exit "${rc}"

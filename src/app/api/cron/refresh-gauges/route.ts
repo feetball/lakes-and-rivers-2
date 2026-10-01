@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { GAUGES_CACHE_TAG, getCachedGauges } from '@/lib/gauges-fetch';
+import { writeGaugesBlob } from '@/lib/gauges-store';
 
 // Hit by an external scheduler (a docker sidecar — see docker-compose.yml)
 // every 30 min. Invalidates the shared gauge cache and kicks off a background
@@ -37,8 +38,20 @@ export async function GET(req: Request) {
   revalidateTag(GAUGES_CACHE_TAG);
   try {
     const data = await getCachedGauges();
+    // Also refresh the stored snapshot (R2 on Cloudflare, Vercel Blob
+    // elsewhere) so /api/gauges' snapshot-first fast path stays fresh from
+    // the cron alone — without this, a snapshot written once by an external
+    // refresher that later stops would go stale even though this cron keeps
+    // succeeding. Best-effort: the data cache above is already updated.
+    let stored = false;
+    try {
+      await writeGaugesBlob(data);
+      stored = true;
+    } catch (err) {
+      console.warn('[cron] snapshot store write failed (serving from data cache only):', err);
+    }
     console.log(`[cron] refreshed ${Object.keys(data.gauges).length} gauges at ${data.updatedAt}`);
-    return NextResponse.json({ ok: true, status: 'refreshed', count: Object.keys(data.gauges).length });
+    return NextResponse.json({ ok: true, status: 'refreshed', count: Object.keys(data.gauges).length, snapshotStored: stored });
   } catch (err) {
     console.warn('[cron] refresh failed:', err);
     return NextResponse.json({ ok: false, status: 'refresh failed', detail: String(err) }, { status: 502 });

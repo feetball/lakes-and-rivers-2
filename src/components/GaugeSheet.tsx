@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
 import type { GaugeStatus } from '@/lib/types';
+import { apiUrl } from '@/lib/api';
 
 interface Props {
   gauge: GaugeStatus;
@@ -64,7 +65,7 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
 
     (async () => {
       try {
-        const res = await fetch(`/api/gauges/${encodeURIComponent(gauge.id)}/records`, {
+        const res = await fetch(apiUrl(`/api/gauges/${encodeURIComponent(gauge.id)}/records`), {
           signal: controller.signal,
         });
         if (!res.ok) return;

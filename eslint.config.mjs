@@ -13,6 +13,13 @@ const eslintConfig = [
       'public/data/**',
       'data-cache/**',
       'next-env.d.ts',
+      // Generated Cloudflare build output (opennextjs-cloudflare / wrangler)
+      '.open-next/**',
+      '.wrangler/**',
+      // Mobile: static export + native projects (Capacitor)
+      'out/**',
+      'ios/**',
+      'android/**',
     ],
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),

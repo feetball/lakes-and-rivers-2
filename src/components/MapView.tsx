@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMapEvents } from 'react-leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
-import type { GeoJSON as LeafletGeoJSON, PathOptions, Layer } from 'leaflet';
+import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
 import { colorFor, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
+import { apiUrl, IS_MOBILE, TILE_URL, TILE_ATTRIBUTION } from '@/lib/api';
 import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
+import LocateButton from './LocateButton';
 import GaugeSheet from './GaugeSheet';
 import HoverHydrograph from './HoverHydrograph';
 import TimelineSlider from './TimelineSlider';
@@ -103,14 +105,54 @@ export default function MapView() {
   };
   const [hoverChart, setHoverChart] = useState<{ gauge: GaugeStatus; x: number; y: number } | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
+  // Android back button (hardware or gesture): close the open gauge sheet
+  // first; with nothing open, hand the app to the launcher — the same thing
+  // Android 12+ does for a root activity. Registering ANY listener replaces
+  // Capacitor's default (which would navigate web-view history), so both
+  // branches are ours to handle. Never fires on iOS or the web.
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  useEffect(() => {
+    if (!IS_MOBILE) return;
+    let cancelled = false;
+    let handle: { remove(): Promise<void> } | null = null;
+    (async () => {
+      const { App } = await import('@capacitor/app');
+      if (cancelled) return;
+      handle = await App.addListener('backButton', () => {
+        if (selectedRef.current) {
+          setSelected(null);
+          return;
+        }
+        void App.minimizeApp();
+      });
+    })();
+    return () => {
+      cancelled = true;
+      void handle?.remove();
+    };
+  }, []);
   // null = live; ISO = historical snapshot.
   const [atIso, setAtIso] = useState<string | null>(null);
   const {
     data: gaugeData,
+    error: gaugesError,
     isLoading: gaugesLoading,
     isValidating: gaugesValidating,
     mutate: refreshGauges,
   } = useGaugeData(atIso);
+  const mapRef = useRef<LeafletMap | null>(null);
+  // Where the user is, once they've tapped the locate button.
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const onLocated = (lat: number, lon: number) => {
+    setUserPos([lat, lon]);
+    const map = mapRef.current;
+    if (!map) return;
+    // Fly in close enough that rivers are painted, but never zoom OUT on
+    // someone who's already looking closer. maxBounds keeps an out-of-state
+    // fix from dragging the view off the Texas extent.
+    map.flyTo([lat, lon], Math.max(map.getZoom(), STREAM_MIN_ZOOM + 2), { duration: 0.8 });
+  };
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
     const saved = loadView();
@@ -137,13 +179,16 @@ export default function MapView() {
     //    server only gzips static files) it serves precompressed brotli
     //    (~1.8 MB vs ~3 MB gzip); it also covers any case where the static
     //    asset is unavailable. Whichever responds with valid JSON wins.
+    //  - In the mobile apps the static file ships inside the app bundle, so
+    //    the first request never touches the network; the fallback goes to
+    //    the hosted API (apiUrl) in case the bundled copy is ever missing.
     const loadFrom = (url: string) =>
       fetch(url).then(r => {
         if (!r.ok) throw new Error(`waterways ${r.status}`);
         return r.json();
       });
     loadFrom('/data/waterways.geojson')
-      .catch(() => loadFrom('/api/waterways'))
+      .catch(() => loadFrom(apiUrl('/api/waterways')))
       .then(json => { if (!aborted) setWaterways(json); })
       .catch(err => { if (!aborted) setLoadError(String(err)); });
     return () => { aborted = true; };
@@ -232,6 +277,7 @@ export default function MapView() {
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       <MapContainer
+        ref={mapRef}
         center={[initialView.lat, initialView.lon]}
         zoom={initialView.zoom}
         minZoom={5}
@@ -244,8 +290,8 @@ export default function MapView() {
         <ViewPersister />
         <ZoomTracker onChange={setZoom} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={TILE_ATTRIBUTION}
+          url={TILE_URL}
           maxZoom={18}
         />
         {waterways && (
@@ -298,7 +344,44 @@ export default function MapView() {
             </Tooltip>
           </CircleMarker>
         ))}
+        {userPos && (
+          <CircleMarker
+            center={userPos}
+            radius={7}
+            interactive={false}
+            pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#3b82f6', fillOpacity: 1 }}
+          />
+        )}
       </MapContainer>
+
+      <LocateButton onLocated={onLocated} />
+      {/* A refresh failed but we still have a snapshot (from an earlier poll
+          or the persisted last-good copy): say so instead of silently showing
+          old colors. Live mode only — history/forecast have their own loading
+          states and nothing sensible to fall back to. */}
+      {waterways && !atIso && gaugesError && gaugeData && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            top: 'calc(env(safe-area-inset-top, 0) + 12px)',
+            left: 12,
+            right: 68, // clear the locate button
+            zIndex: 1000,
+            background: 'rgba(120,53,15,0.92)',
+            backdropFilter: 'blur(6px)',
+            color: '#fef3c7',
+            border: '1px solid rgba(251,191,36,0.4)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            fontSize: 12,
+            lineHeight: 1.35,
+          }}
+        >
+          Can&apos;t reach the server — showing gauge data from{' '}
+          {new Date(gaugeData.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.
+        </div>
+      )}
 
       {legendVisible && (
         <DraggablePanel

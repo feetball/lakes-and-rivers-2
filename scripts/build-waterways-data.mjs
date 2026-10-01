@@ -109,13 +109,13 @@ async function exists(p) {
   try { await access(p); return true; } catch { return false; }
 }
 
-async function fetchJson(url, { retries = 5, timeoutMs = 120_000 } = {}) {
+async function fetchJson(url, { retries = 5, timeoutMs = 120_000, headers = { 'User-Agent': 'texas-flood-map/0.1' } } = {}) {
   let lastErr;
   for (let i = 0; i < retries; i++) {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), timeoutMs);
     try {
-      const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'texas-flood-map/0.1' } });
+      const res = await fetch(url, { signal: ctl.signal, headers });
       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} @ ${url}`);
       return await res.json();
     } catch (e) {
@@ -302,6 +302,13 @@ async function queryNhd(layer, geometry, radiusM, extraWhere = '1=1', maxRecords
   });
   const url = `${NHD_BASE}/${layer}/query?${params.toString()}`;
   return fetchJson(url, { timeoutMs: 45_000, retries: 2 });
+}
+
+// Splits an array into chunks of at most `n` items each.
+function chunk(items, n) {
+  const out = [];
+  for (let i = 0; i < items.length; i += n) out.push(items.slice(i, i + n));
+  return out;
 }
 
 async function pLimit(items, limit, worker) {
@@ -620,12 +627,82 @@ function mergeFlowlinesByName(features) {
   return out;
 }
 
+// USGS Instantaneous Values (parameter 00065 = gauge height, ft) — fallback
+// source when the NWPS bulk observation list fails outright (NWPS routinely
+// 504s on the ~13 MB TX list). Queries the same USGS site ids NWPS already
+// resolved onto each gauge (m.usgsId, set in fetchGaugeBundle), batched at
+// up to 100 sites/request. Returns a Map<lid, {category, observedStage,
+// observedAt}> in the exact shape fetchObservations() produces from NWPS, so
+// build()'s threshold-derivation loop (lines ~748-756) applies uniformly
+// regardless of source: category is always seeded 'not_defined' here (USGS
+// IV has no flood-category concept), and gets upgraded from m.thresholds by
+// that same loop, or stays 'not_defined' if the gauge has none. Tolerates
+// individual batch failures; returns an empty Map only if every batch fails
+// or no gauge has a usgsId.
+async function fetchUsgsIvObservations(gaugesMeta) {
+  // usgsId -> [lid, ...] (normally one lid per usgsId, but don't assume).
+  const lidsByUsgsId = new Map();
+  for (const m of gaugesMeta) {
+    if (!m.usgsId) continue;
+    const lids = lidsByUsgsId.get(m.usgsId);
+    if (lids) lids.push(m.id); else lidsByUsgsId.set(m.usgsId, [m.id]);
+  }
+  const siteIds = [...lidsByUsgsId.keys()];
+  if (!siteIds.length) return new Map();
+
+  const batches = chunk(siteIds, 100);
+  const readingBySite = new Map(); // usgsId -> { stage, observedAt }
+  let batchFailures = 0;
+
+  for (const batch of batches) {
+    const url = `https://waterservices.usgs.gov/nwis/iv/?format=json&sites=${batch.join(',')}&parameterCd=00065&period=PT2H`;
+    try {
+      const data = await fetchJson(url, {
+        timeoutMs: 30_000,
+        retries: 2,
+        headers: { 'User-Agent': 'texas-flood-map-build/1.0' },
+      });
+      const series = data?.value?.timeSeries ?? [];
+      for (const ts of series) {
+        const siteId = ts?.sourceInfo?.siteCode?.[0]?.value;
+        if (!siteId) continue;
+        const points = ts?.values?.[0]?.value ?? [];
+        // Points come back in chronological order — walk backwards so the
+        // first valid one found is the most recent.
+        for (let i = points.length - 1; i >= 0; i--) {
+          const v = Number(points[i]?.value);
+          if (!Number.isFinite(v) || v <= -999) continue;
+          readingBySite.set(siteId, { stage: v, observedAt: points[i].dateTime ?? null });
+          break;
+        }
+      }
+    } catch (e) {
+      batchFailures++;
+      console.warn(`      USGS IV batch failed (${batch.length} sites): ${e?.message ?? e}`);
+    }
+  }
+
+  if (batchFailures === batches.length) return new Map();
+
+  const obs = new Map();
+  for (const [usgsId, lids] of lidsByUsgsId) {
+    const r = readingBySite.get(usgsId);
+    if (!r) continue;
+    for (const lid of lids) {
+      obs.set(lid, { category: 'not_defined', observedStage: r.stage, observedAt: r.observedAt });
+    }
+  }
+  return obs;
+}
+
 // Pull current observations for every TX gauge in a single NWPS list call,
 // keyed by lid. Embedded in gauges-meta.json so the runtime fallback can
 // serve real (build-time-stale) flood categories instead of "No data" while
-// the live cache warms up. Returns an empty Map on failure — meta is still
-// usable, the runtime just falls back to "not_defined" as before.
-async function fetchObservations() {
+// the live cache warms up. Falls back to USGS Instantaneous Values (see
+// fetchUsgsIvObservations) if the NWPS list fails outright, and only ships
+// an empty Map — meta then falls back to "not_defined" as before — if that
+// fallback also comes up empty.
+async function fetchObservations(gaugesMeta) {
   console.log('[2.5/3] Fetching live observations from NWPS…');
   try {
     const data = await fetchJsonWithProgress(NWPS_GAUGES_URL, 'NWPS list (observations)', { timeoutMs: 90_000, retries: 2 });
@@ -648,10 +725,13 @@ async function fetchObservations() {
       });
     }
     console.log(`      observations for ${obs.size} TX gauges`);
-    return obs;
+    return { obs, source: 'nwps' };
   } catch (e) {
-    console.warn(`      observation fetch failed (${e?.message ?? e}); shipping meta without live obs`);
-    return new Map();
+    console.warn(`      NWPS observations failed (${e?.message ?? e}); falling back to USGS IV…`);
+    const obs = await fetchUsgsIvObservations(gaugesMeta);
+    if (obs.size) return { obs, source: 'usgs' };
+    console.warn('      USGS IV fallback failed too; shipping meta without live obs');
+    return { obs, source: 'none' };
   }
 }
 
@@ -735,7 +815,7 @@ async function build() {
   // doesn't require a refetch.
   for (const f of merged) roundGeometry(f.geometry, OUTPUT_COORD_DP);
 
-  const obs = await fetchObservations();
+  const { obs, source: obsSource } = await fetchObservations(gaugesMeta);
   let withObs = 0;
   let latestObsAt = 0;
   for (const m of gaugesMeta) {
@@ -763,7 +843,7 @@ async function build() {
     }
     withObs++;
   }
-  console.log(`      ${withObs}/${gaugesMeta.length} gauges have build-time observations`);
+  console.log(`      ${withObs}/${gaugesMeta.length} gauges have build-time observations${obsSource === 'usgs' ? ' (via USGS)' : ''}`);
 
   console.log('[3/3] Writing output files…');
   await mkdir(OUT_DIR, { recursive: true });

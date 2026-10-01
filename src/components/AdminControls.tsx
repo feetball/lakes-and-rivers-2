@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
+import { apiUrl } from '@/lib/api';
 import AnalyticsPanel from './AnalyticsPanel';
 
 interface Props {
@@ -53,7 +54,7 @@ export default function AdminControls({ onRefreshed, gaugeNames }: Props) {
     setForcing(true);
     setForceMsg(null);
     try {
-      const res = await fetch('/api/admin/refresh-gauges', { method: 'POST' });
+      const res = await fetch(apiUrl('/api/admin/refresh-gauges'), { method: 'POST' });
       const body = await res.json().catch(() => ({}));
       if (res.ok && body?.ok) {
         setForceMsg(`Refreshed ${body.count} gauges`);

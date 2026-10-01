@@ -45,13 +45,22 @@ function referrerHost(ref: string | null, selfHost: string | null): string | und
 export async function POST(req: Request) {
   if (!analyticsEnabled()) return new NextResponse(null, { status: 204 });
 
-  let body: { events?: Array<{ type?: string; gaugeId?: string }> } = {};
+  // The client sends the JSON with a text/plain Content-Type (see
+  // src/lib/track.ts — it keeps the mobile apps' cross-origin beacon
+  // preflight-free); Request.json() parses the body regardless of the type.
+  let body: {
+    type?: string;
+    gaugeId?: string;
+    platform?: string;
+    events?: Array<{ type?: string; gaugeId?: string; platform?: string }>;
+  } = {};
   try {
     body = await req.json();
   } catch {
     return new NextResponse(null, { status: 204 });
   }
-  if (!Array.isArray(body.events) || body.events.length === 0) return new NextResponse(null, { status: 204 });
+  const incomingEvents = Array.isArray(body.events) ? body.events.slice(0, MAX_EVENTS_PER_BATCH) : [body];
+  if (incomingEvents.length === 0) return new NextResponse(null, { status: 204 });
 
   // The whole batch shares one request context (one page, sent within a few
   // seconds), so a single timestamp/visitor/referrer for all events in it is
@@ -71,14 +80,19 @@ export async function POST(req: Request) {
   const referrer = referrerHost(req.headers.get('referer'), selfHost);
 
   const events: TrackEvent[] = [];
-  for (const raw of body.events.slice(0, MAX_EVENTS_PER_BATCH)) {
+  for (const raw of incomingEvents) {
     const type = typeof raw?.type === 'string' ? raw.type : '';
     if (!ALLOWED_TYPES.has(type)) continue;
+    // Store apps identify themselves so the admin panel can split app users
+    // from web visitors. Filed under `referrer` as app:ios / app:android.
+    const platform = raw.platform === 'ios' || raw.platform === 'android'
+      ? raw.platform
+      : body.platform === 'ios' || body.platform === 'android' ? body.platform : null;
     events.push({
       type,
       at,
       visitor,
-      referrer,
+      referrer: platform ? `app:${platform}` : referrer,
       gaugeId: type === 'gauge_open' && typeof raw?.gaugeId === 'string' ? raw.gaugeId.slice(0, 32) : undefined,
     });
   }

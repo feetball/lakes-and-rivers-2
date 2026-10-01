@@ -68,6 +68,11 @@ export default function DisclaimerModal() {
             makes no warranty as to its accuracy, completeness, or timeliness.
             Gauge readings may be delayed, incorrect, or unavailable.
           </p>
+          <p style={{ margin: '0 0 12px' }}>
+            This is an independent app. It is <strong>not affiliated with or
+            endorsed by</strong> NOAA, the National Weather Service, USGS, or
+            any government agency; it displays their public data.
+          </p>
           <p style={{ margin: 0 }}>
             <strong>Do not</strong> rely on this map for flood-safety decisions.
             Always check{' '}

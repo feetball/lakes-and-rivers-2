@@ -1,6 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { readFile } from 'fs/promises';
-import { resolve } from 'path';
+import { readPublicDataText } from '@/lib/data-assets';
 import type { FloodCategory, GaugeStatus, GaugesResponse } from '@/lib/types';
 import { sanitizeThresholds, categorizeByStage } from '@/lib/floodStatus';
 
@@ -30,7 +29,8 @@ let metaCache: { entries: Map<string, MetaEntry>; observationsAt: string | null 
 async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observationsAt: string | null }> {
   if (metaCache && metaCache.entries.size > 0) return metaCache;
   try {
-    const raw = await readFile(resolve(process.cwd(), 'public/data/gauges-meta.json'), 'utf8');
+    const raw = await readPublicDataText('gauges-meta.json');
+    if (raw === null) throw new Error('gauges-meta.json not found (fs or ASSETS binding)');
     const parsed = JSON.parse(raw) as MetaFile;
     const entries = new Map(
       parsed.gauges.map(g => [g.id, { ...g, thresholds: sanitizeThresholds(g.thresholds) }]),
@@ -41,10 +41,11 @@ async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observatio
     // gray": no thresholds means gauges NWPS reports as not_defined can't be
     // upgraded to a real flood category. On Vercel this happens when
     // gauges-meta.json isn't traced into the function bundle (see
-    // outputFileTracingIncludes in next.config.mjs). Log it loudly so a path
-    // regression shows up in function logs instead of looking like upstream
-    // behavior. Don't cache the empty result, so a transient read error can
-    // recover on the next request.
+    // outputFileTracingIncludes in next.config.mjs); on Cloudflare, when the
+    // ASSETS binding can't resolve /data/gauges-meta.json. Log it loudly so a
+    // path regression shows up in function logs instead of looking like
+    // upstream behavior. Don't cache the empty result, so a transient read
+    // error can recover on the next request.
     console.error('[gauges] failed to load gauges-meta.json — thresholds unavailable, gauges will be uncolored:', err);
     return { entries: new Map(), observationsAt: null };
   }
@@ -116,6 +117,153 @@ export async function processNwpsList(list: any[]): Promise<GaugesResponse> {
   return { gauges, updatedAt: new Date().toISOString() };
 }
 
+// USGS Instantaneous Values — same physical stage readings NWPS surfaces,
+// but split across sites so each batch is small and fast (~8 requests for
+// TX instead of one ~13 MB list). Used as a fallback below.
+const USGS_IV = 'https://waterservices.usgs.gov/nwis/iv/';
+const USGS_PARAM_STAGE = '00065'; // gauge height, ft
+const USGS_BATCH_SIZE = 100; // USGS caps multi-site requests; keep batches small
+// Per-batch timeout. On Vercel the fallback runs AFTER the ~45 s NWPS attempt
+// inside the same 60 s function budget (maxDuration on the cron/gauges
+// routes), so cap it there: 45 + 12 + overhead stays under the platform
+// kill. Cloudflare/Docker have no wall-clock cap on the awaited refresh, so
+// they get the full window.
+const USGS_TIMEOUT_MS = process.env.VERCEL === '1'
+  ? Math.min(Number(process.env.USGS_TIMEOUT_MS) || 30_000, 12_000)
+  : Number(process.env.USGS_TIMEOUT_MS) || 30_000;
+
+async function fetchUsgsBatch(sites: string[]): Promise<any> {
+  const params = new URLSearchParams({
+    format: 'json',
+    sites: sites.join(','),
+    parameterCd: USGS_PARAM_STAGE,
+    period: 'PT2H',
+  });
+  const url = `${USGS_IV}?${params.toString()}`;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), USGS_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'texas-flood-map/0.1' } });
+    if (!res.ok) throw new Error(`USGS ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// Pick the most recent valid (finite, > missing-value sentinel) point from a
+// USGS values array. Doesn't trust the array to already be time-ordered —
+// USGS IV responses are typically ascending, but validate explicitly rather
+// than assuming.
+function latestValue(values: any[]): { value: number; dateTime: string } | null {
+  let best: { value: number; dateTime: string; ms: number } | null = null;
+  for (const v of values) {
+    const dt = v?.dateTime;
+    const raw = v?.value;
+    if (typeof dt !== 'string' || raw == null) continue;
+    const num = Number(raw);
+    if (!Number.isFinite(num) || num <= -999) continue; // USGS missing-value sentinel
+    const ms = Date.parse(dt);
+    if (!Number.isFinite(ms)) continue;
+    if (!best || ms > best.ms) best = { value: num, dateTime: dt, ms };
+  }
+  return best ? { value: best.value, dateTime: best.dateTime } : null;
+}
+
+// Fallback for when NWPS's TX list is unreachable. NWPS's 504s hit regularly
+// under Vercel's function time cap; USGS IV carries the same physical stage
+// readings NWPS is built on, but split into ~8 small, fast batch requests
+// instead of one ~13 MB list fetch, so the cron refresh can still succeed
+// when NWPS is down. Builds a response over every meta entry (like
+// fallbackFromMeta) so gauges without a USGS ID, or whose batch failed,
+// still render using their build-time snapshot rather than disappearing.
+async function fetchViaUsgsIv(): Promise<GaugesResponse> {
+  const meta = await loadMeta();
+  if (meta.entries.size === 0) throw new Error('no meta available for USGS fallback');
+
+  // usgsId -> ALL lids sharing that site. Normally one lid per site, but the
+  // meta really does contain shared sites (e.g. UMBT2 and UMRT2 both map to
+  // 07295500) — a reading must fan out to every lid, same as the build-time
+  // fallback in build-waterways-data.mjs does.
+  const siteToLids = new Map<string, string[]>();
+  for (const m of meta.entries.values()) {
+    if (!m.usgsId) continue;
+    const lids = siteToLids.get(m.usgsId);
+    if (lids) lids.push(m.id);
+    else siteToLids.set(m.usgsId, [m.id]);
+  }
+  const siteIds = [...siteToLids.keys()];
+
+  const readings = new Map<string, { value: number; dateTime: string }>();
+  const batches: string[][] = [];
+  for (let i = 0; i < siteIds.length; i += USGS_BATCH_SIZE) {
+    batches.push(siteIds.slice(i, i + USGS_BATCH_SIZE));
+  }
+  const results = await Promise.all(
+    batches.map(async batch => {
+      try {
+        const json = await fetchUsgsBatch(batch);
+        const series = json?.value?.timeSeries ?? [];
+        for (const ts of series) {
+          const siteId = ts?.sourceInfo?.siteCode?.[0]?.value;
+          const lids = siteId ? siteToLids.get(siteId) : null;
+          if (!lids) continue;
+          const values = ts?.values?.[0]?.value ?? [];
+          const pick = latestValue(values);
+          if (pick) for (const lid of lids) readings.set(lid, pick);
+        }
+        return true;
+      } catch {
+        return false; // partial failure — tolerated as long as some batch succeeds
+      }
+    }),
+  );
+  const failedBatches = results.filter(ok => !ok).length;
+  if (siteIds.length > 0 && failedBatches === batches.length) {
+    throw new Error(`all ${batches.length} USGS IV batches failed`);
+  }
+  // Batches can "succeed" yet carry no usable points (empty timeSeries,
+  // all-sentinel values). Returning meta-only data stamped with a fresh
+  // updatedAt would falsely present the build-time snapshot as live — let
+  // the caller keep the previous cache / meta fallback instead, which report
+  // their staleness honestly.
+  if (readings.size === 0) {
+    throw new Error('USGS IV returned no usable readings');
+  }
+
+  const gauges: Record<string, GaugeStatus> = {};
+  for (const g of meta.entries.values()) {
+    const live = readings.get(g.id);
+    if (live) {
+      gauges[g.id] = {
+        id: g.id, name: g.name, lat: g.lat, lon: g.lon,
+        category: g.thresholds ? categorizeByStage(live.value, g.thresholds) : 'not_defined',
+        observedStage: live.value,
+        observedAt: live.dateTime,
+        unit: g.unit, thresholds: g.thresholds,
+      };
+    } else {
+      gauges[g.id] = {
+        id: g.id, name: g.name, lat: g.lat, lon: g.lon,
+        category: normalizeCategory(g.category),
+        observedStage: g.observedStage ?? null,
+        observedAt: g.observedAt ?? null,
+        unit: g.unit, thresholds: g.thresholds,
+      };
+    }
+  }
+
+  console.log(
+    `[gauges] USGS IV fallback: ${readings.size}/${siteIds.length} sites returned a live reading (${failedBatches}/${batches.length} batches failed)`,
+  );
+
+  // updatedAt = now, same convention as processNwpsList: it stamps when the
+  // dataset was assembled, and per-gauge observedAt carries each reading's
+  // real age. The readings.size guard above ensures we never stamp a payload
+  // that contains no live data at all.
+  return { gauges, updatedAt: new Date().toISOString() };
+}
+
 async function fetchFreshGauges(): Promise<GaugesResponse> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < NWPS_MAX_ATTEMPTS; attempt++) {
@@ -141,7 +289,17 @@ async function fetchFreshGauges(): Promise<GaugesResponse> {
       clearTimeout(t);
     }
   }
-  throw lastErr;
+  // NWPS is down (or every attempt timed out/504'd). Fall back to USGS IV
+  // rather than throwing — a failed refresh here means the shared cache
+  // never updates and users sit on the stale "Loading live gauge data"
+  // banner indefinitely. If the fallback also fails, surface the original
+  // NWPS error since that's the primary path users/ops care about.
+  console.warn(`[gauges] NWPS list failed (${lastErr}); falling back to USGS IV`);
+  try {
+    return await fetchViaUsgsIv();
+  } catch {
+    throw lastErr;
+  }
 }
 
 // Wraps the upstream fetch in Next.js's data cache so the result is shared
