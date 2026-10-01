@@ -5,7 +5,8 @@
 //   pnpm mobile:build              # export + `cap sync` (ios + android)
 //   pnpm mobile:export             # export only (--no-sync)
 //   MOBILE_API_BASE=https://api.example.com pnpm mobile:build
-//   NEXT_PUBLIC_TILE_URL=... NEXT_PUBLIC_TILE_ATTRIBUTION=... pnpm mobile:build
+//   NEXT_PUBLIC_VECTOR_TILE_URL=https://tiles.example.com/texas/{z}/{x}/{y}.mvt pnpm mobile:build
+//   (or a raster provider: NEXT_PUBLIC_TILE_URL=... NEXT_PUBLIC_TILE_ATTRIBUTION=...)
 //
 // Why a script instead of plain `next build`: Next's `output: 'export'` refuses
 // to build a project with dynamic API route handlers (every route under

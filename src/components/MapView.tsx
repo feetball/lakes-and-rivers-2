@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMapEvents } from 'react-leaflet';
+import { MapContainer, GeoJSON, CircleMarker, Tooltip, useMapEvents } from 'react-leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
-import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer } from 'leaflet';
+import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer, LeafletMouseEvent } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
 import { colorFor, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
-import { apiUrl, IS_MOBILE, TILE_URL, TILE_ATTRIBUTION } from '@/lib/api';
+import { apiUrl, IS_MOBILE } from '@/lib/api';
+import Basemap from '@/components/Basemap';
 import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
 import LocateButton from './LocateButton';
@@ -35,6 +36,16 @@ const TX_BOUNDS: [[number, number], [number, number]] = [
 const VIEW_KEY = 'tfm:view';
 const LEGEND_VISIBLE_KEY = 'tfm:legend-visible';
 const TIMELINE_VISIBLE_KEY = 'tfm:timeline-visible';
+
+// Gauge dots. The store apps draw them larger and accept taps far from the dot
+// itself: a fingertip can't reliably land inside an 11 px circle. The website
+// keeps the compact dot (a mouse pointer is precise).
+const GAUGE_RADIUS = IS_MOBILE ? 7 : 5;
+const GAUGE_OUTLINE = IS_MOBILE ? 1.5 : 1;
+// A tap within this many CSS px of a gauge's center opens it — a 48 px target,
+// the Material minimum (Apple's is 44 pt). Gauges can sit closer together than
+// that, so the NEAREST one wins rather than whichever dot happens to be on top.
+const GAUGE_TAP_RADIUS = 24;
 
 type SavedView = { lat: number; lon: number; zoom: number };
 function loadView(): SavedView | null {
@@ -84,6 +95,36 @@ function ZoomTracker({ onChange }: { onChange: (z: number) => void }) {
   return null;
 }
 
+// Mobile apps only: a tap that missed every layer (open ground near a dot)
+// still opens the nearest gauge within reach. Taps that hit a layer are
+// resolved by that layer's own click handler first — see `resolveTap`.
+function TapTargets({ onTap }: { onTap: (e: MouseEvent) => void }) {
+  useMapEvents({ click: (e) => onTap(e.originalEvent) });
+  return null;
+}
+
+// The gauge whose center is closest to `point` (container px), if any lies
+// within `radius`. Gauges with unusable coordinates produce NaN distances and
+// are skipped by the comparison.
+function nearestGauge(
+  map: LeafletMap,
+  point: { x: number; y: number },
+  gauges: GaugeStatus[],
+  radius: number,
+): GaugeStatus | null {
+  let best: GaugeStatus | null = null;
+  let bestSq = radius * radius;
+  for (const g of gauges) {
+    const c = map.latLngToContainerPoint([g.lat, g.lon]);
+    const sq = (c.x - point.x) ** 2 + (c.y - point.y) ** 2;
+    if (sq <= bestSq) {
+      best = g;
+      bestSq = sq;
+    }
+  }
+  return best;
+}
+
 type Waterways = FeatureCollection<Geometry, WaterwayProperties>;
 
 export default function MapView() {
@@ -105,6 +146,26 @@ export default function MapView() {
   };
   const [hoverChart, setHoverChart] = useState<{ gauge: GaugeStatus; x: number; y: number } | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
+  // Mobile-app tap resolution. Every tappable thing on the map (a gauge dot, a
+  // river, a lake, open ground near a dot) reports through here, so one tap
+  // opens exactly one gauge: the nearest gauge center within GAUGE_TAP_RADIUS,
+  // else the gauge of the waterway that was tapped. Leaflet runs the layer's
+  // click handler before the map's and hands both the same native event, so
+  // the first to resolve a tap claims it and the other becomes a no-op.
+  const handledTapsRef = useRef(new WeakSet<object>());
+  const gaugeListRef = useRef<GaugeStatus[]>([]);
+  const resolveTap = (ev: MouseEvent | undefined, fallback?: GaugeStatus) => {
+    if (ev) {
+      if (handledTapsRef.current.has(ev)) return;
+      handledTapsRef.current.add(ev);
+    }
+    const map = mapRef.current;
+    const near = ev && map
+      ? nearestGauge(map, map.mouseEventToContainerPoint(ev), gaugeListRef.current, GAUGE_TAP_RADIUS)
+      : null;
+    const target = near ?? fallback;
+    if (target) selectGauge(target);
+  };
   // Android back button (hardware or gesture): close the open gauge sheet
   // first; with nothing open, hand the app to the launcher — the same thing
   // Android 12+ does for a root activity. Registering ANY listener replaces
@@ -244,9 +305,10 @@ export default function MapView() {
     const g = gid ? gaugeMapRef.current[gid] : undefined;
     const label = g ? `${name} — ${CATEGORY_LABELS[g.category]}` : name;
     layer.bindTooltip(label, { sticky: true, direction: 'top', opacity: 0.9 });
-    layer.on('click', () => {
+    layer.on('click', (e: LeafletMouseEvent) => {
       const live = gid ? gaugeMapRef.current[gid] : undefined;
-      if (live) selectGauge(live);
+      if (IS_MOBILE) resolveTap(e.originalEvent, live);
+      else if (live) selectGauge(live);
     });
   };
 
@@ -254,6 +316,7 @@ export default function MapView() {
   // current observation) come through as `not_defined` and render in gray —
   // they're still useful as "a gauge exists here" markers.
   const gaugeList = useMemo(() => Object.values(gaugeMap), [gaugeMap]);
+  gaugeListRef.current = gaugeList;
   // id -> name, for friendly labels in the admin analytics panel.
   const gaugeNames = useMemo(() => {
     const m: Record<string, string> = {};
@@ -289,11 +352,8 @@ export default function MapView() {
       >
         <ViewPersister />
         <ZoomTracker onChange={setZoom} />
-        <TileLayer
-          attribution={TILE_ATTRIBUTION}
-          url={TILE_URL}
-          maxZoom={18}
-        />
+        {IS_MOBILE && <TapTargets onTap={resolveTap} />}
+        <Basemap />
         {waterways && (
           <GeoJSON
             // Re-mount only when the underlying dataset changes or when the
@@ -311,15 +371,15 @@ export default function MapView() {
           <CircleMarker
             key={g.id}
             center={[g.lat, g.lon]}
-            radius={5}
+            radius={GAUGE_RADIUS}
             pathOptions={{
               color: '#0b1220',
-              weight: 1,
+              weight: GAUGE_OUTLINE,
               fillColor: colorFor(g.category),
               fillOpacity: 1,
             }}
             eventHandlers={{
-              click: () => selectGauge(g),
+              click: (e) => (IS_MOBILE ? resolveTap(e.originalEvent, g) : selectGauge(g)),
               mouseover: (e) => {
                 // Touch taps fire mouseover but never mouseout, so the hover
                 // preview would otherwise get stuck open after a tap.
@@ -339,7 +399,7 @@ export default function MapView() {
               },
             }}
           >
-            <Tooltip direction="top" offset={[0, -4]}>
+            <Tooltip direction="top" offset={[0, 1 - GAUGE_RADIUS]}>
               {g.name} — {CATEGORY_LABELS[g.category]}
             </Tooltip>
           </CircleMarker>

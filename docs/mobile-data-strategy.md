@@ -120,8 +120,21 @@ Assumption: ~100 tiles per session (a few pans and zooms on a phone),
 
 Recommendation:
 
-1. **Launch on Stadia Maps Starter** (US $20/month). It's a raster tile URL,
-   so switching is two environment variables at build time — no code:
+1. **Self-host Protomaps on R2 — built, see [`tiles-worker/README.md`](../tiles-worker/README.md).**
+   A separate small Worker serves a Texas PMTiles archive (~1.5 GB, inside R2's
+   free tier) from a hostname you own; the app draws the vector tiles with
+   `protomaps-leaflet` on the same Leaflet map, so the river/lake overlay code
+   is untouched. The store build points at it with one variable:
+
+   ```bash
+   NEXT_PUBLIC_VECTOR_TILE_URL='https://tiles.example.com/texas/{z}/{x}/{y}.mvt' pnpm mobile:build
+   ```
+
+   Needs the custom domain (the same one-time chore as the API domain), an R2
+   bucket, and about an hour to extract and upload the archive.
+2. **Fallback: Stadia Maps Starter** (US $20/month) if you want to ship before
+   that's set up. It's a raster tile URL, so switching is two environment
+   variables at build time — no code:
 
    ```bash
    NEXT_PUBLIC_TILE_URL='https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png?api_key=YOUR_KEY' \
@@ -131,13 +144,9 @@ Recommendation:
 
    Their `alidade_smooth_dark` style also suits the app's dark UI. Note the
    API key ends up inside the app bundle; restrict it in the Stadia dashboard
-   to the app's User-Agent (`TexasFloodMap/<version>`) and watch usage.
-2. **Self-host when the tile bill passes ~$50/month**, or from the start if
-   you'd rather spend time than money. Protomaps publishes a daily planet
-   file; extract Texas, upload to R2, deploy their small Worker, and swap
-   Leaflet's raster `TileLayer` for `protomaps-leaflet` (vector tiles drawn
-   on the same Leaflet map, so the river/lake overlay code is untouched).
-   Roughly two days of work including styling the basemap.
+   to the app's User-Agent (`TexasFloodMap/<version>`) and watch usage. The
+   tile URL is frozen into every installed copy, so moving off Stadia later
+   means an app update; a hostname you own (option 1) avoids that.
 3. Keep the **website** on OSM: it's low-traffic, attributed, and sends a
    Referer, which is the use their policy is for.
 
@@ -184,7 +193,7 @@ Two honest caveats on a one-time price:
    Worker is ever renamed or moved, installed apps break until a store
    update. Add a custom domain to the Worker (Cloudflare → Workers → Settings
    → Domains & Routes) and build with `MOBILE_API_BASE=https://api.yourdomain`.
-2. **Tile provider** chosen and its two build variables set (above).
+2. **Tile provider** chosen and its build variable(s) set (above) — `NEXT_PUBLIC_VECTOR_TILE_URL` for the self-hosted tiles.
 3. **Redeploy the Worker from this branch** (`pnpm cf:deploy`). This branch
    adds `Access-Control-Allow-Origin` headers to `/api/*`; without them the
    app's web view (origin `capacitor://localhost` / `https://localhost`)

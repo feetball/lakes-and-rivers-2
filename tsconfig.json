@@ -25,6 +25,8 @@
     // after `opennextjs-cloudflare build`; wrangler bundles it independently.
     "worker.ts",
     ".open-next",
+    // Separate Worker project (own package.json/tsconfig): see tiles-worker/README.md
+    "tiles-worker",
     // Mobile: static export + native projects (Capacitor)
     "out",
     "ios",

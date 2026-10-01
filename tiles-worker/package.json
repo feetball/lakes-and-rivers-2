@@ -1,0 +1,26 @@
+{
+  "name": "texas-flood-map-tiles",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker serving the Texas basemap (Protomaps PMTiles on R2) to the Texas Flood Map web + mobile apps",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "typegen": "wrangler types",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "pmtiles": "^4.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "wrangler": "^4.111.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
+  }
+}

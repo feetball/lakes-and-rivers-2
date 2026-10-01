@@ -30,10 +30,17 @@ export function apiUrl(path: string): string {
 // tile usage policy forbids "heavy use (e.g. distributing an app that uses
 // tiles from openstreetmap.org)" without permission, and they block without
 // notice. Point the store builds at a provider you control or pay for by
-// setting NEXT_PUBLIC_TILE_URL / NEXT_PUBLIC_TILE_ATTRIBUTION at build time —
-// see docs/mobile-data-strategy.md for the options and costs.
+// setting NEXT_PUBLIC_VECTOR_TILE_URL (below) or NEXT_PUBLIC_TILE_URL /
+// NEXT_PUBLIC_TILE_ATTRIBUTION at build time — see
+// docs/mobile-data-strategy.md for the options and costs.
 export const TILE_URL =
   process.env.NEXT_PUBLIC_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const TILE_ATTRIBUTION =
   process.env.NEXT_PUBLIC_TILE_ATTRIBUTION
   || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+// Self-hosted Protomaps vector basemap served by tiles-worker/ (a Z/X/Y
+// template ending in .mvt, e.g. https://tiles.example.com/texas/{z}/{x}/{y}.mvt).
+// When set it replaces the raster TILE_URL above and the map draws the tiles
+// itself with protomaps-leaflet; its attribution is built in.
+export const VECTOR_TILE_URL = process.env.NEXT_PUBLIC_VECTOR_TILE_URL || '';

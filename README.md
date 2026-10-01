@@ -124,6 +124,7 @@ The same source ships as native iOS and Android apps via Capacitor: `pnpm mobile
 | `NWPS_TIMEOUT_MS` | `/api/gauges`, `/api/cron` | Per-attempt upstream fetch timeout (default 45000). |
 | `MOBILE_API_BASE` | `pnpm mobile:build` | Origin the mobile apps call for `/api/*` (baked in at build time). |
 | `NEXT_PUBLIC_TILE_URL`, `NEXT_PUBLIC_TILE_ATTRIBUTION` | any build | Basemap tile template + attribution (default OpenStreetMap; the store builds must use a commercial provider). |
+| `NEXT_PUBLIC_VECTOR_TILE_URL` | any build | Self-hosted Protomaps vector tiles (`https://tiles.example.com/texas/{z}/{x}/{y}.mvt`), served by [`tiles-worker/`](tiles-worker/README.md). When set it replaces the raster tiles above. |
 | `CACHE_TTL_DAYS`, `OUTPUT_COORD_DP`, `NHD_CONCURRENCY`, `GAUGE_LIMIT`, `REFRESH` | `data:build` | See *Scripts*. |
 
 ## License

@@ -88,17 +88,21 @@ Build-time overrides (all optional):
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `MOBILE_API_BASE` | the Worker's `workers.dev` URL (see `next.config.mjs`) | where the app fetches gauge data. **Use a domain you own before shipping** — this value is frozen into every installed copy. |
-| `NEXT_PUBLIC_TILE_URL` | OpenStreetMap | basemap tile URL template. **Must be changed for the store builds** — see the tiles section of [mobile-data-strategy.md](mobile-data-strategy.md). |
+| `NEXT_PUBLIC_TILE_URL` | OpenStreetMap | basemap tile URL template. **Must be changed (or use `NEXT_PUBLIC_VECTOR_TILE_URL`) for the store builds** — see the tiles section of [mobile-data-strategy.md](mobile-data-strategy.md). |
 | `NEXT_PUBLIC_TILE_ATTRIBUTION` | OSM credit | attribution HTML for the tile provider |
+| `NEXT_PUBLIC_VECTOR_TILE_URL` | unset | self-hosted vector basemap from [`tiles-worker/`](../tiles-worker/README.md), e.g. `https://tiles.example.com/texas/{z}/{x}/{y}.mvt`. **The recommended way to satisfy the tile requirement for store builds**; when set it replaces `NEXT_PUBLIC_TILE_URL`. |
 
-Example of a release build against a custom domain and a paid tile provider:
+Example of a release build against custom domains for the API and the self-hosted tiles:
 
 ```bash
 MOBILE_API_BASE=https://api.example.com \
-NEXT_PUBLIC_TILE_URL='https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png?api_key=…' \
-NEXT_PUBLIC_TILE_ATTRIBUTION='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' \
+NEXT_PUBLIC_VECTOR_TILE_URL='https://tiles.example.com/texas/{z}/{x}/{y}.mvt' \
 pnpm mobile:build
 ```
+
+(A paid raster provider also works: set `NEXT_PUBLIC_TILE_URL` and
+`NEXT_PUBLIC_TILE_ATTRIBUTION` instead — see the fallback in
+[mobile-data-strategy.md](mobile-data-strategy.md).)
 
 ### Running it on the iOS Simulator
 

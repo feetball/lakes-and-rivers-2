@@ -71,6 +71,12 @@
 	     app on the first location request. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Used only to center the map on where you are. Your location never leaves your device.</string>
+	<!-- Never shown to users: the app only requests When-In-Use access. Apple's
+	     binary scan (ITMS-90683) flags the geolocation plugin's background-capable
+	     CoreLocation code and requires this key to be present anyway. Same text as
+	     above, per the @capacitor/geolocation README. -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Used only to center the map on where you are. Your location never leaves your device.</string>
 	<!-- The app only uses standard HTTPS, which is exempt from US export
 	     rules; declaring it here skips the encryption question on every
 	     App Store Connect upload. -->

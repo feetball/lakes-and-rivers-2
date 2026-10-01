@@ -16,6 +16,8 @@ const eslintConfig = [
       // Generated Cloudflare build output (opennextjs-cloudflare / wrangler)
       '.open-next/**',
       '.wrangler/**',
+      // Separate Worker project with its own tooling
+      'tiles-worker/**',
       // Mobile: static export + native projects (Capacitor)
       'out/**',
       'ios/**',

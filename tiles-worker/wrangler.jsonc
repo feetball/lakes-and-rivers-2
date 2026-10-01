@@ -1,0 +1,45 @@
+// Cloudflare Worker that serves the Texas basemap (Protomaps PMTiles in R2).
+// Separate from the main texas-flood-map Worker on purpose: see README.md.
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "texas-flood-map-tiles",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-06-01",
+
+	// Only the custom domain below is public; no *.workers.dev address or previews.
+	"workers_dev": false,
+	"preview_urls": false,
+
+	// The tile archive. Create once:
+	//   npx wrangler r2 bucket create texas-flood-map-tiles
+	// then upload texas.pmtiles with scripts/upload.sh.
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "texas-flood-map-tiles"
+		}
+	],
+
+	"vars": {
+		// Object key in the bucket for /{name}/...; /texas/z/x/y.mvt -> texas.pmtiles
+		"PMTILES_PATH": "{name}.pmtiles",
+		// Browser/webview origins allowed to fetch tiles (403 otherwise). The iOS
+		// app's web view is capacitor://localhost, Android's is https://localhost.
+		// Add the production website origin here. "*" allows anyone.
+		"ALLOWED_ORIGINS": "capacitor://localhost,https://localhost,http://localhost:3000,https://txfloods.kuecker.us,https://texas-flood-map.daniel-8d6.workers.dev",
+		// Basemap data changes slowly; a week lets phones and the edge hold tiles.
+		"CACHE_CONTROL": "public, max-age=604800",
+		// Hostname written into TileJSON. Empty = whatever host the request used.
+		"PUBLIC_HOSTNAME": ""
+	},
+
+	// Served from a hostname we own: it is compiled into every installed app, so
+	// it can be repointed later without an app update. Deploying creates the DNS
+	// record and certificate (the kuecker.us zone is on this Cloudflare account).
+	"routes": [
+		{
+			"pattern": "tiles.kuecker.us",
+			"custom_domain": true
+		}
+	]
+}
