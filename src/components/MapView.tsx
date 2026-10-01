@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, GeoJSON, CircleMarker, Tooltip, useMapEvents } from 'react-leaflet';
+import { MapContainer, GeoJSON, CircleMarker, Marker, Tooltip, useMapEvents } from 'react-leaflet';
+import { divIcon } from 'leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer, LeafletMouseEvent } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
@@ -46,6 +47,17 @@ const GAUGE_OUTLINE = IS_MOBILE ? 1.5 : 1;
 // the Material minimum (Apple's is 44 pt). Gauges can sit closer together than
 // that, so the NEAREST one wins rather than whichever dot happens to be on top.
 const GAUGE_TAP_RADIUS = 24;
+
+// "You are here". Deliberately not a plain dot: gauges are solid circles in
+// the same size range and "Normal" is blue, so a blue dot read as another
+// gauge. This is violet (no flood category uses it) with a white ring and a
+// larger pulsing halo; the styling lives in globals.css (.user-location).
+const USER_ICON = divIcon({
+  className: 'user-location',
+  html: '<span class="user-location__halo"></span><span class="user-location__dot"></span>',
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+});
 
 type SavedView = { lat: number; lon: number; zoom: number };
 function loadView(): SavedView | null {
@@ -405,11 +417,12 @@ export default function MapView() {
           </CircleMarker>
         ))}
         {userPos && (
-          <CircleMarker
-            center={userPos}
-            radius={7}
+          <Marker
+            position={userPos}
+            icon={USER_ICON}
             interactive={false}
-            pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#3b82f6', fillOpacity: 1 }}
+            keyboard={false}
+            zIndexOffset={1000}
           />
         )}
       </MapContainer>

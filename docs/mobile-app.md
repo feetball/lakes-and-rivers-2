@@ -88,21 +88,26 @@ Build-time overrides (all optional):
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `MOBILE_API_BASE` | the Worker's `workers.dev` URL (see `next.config.mjs`) | where the app fetches gauge data. **Use a domain you own before shipping** — this value is frozen into every installed copy. |
-| `NEXT_PUBLIC_TILE_URL` | OpenStreetMap | basemap tile URL template. **Must be changed (or use `NEXT_PUBLIC_VECTOR_TILE_URL`) for the store builds** — see the tiles section of [mobile-data-strategy.md](mobile-data-strategy.md). |
-| `NEXT_PUBLIC_TILE_ATTRIBUTION` | OSM credit | attribution HTML for the tile provider |
-| `NEXT_PUBLIC_VECTOR_TILE_URL` | unset | self-hosted vector basemap from [`tiles-worker/`](../tiles-worker/README.md), e.g. `https://tiles.example.com/texas/{z}/{x}/{y}.mvt`. **The recommended way to satisfy the tile requirement for store builds**; when set it replaces `NEXT_PUBLIC_TILE_URL`. |
+| `NEXT_PUBLIC_VECTOR_TILE_URL` | `https://tiles.kuecker.us/texas/{z}/{x}/{y}.mvt` (see `src/lib/api.ts`) | the vector basemap, served by [`tiles-worker/`](../tiles-worker/README.md). **Normally leave it unset.** An empty value means "no vector tiles": `scripts/build-mobile.mjs` then refuses to build unless `NEXT_PUBLIC_TILE_URL` names another raster provider (or `ALLOW_OSM_TILES=1` for a non-store test build). |
+| `NEXT_PUBLIC_TILE_URL` | OpenStreetMap | the raster layer used as the **automatic fallback** while the tile server is failing (and as the only layer if the vector URL is empty). Set it to a paid raster provider if you do not want OSM, even as a fallback. |
+| `NEXT_PUBLIC_TILE_ATTRIBUTION` | OSM credit | attribution HTML for that raster provider |
+| `NEXT_PUBLIC_TILE_FALLBACK` | on | `off` = never fall back: if the tile server fails the basemap goes blank instead of switching to the raster layer. |
 
-Example of a release build against custom domains for the API and the self-hosted tiles:
+A plain `pnpm mobile:build` therefore ships our own tiles with the OSM fallback.
+Example of a release build against a custom domain for the API:
 
 ```bash
-MOBILE_API_BASE=https://api.example.com \
-NEXT_PUBLIC_VECTOR_TILE_URL='https://tiles.example.com/texas/{z}/{x}/{y}.mvt' \
-pnpm mobile:build
+MOBILE_API_BASE=https://api.example.com pnpm mobile:build
 ```
 
-(A paid raster provider also works: set `NEXT_PUBLIC_TILE_URL` and
-`NEXT_PUBLIC_TILE_ATTRIBUTION` instead — see the fallback in
-[mobile-data-strategy.md](mobile-data-strategy.md).)
+The build prints which tile setup it resolved (`[mobile] tiles: vector=… fallback=…`).
+The tile server only answers requests from an allowlist of origins, and the apps'
+web views (`capacitor://localhost` on iOS, `https://localhost` on Android) are on it.
+If you ever change `server.hostname`, `server.androidScheme` or `server.iosScheme` in
+`capacitor.config.ts`, add the new origin to `ALLOWED_ORIGINS` in
+`tiles-worker/wrangler.jsonc` first (see the Contract in
+[`tiles-worker/README.md`](../tiles-worker/README.md)). The Xcode Cloud hook
+(`ios/App/ci_scripts/ci_post_clone.sh`) applies the same empty-vector-URL check.
 
 ### Running it on the iOS Simulator
 

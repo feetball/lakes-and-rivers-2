@@ -1,5 +1,9 @@
 // Cloudflare Worker that serves the Texas basemap (Protomaps PMTiles in R2).
 // Separate from the main texas-flood-map Worker on purpose: see README.md.
+//
+// CONTRACT: tiles.kuecker.us, /texas/{z}/{x}/{y}.mvt, /texas.json and the app
+// origins below are compiled into every shipped app and website build. Read
+// "Contract" in README.md before changing any of them.
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "texas-flood-map-tiles",
@@ -9,6 +13,16 @@
 	// Only the custom domain below is public; no *.workers.dev address or previews.
 	"workers_dev": false,
 	"preview_urls": false,
+
+	// Keep console.warn/console.error (archive missing, R2 errors) in Workers Logs
+	// without logging every request: dashboard -> Workers -> this Worker -> Logs.
+	"observability": {
+		"enabled": true,
+		"logs": {
+			"enabled": true,
+			"invocation_logs": false
+		}
+	},
 
 	// The tile archive. Create once:
 	//   npx wrangler r2 bucket create texas-flood-map-tiles
@@ -23,19 +37,30 @@
 	"vars": {
 		// Object key in the bucket for /{name}/...; /texas/z/x/y.mvt -> texas.pmtiles
 		"PMTILES_PATH": "{name}.pmtiles",
-		// Browser/webview origins allowed to fetch tiles (403 otherwise). The iOS
-		// app's web view is capacitor://localhost, Android's is https://localhost.
-		// Add the production website origin here. "*" allows anyone.
+		// Archive names the Worker will serve (comma-separated, "*" = any, for local
+		// development). Anything else is a 404 before the cache or R2 is touched.
+		"ALLOWED_ARCHIVES": "texas",
+		// Browser/webview origins allowed to fetch tiles (403 otherwise).
+		//  - capacitor://localhost  iOS app web view
+		//  - https://localhost      Android app web view
+		//  - http://localhost:3000  local `pnpm dev`
+		//  - https://txfloods.kuecker.us, the workers.dev site: the website
+		// Capacitor live-reload (a LAN IP) and the Android emulator (10.0.2.2) send
+		// other origins and get a 403 by design; the app then shows its fallback.
+		// "*" allows anyone. This only stops other websites hotlinking: any
+		// non-browser client can send any Origin (see "Abuse" in README.md).
 		"ALLOWED_ORIGINS": "capacitor://localhost,https://localhost,http://localhost:3000,https://txfloods.kuecker.us,https://texas-flood-map.daniel-8d6.workers.dev",
 		// Basemap data changes slowly; a week lets phones and the edge hold tiles.
 		"CACHE_CONTROL": "public, max-age=604800",
-		// Hostname written into TileJSON. Empty = whatever host the request used.
-		"PUBLIC_HOSTNAME": ""
+		// Hostname used in TileJSON and in the edge-cache key. Empty = the request's host.
+		"PUBLIC_HOSTNAME": "tiles.kuecker.us"
 	},
 
 	// Served from a hostname we own: it is compiled into every installed app, so
 	// it can be repointed later without an app update. Deploying creates the DNS
 	// record and certificate (the kuecker.us zone is on this Cloudflare account).
+	// wrangler REPLACES a Worker's custom domains with this list on every deploy,
+	// so deploying a copy of this file with a different pattern detaches the host.
 	"routes": [
 		{
 			"pattern": "tiles.kuecker.us",

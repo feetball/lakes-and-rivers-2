@@ -25,13 +25,22 @@ export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
-// Basemap tiles. The web deploy uses openstreetmap.org's public tile servers,
-// which is fine for a low-traffic site but NOT for a distributed app: the OSM
-// tile usage policy forbids "heavy use (e.g. distributing an app that uses
-// tiles from openstreetmap.org)" without permission, and they block without
-// notice. Point the store builds at a provider you control or pay for by
-// setting NEXT_PUBLIC_VECTOR_TILE_URL (below) or NEXT_PUBLIC_TILE_URL /
-// NEXT_PUBLIC_TILE_ATTRIBUTION at build time — see
+// Basemap tiles, two layers in this order of preference:
+//
+//  1. VECTOR_TILE_URL: our own Protomaps vector tiles (tiles-worker/, served from
+//     tiles.kuecker.us) drawn by protomaps-leaflet. The default for EVERY build:
+//     the website, `pnpm dev` and the store apps.
+//  2. TILE_URL: a raster tile layer, OpenStreetMap's public servers by default.
+//     It is the automatic fallback when (1) is unreachable or failing (see
+//     src/components/Basemap.tsx), and the primary layer if VECTOR_TILE_URL is
+//     set to an empty string.
+//
+// OSM's tile usage policy does not allow relying on its servers for a distributed
+// app ("heavy use (e.g. distributing an app that uses tiles from
+// openstreetmap.org)") and it blocks without notice and without an SLA. That is why
+// the vector tiles are primary and OSM only catches an outage of ours. For a strict
+// no-OSM build set NEXT_PUBLIC_TILE_FALLBACK=off; to use another raster provider
+// as the fallback set NEXT_PUBLIC_TILE_URL and NEXT_PUBLIC_TILE_ATTRIBUTION. See
 // docs/mobile-data-strategy.md for the options and costs.
 export const TILE_URL =
   process.env.NEXT_PUBLIC_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -39,8 +48,15 @@ export const TILE_ATTRIBUTION =
   process.env.NEXT_PUBLIC_TILE_ATTRIBUTION
   || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-// Self-hosted Protomaps vector basemap served by tiles-worker/ (a Z/X/Y
-// template ending in .mvt, e.g. https://tiles.example.com/texas/{z}/{x}/{y}.mvt).
-// When set it replaces the raster TILE_URL above and the map draws the tiles
-// itself with protomaps-leaflet; its attribution is built in.
-export const VECTOR_TILE_URL = process.env.NEXT_PUBLIC_VECTOR_TILE_URL || '';
+/**
+ * Our vector tile template. This hostname and path are compiled into every
+ * shipped app: see "Contract" in tiles-worker/README.md before changing them.
+ */
+export const DEFAULT_VECTOR_TILE_URL = 'https://tiles.kuecker.us/texas/{z}/{x}/{y}.mvt';
+
+// `??`, not `||`: an explicit empty NEXT_PUBLIC_VECTOR_TILE_URL= means "no vector
+// tiles, raster only" (for example `NEXT_PUBLIC_VECTOR_TILE_URL= pnpm dev`).
+export const VECTOR_TILE_URL = (process.env.NEXT_PUBLIC_VECTOR_TILE_URL ?? DEFAULT_VECTOR_TILE_URL).trim();
+
+/** Switch to the raster layer automatically while the vector tile server is failing. */
+export const TILE_FALLBACK = process.env.NEXT_PUBLIC_TILE_FALLBACK !== 'off';

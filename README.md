@@ -28,6 +28,7 @@ Requires **pnpm 10** (pinned via `packageManager` in `package.json`; run `corepa
 | `pnpm data:cache:clear` | Remove all cached per-gauge bundles. |
 | `pnpm lint` | ESLint (flat config, `eslint-config-next`). |
 | `pnpm typecheck` | `tsc --noEmit` across the project. |
+| `pnpm test` | Unit tests for the basemap fallback logic (`tests/`). Needs Node 22.18+ (it runs the `.ts` source directly). The tile server has its own tests: `cd tiles-worker && pnpm test`. |
 
 Useful env vars for `data:build`:
 
@@ -123,8 +124,9 @@ The same source ships as native iOS and Android apps via Capacitor: `pnpm mobile
 | `NEXT_PUBLIC_APP_VERSION` | UI footer | Optional version label shown in the legend. |
 | `NWPS_TIMEOUT_MS` | `/api/gauges`, `/api/cron` | Per-attempt upstream fetch timeout (default 45000). |
 | `MOBILE_API_BASE` | `pnpm mobile:build` | Origin the mobile apps call for `/api/*` (baked in at build time). |
-| `NEXT_PUBLIC_TILE_URL`, `NEXT_PUBLIC_TILE_ATTRIBUTION` | any build | Basemap tile template + attribution (default OpenStreetMap; the store builds must use a commercial provider). |
-| `NEXT_PUBLIC_VECTOR_TILE_URL` | any build | Self-hosted Protomaps vector tiles (`https://tiles.example.com/texas/{z}/{x}/{y}.mvt`), served by [`tiles-worker/`](tiles-worker/README.md). When set it replaces the raster tiles above. |
+| `NEXT_PUBLIC_VECTOR_TILE_URL` | any build | Vector basemap served by [`tiles-worker/`](tiles-worker/README.md). Defaults to `https://tiles.kuecker.us/texas/{z}/{x}/{y}.mvt` (see `src/lib/api.ts`), so the website, `pnpm dev` and the apps use it without any setting. An empty value (`NEXT_PUBLIC_VECTOR_TILE_URL= pnpm dev`) means raster tiles only. |
+| `NEXT_PUBLIC_TILE_URL`, `NEXT_PUBLIC_TILE_ATTRIBUTION` | any build | The raster layer (OpenStreetMap by default): the automatic fallback while the tile server is failing, and the only layer if the vector URL is empty. |
+| `NEXT_PUBLIC_TILE_FALLBACK` | any build | `off` = never fall back to the raster layer. |
 | `CACHE_TTL_DAYS`, `OUTPUT_COORD_DP`, `NHD_CONCURRENCY`, `GAUGE_LIMIT`, `REFRESH` | `data:build` | See *Scripts*. |
 
 ## License

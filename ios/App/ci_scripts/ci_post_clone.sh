@@ -4,10 +4,15 @@
 # capacitor.config.json are gitignored build outputs, so they have to be
 # regenerated here or the app ships an empty web view.
 #
-# Set these as environment variables on the Xcode Cloud workflow:
-#   MOBILE_API_BASE        where the app fetches gauge data (frozen into the build)
-#   NEXT_PUBLIC_TILE_URL   basemap tile URL template (not OSM for store builds)
-#   NEXT_PUBLIC_TILE_ATTRIBUTION
+# Environment variables on the Xcode Cloud workflow (all optional):
+#   MOBILE_API_BASE              where the app fetches gauge data (frozen into the build)
+#   NEXT_PUBLIC_VECTOR_TILE_URL  basemap vector tiles; unset = our own tiles.kuecker.us
+#                                (src/lib/api.ts). Do not set it to an empty string.
+#                                (Checked by scripts/build-mobile.mjs.)
+#   NEXT_PUBLIC_TILE_URL / NEXT_PUBLIC_TILE_ATTRIBUTION
+#                                the raster layer used as the outage fallback
+#                                (OpenStreetMap when unset)
+#   NEXT_PUBLIC_TILE_FALLBACK=off  never fall back to a raster layer
 set -eu
 
 REPO_ROOT="${CI_PRIMARY_REPOSITORY_PATH:-$(cd "$(dirname "$0")/../../.." && pwd)}"
@@ -20,7 +25,8 @@ corepack enable
 corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
 
 [ -n "${MOBILE_API_BASE:-}" ] || echo "[ci] WARNING: MOBILE_API_BASE unset; using the default from next.config.mjs"
-[ -n "${NEXT_PUBLIC_TILE_URL:-}" ] || echo "[ci] WARNING: NEXT_PUBLIC_TILE_URL unset; building with OpenStreetMap tiles (not OK for store release)"
+# Tile settings are validated by `pnpm mobile:build` below (scripts/build-mobile.mjs): it
+# refuses an empty vector URL with no non-OSM raster provider and malformed values.
 
 echo "[ci] pnpm install"
 pnpm install --frozen-lockfile

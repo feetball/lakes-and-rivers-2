@@ -1,8 +1,11 @@
 // Pure request helpers, kept free of Workers-runtime globals so they can be
-// unit-tested under plain Node (see test/routes.test.ts).
+// unit-tested under plain Node (see test/).
 
 const NAME = '[A-Za-z0-9_-]{1,64}';
-const TILE_PATH = new RegExp(`^/(${NAME})/(\\d{1,2})/(\\d{1,8})/(\\d{1,8})\\.(?:mvt|pbf)$`);
+// Canonical decimal numbers only (no leading zeros) and one extension: every
+// other spelling of the same tile would be its own edge-cache entry and its own
+// R2 read.
+const TILE_PATH = new RegExp(`^/(${NAME})/(0|[1-9]\\d?)/(0|[1-9]\\d{0,7})/(0|[1-9]\\d{0,7})\\.mvt$`);
 const TILEJSON_PATH = new RegExp(`^/(${NAME})\\.json$`);
 
 /** Highest zoom we will even try to look up (PMTiles tile ids stop at z26). */
@@ -31,9 +34,26 @@ export function parseRoute(pathname: string): Route | null {
   return { kind: 'tile', name: m[1], z, x, y };
 }
 
+/** The single URL path a route is served and edge-cached under. */
+export function canonicalPath(route: Route & { kind: 'tile' | 'tilejson' }): string {
+  return route.kind === 'tile'
+    ? `/${route.name}/${route.z}/${route.x}/${route.y}.mvt`
+    : `/${route.name}.json`;
+}
+
 /** R2 object key for an archive name, from the PMTILES_PATH template. */
 export function archiveKey(template: string, name: string): string {
   return template.replace('{name}', name);
+}
+
+/**
+ * ALLOWED_ARCHIVES is a comma-separated list of archive names this Worker will
+ * serve ('*' = any name, for local development). Anything else is a 404 before
+ * the cache or R2 is touched, so random names cannot run up R2 reads.
+ */
+export function archiveAllowed(allowed: string, name: string): boolean {
+  const list = allowed.split(',').map((s) => s.trim()).filter(Boolean);
+  return list.includes('*') || list.includes(name);
 }
 
 /**

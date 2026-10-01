@@ -5,8 +5,13 @@
 //   pnpm mobile:build              # export + `cap sync` (ios + android)
 //   pnpm mobile:export             # export only (--no-sync)
 //   MOBILE_API_BASE=https://api.example.com pnpm mobile:build
-//   NEXT_PUBLIC_VECTOR_TILE_URL=https://tiles.example.com/texas/{z}/{x}/{y}.mvt pnpm mobile:build
-//   (or a raster provider: NEXT_PUBLIC_TILE_URL=... NEXT_PUBLIC_TILE_ATTRIBUTION=...)
+//
+// Basemap: with no tile variables set the app uses our own vector tiles
+// (tiles.kuecker.us, default in src/lib/api.ts) and falls back to OpenStreetMap
+// only while that server is failing. Optional: NEXT_PUBLIC_TILE_URL +
+// NEXT_PUBLIC_TILE_ATTRIBUTION (another raster fallback), NEXT_PUBLIC_TILE_FALLBACK=off.
+// The resolved setup is printed below; an explicitly empty NEXT_PUBLIC_VECTOR_TILE_URL
+// with no other raster provider is refused (see the guard in the build step).
 //
 // Why a script instead of plain `next build`: Next's `output: 'export'` refuses
 // to build a project with dynamic API route handlers (every route under
@@ -115,6 +120,34 @@ process.on('SIGTERM', () => { interrupted = true; });
 
 let exitCode = 0;
 try {
+  // Store builds must not rely on OpenStreetMap's public tile servers (their tile
+  // policy does not allow it for a distributed app). The default is our own vector
+  // tiles with OSM only as an outage fallback (src/lib/api.ts), so this only trips
+  // for a deliberate opt-out (an empty NEXT_PUBLIC_VECTOR_TILE_URL) with no other
+  // raster provider configured, or for a value that is certainly a typo.
+  const trimmed = (name) => process.env[name]?.trim();
+  const vectorUrl = trimmed('NEXT_PUBLIC_VECTOR_TILE_URL');
+  const rasterUrl = trimmed('NEXT_PUBLIC_TILE_URL');
+  const fallback = trimmed('NEXT_PUBLIC_TILE_FALLBACK');
+  if (fallback !== undefined && fallback !== 'on' && fallback !== 'off') {
+    throw new Error(`NEXT_PUBLIC_TILE_FALLBACK must be "on" or "off" (got "${fallback}"); only the exact value "off" disables the fallback.`);
+  }
+  if (vectorUrl && !/^https:\/\/\S+\{z\}\S*\{x\}\S*\{y\}\S*$/.test(vectorUrl)) {
+    throw new Error(`NEXT_PUBLIC_VECTOR_TILE_URL must be an https URL template containing {z}, {x} and {y} (got "${vectorUrl}").`);
+  }
+  if (vectorUrl === '' && !rasterUrl && process.env.ALLOW_OSM_TILES !== '1') {
+    throw new Error(
+      'NEXT_PUBLIC_VECTOR_TILE_URL is empty and NEXT_PUBLIC_TILE_URL is unset, so the app would use OpenStreetMap tiles only, ' +
+        'which the OSM tile policy does not allow for a store app. Unset NEXT_PUBLIC_VECTOR_TILE_URL to use our own tiles, set ' +
+        'NEXT_PUBLIC_TILE_URL to another provider, or set ALLOW_OSM_TILES=1 for a non-store test build.',
+    );
+  }
+  log(
+    vectorUrl === ''
+      ? `tiles: raster only (no vector tiles): ${rasterUrl || 'OpenStreetMap'}`
+      : `tiles: vector=${vectorUrl ?? '(default tiles.kuecker.us, see src/lib/api.ts)'}; ` +
+          `fallback=${fallback === 'off' ? 'OFF' : rasterUrl || 'OpenStreetMap'}`,
+  );
   log('ensuring public/data is built (skips if present)');
   run('node', ['scripts/build-waterways-data.mjs', '--if-missing']);
 

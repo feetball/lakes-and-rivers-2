@@ -10,6 +10,7 @@
     "postbuild": "node scripts/postbuild.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
     "data:build": "node scripts/build-waterways-data.mjs",
     "data:build:refresh": "node scripts/build-waterways-data.mjs --refresh",
     "data:refresh-list": "node scripts/refresh-gauges-list.mjs",

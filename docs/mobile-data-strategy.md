@@ -10,17 +10,18 @@ this repo on 2026-09-16 unless marked as an assumption.
   your Cloudflare Worker already produces, not NOAA's 12.5 MB statewide list.
   That's how the app is built. Per-user cost is effectively zero; the fixed
   cost is Cloudflare's US $5/month Workers plan you already need.
-- **The real recurring cost is basemap tiles, not gauge data.** The website
-  uses OpenStreetMap's free tile servers, which their policy explicitly does
-  not allow for a distributed app. Budget ~US $20/month for a hosted provider
-  at launch, or spend a couple of days self-hosting tiles on Cloudflare for
-  ~US $0/month. Do not ship to the stores on OSM tiles.
-- **Break-even is roughly 500 sales in year one** with a hosted tile
-  provider, ~200 if tiles are self-hosted. After that each sale is ~US $0.84
-  of margin.
-- **Three things to do before the first store build**: put the API on a
-  domain you own, pick a tile provider, and redeploy the Worker from this
-  branch (it adds the CORS headers the app needs).
+- **Basemap tiles were the real cost risk, and are now handled.** OpenStreetMap's
+  free tile servers are not allowed for a distributed app, so the website and
+  both apps draw **our own Protomaps vector tiles** from `tiles.kuecker.us`
+  (a small separate Worker, `tiles-worker/`, ~US $0/month at this scale). OSM
+  raster tiles are only an automatic fallback while our tile server is failing.
+- **Break-even is roughly 235 sales in year one** with self-hosted tiles (about
+  520 if you had paid for a hosted tile provider). After that each sale is ~US
+  $0.84 of margin.
+- **Before the first store build**: put the API on a domain you own and
+  redeploy the Worker from this branch (it adds the CORS headers the app
+  needs). The tile server is already live; run
+  `tiles-worker/scripts/smoke.sh` to confirm.
 
 ## Two ways a phone could get gauge data
 
@@ -98,57 +99,69 @@ JSON, which blows through the Free plan's 10 ms CPU limit (detail in
 
 ## The cost that actually matters: basemap tiles
 
-Every pan and zoom loads map tiles. The website loads them from
+Every pan and zoom loads map tiles. The website used to load them from
 `tile.openstreetmap.org`. OSM's
 [tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
 requires "a distinct, stable User-Agent naming your app", calls out heavy
 use such as "distributing an app that uses tiles from openstreetmap.org"
 as forbidden without permission, and says they "may block access, without
-notice". A paid app on their free servers is exactly what they mean.
-The app build already sends its own User-Agent, but the store builds
-need a provider that allows commercial use.
+notice". A paid app on their free servers is exactly what they mean, and it
+has no uptime promise either, which matters for a flood app.
 
 Assumption: ~100 tiles per session (a few pans and zooms on a phone),
-8 sessions per user per month.
+8 sessions per user per month, so ~800 tile requests per user per month.
 
 | Provider | Free tier | Paid | 1,000 users (0.8 M tiles/mo) | 10,000 users (8 M tiles/mo) |
 | --- | --- | --- | --- | --- |
 | OpenStreetMap.org | — | — | **not permitted** | not permitted |
 | [Stadia Maps](https://stadiamaps.com/pricing/) | 200k credits, **non-commercial only** | Starter $20/mo for 1 M, +$0.03/1k; Standard $80/mo for 7.5 M, +$0.02/1k | **$20/mo** | ~$90/mo |
 | [MapTiler](https://www.maptiler.com/cloud/pricing/) | 100k, non-commercial only | Flex $30/mo for 500k, +$0.15/1k | ~$75/mo | ~$1,150/mo |
-| Self-hosted [Protomaps](https://docs.protomaps.com/deploy/cloudflare) PMTiles on Cloudflare R2 | — | R2 storage for a Texas extract (~1–3 GB ≈ pennies), reads served through the same $5 Worker plan | **~$0/mo** | ~$0/mo |
+| **Self-hosted Protomaps on Cloudflare (built: `tiles-worker/`)** | the Texas archive (~640 MB at z14, ~1.5 GB at z15) fits R2's free 10 GB | every tile request is one Worker request, edge-cache hits included; the $5 Workers Paid plan includes 10 M requests/month | **$0** (0.8 M of the 10 M included) | **$0** (8 M of the 10 M included, with the API's) |
 
-Recommendation:
+Past the included 10 M requests (about 12,000 active users) each extra million
+costs $0.30: roughly **$27/month at 100,000 users and $250/month at 1 M**.
+The edge cache saves R2 reads and CPU, not request billing; an uncached tile
+costs up to three R2 reads, which stay inside the free tier at these volumes.
 
-1. **Self-host Protomaps on R2 — built, see [`tiles-worker/README.md`](../tiles-worker/README.md).**
-   A separate small Worker serves a Texas PMTiles archive (~1.5 GB, inside R2's
-   free tier) from a hostname you own; the app draws the vector tiles with
-   `protomaps-leaflet` on the same Leaflet map, so the river/lake overlay code
-   is untouched. The store build points at it with one variable:
+How the app uses it:
+
+1. **Our own vector tiles are the default for every build** (website, `pnpm
+   dev`, store apps): `https://tiles.kuecker.us/texas/{z}/{x}/{y}.mvt`, drawn
+   with `protomaps-leaflet` on the same Leaflet map, so the river/lake overlay
+   code is untouched. Nothing to configure. See
+   [`tiles-worker/README.md`](../tiles-worker/README.md) for the server, how
+   to update the archive, and the "Contract": this hostname and path are
+   compiled into every installed app and must not change.
+2. **OpenStreetMap raster tiles are an automatic fallback**, used only while the
+   tile server is unreachable or failing (details, thresholds and the "come back"
+   logic are in the tiles-worker README); the app returns to vector tiles by itself,
+   without a blank flash, once the server answers again. Fallback traffic to OSM is
+   therefore near zero except during an outage of ours. Choose how strict to be:
 
    ```bash
-   NEXT_PUBLIC_VECTOR_TILE_URL='https://tiles.example.com/texas/{z}/{x}/{y}.mvt' pnpm mobile:build
-   ```
-
-   Needs the custom domain (the same one-time chore as the API domain), an R2
-   bucket, and about an hour to extract and upload the archive.
-2. **Fallback: Stadia Maps Starter** (US $20/month) if you want to ship before
-   that's set up. It's a raster tile URL, so switching is two environment
-   variables at build time — no code:
-
-   ```bash
+   NEXT_PUBLIC_TILE_FALLBACK=off pnpm mobile:build        # never fall back (a failed tile server shows blank tiles)
    NEXT_PUBLIC_TILE_URL='https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png?api_key=YOUR_KEY' \
    NEXT_PUBLIC_TILE_ATTRIBUTION='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' \
-   pnpm mobile:build
+   pnpm mobile:build                                      # a paid raster provider as the fallback instead of OSM
    ```
 
-   Their `alidade_smooth_dark` style also suits the app's dark UI. Note the
-   API key ends up inside the app bundle; restrict it in the Stadia dashboard
-   to the app's User-Agent (`TexasFloodMap/<version>`) and watch usage. The
-   tile URL is frozen into every installed copy, so moving off Stadia later
-   means an app update; a hostname you own (option 1) avoids that.
-3. Keep the **website** on OSM: it's low-traffic, attributed, and sends a
-   Referer, which is the use their policy is for.
+   (The Stadia key ends up inside the app bundle: restrict it in their
+   dashboard to the app's User-Agent, `TexasFloodMap/<version>`.)
+3. **Raster only** (no vector tiles at all): `NEXT_PUBLIC_VECTOR_TILE_URL=` (empty).
+   `scripts/build-mobile.mjs` refuses that for a mobile build unless a raster
+   provider other than OSM is set, or `ALLOW_OSM_TILES=1` for a non-store test
+   build.
+
+Measured trade-off to know about: vector tiles cost more CPU than raster ones.
+First view of the map took about 0.7-1.3 s at desktop speed against 0.3-0.5 s
+for raster, 2.4-4.9 s versus 1.2-2 s under 4x CPU throttling (a mid-range
+phone), and up to ~11 s versus ~2 s at 6x (a low-end phone), with the browser's
+main thread busy for up to about a second at a time. The gauge dots and river
+overlay draw independently, so the app stays usable while the basemap fills in.
+Treat a real-device check (a TestFlight build on an iPhone and on an older
+Android phone) as the closing test; if low-end devices turn out too slow, the
+fallback machinery makes an automatic "slow device, use raster" mode a small
+addition.
 
 ## The $0.99 math
 
@@ -166,19 +179,22 @@ Fixed costs, first year:
 | Google Play developer account | 25 once | required |
 | Cloudflare Workers Paid | 60 / year | you need this for the website anyway |
 | Domain for the API | ~12 / year | see "before you ship" |
-| Basemap tiles | 240 / year (Stadia Starter) or ~0 (self-hosted) | |
-| **Total** | **~436** (hosted tiles) / **~196** (self-hosted) | |
+| Basemap tiles | ~0 (self-hosted, built); 240 / year if you used Stadia Starter instead | |
+| **Total** | **~196** (self-hosted tiles) / **~436** (hosted tiles) | |
 
-Break-even: **~520 sales** in year one with hosted tiles, **~235** with
-self-hosted; about 490 / 205 per year after that. Beyond that it's ~$0.84
-margin per sale, because per-user infrastructure cost is nil.
+Break-even: **~235 sales** in year one with self-hosted tiles (the setup
+that is built), **~520** with hosted tiles; about 205 / 490 per year after
+that. Beyond that it's ~$0.84 margin per sale, because per-user
+infrastructure cost is nil.
 
 Two honest caveats on a one-time price:
 
 - **You owe every buyer a working app indefinitely.** If the Worker, the
   refresher or the tile account lapses, every installed copy stops showing
   live data, and refund requests follow. The fixed costs above are the
-  floor for as long as the app is on sale.
+  floor for as long as the app is on sale. The same goes for the tile
+  hostname: `tiles.kuecker.us` is compiled into every installed app, so the
+  `kuecker.us` domain must be renewed for as long as any copy is in use.
 - A subscription (or free app + subscription for extras) is the model that
   matches a recurring server cost, and **push flood alerts** — "the Guadalupe
   at Kerrville just hit action stage" — are the feature people would pay
@@ -193,7 +209,11 @@ Two honest caveats on a one-time price:
    Worker is ever renamed or moved, installed apps break until a store
    update. Add a custom domain to the Worker (Cloudflare → Workers → Settings
    → Domains & Routes) and build with `MOBILE_API_BASE=https://api.yourdomain`.
-2. **Tile provider** chosen and its build variable(s) set (above) — `NEXT_PUBLIC_VECTOR_TILE_URL` for the self-hosted tiles.
+2. **Tiles: done.** The tile server is live at `https://tiles.kuecker.us` and
+   every build uses it by default, with OSM as an outage fallback. Run
+   `tiles-worker/scripts/smoke.sh` before a release to confirm it is healthy,
+   and read "Contract" in `tiles-worker/README.md` before touching its hostname,
+   paths or origin allowlist.
 3. **Redeploy the Worker from this branch** (`pnpm cf:deploy`). This branch
    adds `Access-Control-Allow-Origin` headers to `/api/*`; without them the
    app's web view (origin `capacitor://localhost` / `https://localhost`)

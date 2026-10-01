@@ -11,6 +11,13 @@ const config: CapacitorConfig = {
   appId: 'com.texasfloodmap.app',
   appName: 'Texas Flood Map',
   webDir: 'out',
+  // The tile server (tiles-worker/) only answers browser requests from an
+  // allowlist of origins, and these web views are on it: capacitor://localhost
+  // (iOS) and https://localhost (Android). Changing server.hostname,
+  // server.androidScheme or server.iosScheme changes that origin: add the new one to
+  // ALLOWED_ORIGINS in tiles-worker/wrangler.jsonc FIRST, or installed apps lose
+  // their vector basemap (they would fall back to OpenStreetMap). Live-reload and
+  // emulator origins are refused on purpose; see tiles-worker/README.md.
   // Shown behind the web view before the first paint; matches globals.css.
   backgroundColor: '#0b1220',
   // Identify the app in every request the web view makes. Tile providers
