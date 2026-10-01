@@ -57,6 +57,31 @@ export function categorizeByStage(stage: number, t: Thresholds): FloodCategory {
   return 'no_flooding';
 }
 
+// Live gauge data refreshes every ~30 min; past a few missed cycles a reading
+// can no longer be trusted to reflect current conditions — a lake can climb
+// from normal pool through Action stage in hours during a flood event, so a
+// day-old "Normal" is actively misleading. 90 min = 3 missed refresh cycles.
+export const STALE_DATA_MS = 90 * 60 * 1000;
+
+// Age of an ISO timestamp in ms, or null when there's nothing meaningful to
+// measure (missing, unparsable, or the epoch-0 "no data yet" sentinel).
+export function dataAgeMs(iso: string | null | undefined, nowMs = Date.now()): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t) || t === 0) return null;
+  return nowMs - t;
+}
+
+// "3 hours" / "45 minutes" / "2 days" — for stale-data messaging.
+export function formatAge(ms: number): string {
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 90) return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+  const hours = Math.round(ms / 3_600_000);
+  if (hours < 36) return `${hours} hour${hours === 1 ? '' : 's'}`;
+  const days = Math.round(ms / 86_400_000);
+  return `${days} day${days === 1 ? '' : 's'}`;
+}
+
 // Strip NWPS sentinels from a thresholds object — useful when surfacing
 // thresholds to the UI so we don't show "-9999 ft" to users.
 export function sanitizeThresholds(t: Thresholds | null | undefined): Thresholds | null {

@@ -12,11 +12,12 @@ import { getDataBucket, type R2BucketLike } from '@/lib/r2-data';
 // four-operation Backend interface below, so the aggregation logic is
 // backend-agnostic.
 //
-// Design: events are APPEND-ONLY. Each event is written as its own immutable
-// object under analytics/raw/<day>/<random>.json. We never read-modify-write
-// a shared counter, so concurrent serverless invocations can't clobber each
-// other's writes (the classic lost-update race). Aggregation happens at READ
-// time in the admin route: list the raw objects and fold them into counters.
+// Design: event batches are APPEND-ONLY. Each batch is written as its own
+// immutable object under analytics/raw/<day>/<random>.json. We never
+// read-modify-write a shared counter, so concurrent serverless invocations
+// can't clobber each other's writes (the classic lost-update race).
+// Aggregation happens at READ time in the admin route: list the raw objects
+// and fold their events into counters.
 //
 // To keep reads bounded as traffic accumulates, the admin read also COMPACTS:
 // days older than today are folded into a single analytics/rollup/<day>.json
@@ -139,7 +140,7 @@ async function getBackend(): Promise<Backend | null> {
 
 export function analyticsEnabled(): boolean {
   // On Cloudflare the DATA_BUCKET binding can't be checked synchronously;
-  // assume it's configured (wrangler.jsonc declares it) — recordEvent
+  // assume it's configured (wrangler.jsonc declares it) — recordEvents
   // degrades to a no-op if it isn't. Elsewhere, Vercel Blob needs its token.
   return IS_WORKERD || !!process.env.BLOB_READ_WRITE_TOKEN;
 }
@@ -149,16 +150,17 @@ function dayOf(iso: string): string {
   return iso.slice(0, 10);
 }
 
-// Append one event. Best-effort: never throws into the request path (a
-// storage hiccup must never break the page).
-export async function recordEvent(ev: TrackEvent, rand: string): Promise<void> {
+// Append a batch of events as a single object. Best-effort: never throws into
+// the request path (a storage hiccup must never break the page).
+export async function recordEvents(events: TrackEvent[], rand: string): Promise<void> {
+  if (events.length === 0) return;
   try {
     const backend = await getBackend();
     if (!backend) return;
-    const day = dayOf(ev.at);
+    const day = dayOf(events[0].at);
     // rand is supplied by the caller (crypto.randomUUID in the route) so this
     // module stays free of the Date.now/random ban and keys never collide.
-    await backend.put(`${RAW_PREFIX}${day}/${rand}.json`, JSON.stringify(ev));
+    await backend.put(`${RAW_PREFIX}${day}/${rand}.json`, JSON.stringify(events));
   } catch {
     // swallow — analytics must never break the request
   }
@@ -193,8 +195,11 @@ async function aggregateRawDay(backend: Backend, day: string): Promise<DayAggreg
   let cursor: string | undefined;
   do {
     const page = await backend.listPage(`${RAW_PREFIX}${day}/`, cursor);
-    const events = await Promise.all(page.items.map(it => backend.readJson<TrackEvent>(it.pathname)));
-    for (const ev of events) if (ev) foldEvent(agg, ev, seen);
+    const batches = await Promise.all(page.items.map(it => backend.readJson<TrackEvent | TrackEvent[]>(it.pathname)));
+    for (const batch of batches) {
+      if (!batch) continue;
+      for (const ev of Array.isArray(batch) ? batch : [batch]) foldEvent(agg, ev, seen);
+    }
     cursor = page.cursor;
   } while (cursor);
   return agg;
@@ -232,6 +237,16 @@ async function compactDay(backend: Backend, day: string): Promise<DayAggregate> 
   return agg;
 }
 
+type AnalyticsSummary = { totals: Omit<DayAggregate, 'day'>; byDay: DayAggregate[] };
+
+// Short-lived cache for the admin summary. Each call to getAnalyticsSummary
+// otherwise re-lists both the rollup and raw prefixes (and may re-compact),
+// all Blob "Advanced Operations" — a TTL means repeated admin dashboard loads
+// within the window skip that work. Best-effort only: it's per-warm-instance,
+// not shared across regions/cold starts, so it doesn't need invalidation.
+const SUMMARY_CACHE_TTL_MS = 60_000;
+let summaryCache: { today: string; at: number; data: AnalyticsSummary } | null = null;
+
 // Build the admin analytics summary. `today` (YYYY-MM-DD, UTC) is passed in by
 // the route so this module avoids the Date ban. Steps:
 //   1. Load existing rollups (past days, already compacted).
@@ -243,6 +258,10 @@ export async function getAnalyticsSummary(today: string): Promise<{
 }> {
   const backend = await getBackend();
   if (!backend) return { totals: { pageviews: 0, visitors: 0, gaugeOpens: {}, referrers: {} }, byDay: [] };
+
+  if (summaryCache && summaryCache.today === today && Date.now() - summaryCache.at < SUMMARY_CACHE_TTL_MS) {
+    return summaryCache.data;
+  }
 
   // 1. Existing rollups.
   const rollupDays: DayAggregate[] = [];
@@ -288,5 +307,7 @@ export async function getAnalyticsSummary(today: string): Promise<{
   const liveSet = new Set(liveDays.map((d) => d.day));
   const allDays = [...rollupDays.filter((d) => !liveSet.has(d.day)), ...liveDays].sort((a, b) => a.day.localeCompare(b.day));
 
-  return { totals: mergeDays(allDays), byDay: allDays };
+  const result = { totals: mergeDays(allDays), byDay: allDays };
+  summaryCache = { today, at: Date.now(), data: result };
+  return result;
 }
