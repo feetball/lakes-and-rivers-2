@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, GeoJSON, CircleMarker, Marker, Pane, Tooltip, useMapEvents } from 'react-leaflet';
 import { Draggable, divIcon } from 'leaflet';
+import type { DivIcon } from 'leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer, LeafletMouseEvent } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
@@ -13,6 +14,7 @@ import useWebcamData from '@/hooks/useWebcamData';
 import { colorFor, displayCategory, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge, type DisplayCategory } from '@/lib/floodStatus';
 import { apiUrl, IS_MOBILE } from '@/lib/api';
 import { camerasNear, partitionWebcams, webcamStatus, type Webcam } from '@/lib/webcams';
+import { CHIP_PX, layoutCameras, offsetOf, type CameraOffset } from '@/lib/cameraLayout';
 import Basemap from '@/components/Basemap';
 import type { GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
@@ -68,8 +70,10 @@ const GAUGE_OUTLINE = IS_MOBILE ? 1.5 : 1;
 // whichever dot happens to be on top.
 const GAUGE_TAP_RADIUS = 24;
 // River cameras: a 44 px target (22 px radius) in the apps, the glyph itself (24 px chip)
-// plus a little slack with a mouse. A gauge within GAUGE_TAP_RADIUS always wins, so a
-// camera at a gauge's own site is opened from that gauge's sheet instead.
+// plus a little slack with a mouse. Measured from where the chip is DRAWN, which for a
+// camera at a gauge's site is beside the dot (src/lib/cameraLayout.ts); where a tap is within
+// reach of both a gauge and a chip, the nearer center wins. A camera at a gauge's site can also
+// be opened from that gauge's sheet.
 const WEBCAM_TAP_RADIUS = IS_MOBILE ? 22 : 14;
 // Mobile apps only. Leaflet treats a finger that moves 3 px or more (|dx|+|dy|)
 // between touch-down and touch-up as the start of a pan and calls preventDefault
@@ -83,20 +87,64 @@ const TAP_SLOP_PX = 10;
 if (IS_MOBILE) Draggable.mergeOptions({ clickTolerance: TAP_SLOP_PX });
 
 // River camera glyph: a light chip with a dark camera, which no flood category uses, and
-// bigger than a gauge dot so one at a gauge's own site shows as a ring around it. The
-// marker is drawn under the gauge dots and takes no pointer events itself: taps are
-// resolved on the map (see `resolveTap`) so they can never steal a gauge's tap.
+// bigger than a gauge dot. Chips take no pointer events themselves: taps are resolved on the
+// map (see `resolveTap`) so they can never steal a gauge's tap. A chip is drawn ABOVE the map
+// canvas (so a lake or river fill never tints it) and beside its gauge's dot, never on it (see
+// src/lib/cameraLayout.ts); the line that joins it to the camera's true position is drawn
+// BELOW the canvas, so it starts under the gauge dot.
 const WEBCAM_GLYPH =
   '<path d="M6.5 8.2c0-.66.54-1.2 1.2-1.2h1.02c.34 0 .66-.16.86-.44l.5-.68c.19-.26.5-.42.82-.42h1.2c.32 0 .63.16.82.42l.5.68c.2.28.52.44.86.44h1.02c.66 0 1.2.54 1.2 1.2v5.1c0 .66-.54 1.2-1.2 1.2H7.7c-.66 0-1.2-.54-1.2-1.2V8.2z" fill="#0b1220"/><circle cx="11" cy="10.8" r="2" fill="#e5e7eb"/>';
+const webcamChip = (stale: boolean) =>
+  `<rect x="1" y="1" width="20" height="20" rx="5" fill="${stale ? '#fde68a' : '#e5e7eb'}" stroke="${stale ? '#b45309' : '#0b1220'}" stroke-width="1.5"/>${WEBCAM_GLYPH}`;
 const webcamIcon = (stale: boolean) =>
   divIcon({
     className: '',
     iconSize: [24, 24],
     iconAnchor: [12, 12],
-    html: `<svg width="24" height="24" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="5" fill="${stale ? '#fde68a' : '#e5e7eb'}" stroke="${stale ? '#b45309' : '#0b1220'}" stroke-width="1.5"/>${WEBCAM_GLYPH}</svg>`,
+    html: `<svg width="24" height="24" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${webcamChip(stale)}</svg>`,
   });
 const WEBCAM_ICON = webcamIcon(false);
 const WEBCAM_ICON_STALE = webcamIcon(true);
+// A chip drawn away from its camera's true position (src/lib/cameraLayout.ts: most cameras sit under a
+// gauge dot, whose tap zone would win). Two markers at the true position: the chip, whose icon anchor is
+// moved so it is drawn (dx, dy) px away, and the line out to it with a dot at the true spot. A handful of
+// distinct offsets exist at any zoom, so the icons are made once.
+const chipIcons = new Map<string, DivIcon>();
+function webcamChipIconAt(stale: boolean, { dx, dy }: CameraOffset): DivIcon {
+  if (dx === 0 && dy === 0) return stale ? WEBCAM_ICON_STALE : WEBCAM_ICON;
+  const key = `${stale ? 's' : 'f'}${dx},${dy}`;
+  let icon = chipIcons.get(key);
+  if (!icon) {
+    icon = divIcon({
+      className: '',
+      iconSize: [CHIP_PX, CHIP_PX],
+      iconAnchor: [CHIP_PX / 2 - dx, CHIP_PX / 2 - dy],
+      html: `<svg width="${CHIP_PX}" height="${CHIP_PX}" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${webcamChip(stale)}</svg>`,
+    });
+    chipIcons.set(key, icon);
+  }
+  return icon;
+}
+const leaderIcons = new Map<string, DivIcon>();
+function webcamLeaderIconAt({ dx, dy }: CameraOffset): DivIcon {
+  const key = `${dx},${dy}`;
+  let icon = leaderIcons.get(key);
+  if (!icon) {
+    const half = Math.ceil(Math.max(Math.abs(dx), Math.abs(dy))) + 4;
+    const size = half * 2;
+    icon = divIcon({
+      className: '',
+      iconSize: [size, size],
+      iconAnchor: [half, half],
+      html:
+        `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
+        `<line x1="${half}" y1="${half}" x2="${half + dx}" y2="${half + dy}" stroke="#0b1220" stroke-width="2"/>` +
+        `<circle cx="${half}" cy="${half}" r="2.5" fill="#0b1220"/></svg>`,
+    });
+    leaderIcons.set(key, icon);
+  }
+  return icon;
+}
 
 // "You are here". Deliberately not a plain dot: gauges are solid circles in
 // the same size range and "Normal" is blue, so a blue dot read as another
@@ -170,32 +218,38 @@ function TapResolver({ onTap }: { onTap: (e: MouseEvent) => void }) {
 const handledTaps = new WeakSet<object>();
 
 // The gauge (or camera) whose center is closest to `point` (container px), if any
-// lies within `radius`. One whose marker is entirely off screen (`margin` is its
+// lies within `radius`, with that distance. One whose marker is entirely off screen (`margin` is its
 // size) is never a candidate, so a tap at the edge of the screen can't open one you
-// can't see.
-function nearestGauge<T extends { lat: number; lon: number }>(
+// can't see. `offsetOf` moves an item's center away from its true position: a camera chip is
+// drawn beside its gauge (see cameraLayout.ts), and that is where it is tapped.
+function nearestTo<T extends { lat: number; lon: number }>(
   map: LeafletMap,
   point: { x: number; y: number },
-  gauges: T[],
+  items: T[],
   radius: number,
   margin: number = GAUGE_RADIUS,
-): T | null {
+  offsetOf?: (item: T) => CameraOffset,
+): { item: T; dist: number } | null {
   const size = map.getSize();
   let best: T | null = null;
   let bestSq = radius * radius;
-  for (const g of gauges) {
+  for (const g of items) {
     const c = map.latLngToContainerPoint([g.lat, g.lon]);
-    if (c.x < -margin || c.y < -margin || c.x > size.x + margin || c.y > size.y + margin) continue;
-    const sq = (c.x - point.x) ** 2 + (c.y - point.y) ** 2;
+    const o = offsetOf?.(g);
+    const x = c.x + (o?.dx ?? 0);
+    const y = c.y + (o?.dy ?? 0);
+    if (x < -margin || y < -margin || x > size.x + margin || y > size.y + margin) continue;
+    const sq = (x - point.x) ** 2 + (y - point.y) ** 2;
     if (sq <= bestSq) {
       best = g;
       bestSq = sq;
     }
   }
-  return best;
+  return best ? { item: best, dist: Math.sqrt(bestSq) } : null;
 }
 
 const EMPTY_ALERTS: NwsAlert[] = [];
+const EMPTY_OFFSETS: ReadonlyMap<string, CameraOffset> = new Map();
 
 type Waterways = FeatureCollection<Geometry, WaterwayProperties>;
 
@@ -241,9 +295,11 @@ export default function MapView() {
   // Tap resolution. Every tappable thing on the map (a gauge dot, a river, a
   // lake, a camera, an alert area, open ground near a dot) reports through here, so one tap
   // opens exactly one thing. In priority order: the nearest gauge center within
-  // GAUGE_TAP_RADIUS (apps only), else the gauge dot that was hit directly (the
-  // website), else the nearest river camera within WEBCAM_TAP_RADIUS (when the
-  // layer is on), else the gauge of the waterway that was tapped, else an NWS warning or
+  // GAUGE_TAP_RADIUS (apps only) unless a river camera's chip is nearer to the tap
+  // (cameras are drawn beside their gauge, see cameraLayout.ts, and each chip is tapped
+  // where it is drawn), else the gauge dot that was hit directly (the website), else the
+  // nearest river camera chip within WEBCAM_TAP_RADIUS (when the layer is on), else the
+  // gauge of the waterway that was tapped, else an NWS warning or
   // watch outline containing the point (outlines are not interactive). Leaflet runs
   // the layer's click handler before the map's and hands both the same native
   // event, so the first to resolve a tap claims it (in `handledTaps`) and the
@@ -255,19 +311,24 @@ export default function MapView() {
     }
     const map = mapRef.current;
     const point = ev && map ? map.mouseEventToContainerPoint(ev) : null;
-    const near = IS_MOBILE && map && point
-      ? nearestGauge(map, point, Object.values(gaugeMapRef.current), GAUGE_TAP_RADIUS)
+    const nearGauge = IS_MOBILE && map && point
+      ? nearestTo(map, point, Object.values(gaugeMapRef.current), GAUGE_TAP_RADIUS)
       : null;
-    const gauge = near ?? hit.gauge;
+    const cam = map && point
+      ? nearestTo(map, point, shownWebcamsRef.current, WEBCAM_TAP_RADIUS, CHIP_PX / 2, w => offsetOf(camOffsetsRef.current, w.id))
+      : null;
+    // The nearer of the two centers wins (a tie goes to the gauge), so a chip beside a dot can be
+    // tapped while the dot itself still opens its gauge.
+    if (cam && nearGauge && cam.dist < nearGauge.dist) return selectWebcam(cam.item);
+    const gauge = nearGauge?.item ?? hit.gauge;
     if (gauge) return selectGauge(gauge);
-    const cam = map && point ? nearestGauge(map, point, shownWebcamsRef.current, WEBCAM_TAP_RADIUS, 12) : null;
     if (cam) {
       // Website: a river line drawn above a dot takes that dot's click, so a tap squarely on a
       // gauge dot that has a camera on top of it arrives here as a waterway hit. The dot still wins.
       const dot = !IS_MOBILE && map && point
-        ? nearestGauge(map, point, Object.values(gaugeMapRef.current), GAUGE_RADIUS + GAUGE_OUTLINE)
+        ? nearestTo(map, point, Object.values(gaugeMapRef.current), GAUGE_RADIUS + GAUGE_OUTLINE)
         : null;
-      return dot ? selectGauge(dot) : selectWebcam(cam);
+      return dot ? selectGauge(dot.item) : selectWebcam(cam.item);
     }
     if (hit.waterway) return selectGauge(hit.waterway);
     // Nothing gauge-like was hit: last, the tap may be inside an alert outline.
@@ -341,6 +402,8 @@ export default function MapView() {
   // Only cameras that are drawn can be tapped.
   const shownWebcamsRef = useRef<Webcam[]>([]);
   shownWebcamsRef.current = webcamsActive ? shownWebcams : [];
+  // Where each camera chip is drawn and tapped (set below, once the gauges and the zoom are known).
+  const camOffsetsRef = useRef<ReadonlyMap<string, CameraOffset>>(EMPTY_OFFSETS);
   const mapRef = useRef<LeafletMap | null>(null);
   // NWS flood warnings & watches (unofficial overlay). A per-viewer preference.
   const [alertsOn, setAlertsOn] = useState<boolean>(() => loadVisible(ALERTS_VISIBLE_KEY));
@@ -530,6 +593,14 @@ export default function MapView() {
   // no NWS flood stages renders tan ("No flood stages", see displayCategory).
   // Either way it is still useful as a "a gauge exists here" marker.
   const gaugeList = useMemo(() => Object.values(gaugeMap), [gaugeMap]);
+  // Most cameras sit at a gauge's site, under its dot. Each chip is drawn a few pixels away from its
+  // true spot, in a free place (src/lib/cameraLayout.ts), so it can be tapped. Pixels, not metres: the
+  // layout is worked out again whenever the zoom changes.
+  const camOffsets = useMemo(
+    () => (webcamsActive ? layoutCameras(shownWebcams, gaugeList, zoom, { gaugeRadius: GAUGE_RADIUS }) : EMPTY_OFFSETS),
+    [webcamsActive, shownWebcams, gaugeList, zoom],
+  );
+  camOffsetsRef.current = camOffsets;
   // River re-segmentation (src/lib/riverSegments.ts): each stretch of river is owned by the nearest
   // flood-staged gauge along it. Depends only on the waterways and on which gauges HAVE flood stages,
   // not on live categories. Null until the gauge list is known (or a 3 s grace period passes).
@@ -592,14 +663,28 @@ export default function MapView() {
             onEachFeature={onEachFeature as any}
           />
         )}
-        {/* Below the canvas the waterways and gauge dots are drawn on (overlay pane, 400). */}
-        <Pane name="webcams" style={{ zIndex: 399, pointerEvents: 'none' }}>
+        {/* Below the canvas the waterways and gauge dots are drawn on (overlay pane, 400): the lines that
+            join a displaced camera chip to its true position start under the gauge dot. */}
+        <Pane name="webcam-leaders" style={{ zIndex: 399, pointerEvents: 'none' }}>
+          {webcamsActive && shownWebcams.filter(w => camOffsets.has(w.id)).map(w => (
+            <Marker
+              key={w.id}
+              pane="webcam-leaders"
+              position={[w.lat, w.lon]}
+              icon={webcamLeaderIconAt(offsetOf(camOffsets, w.id))}
+              interactive={false}
+              keyboard={false}
+            />
+          ))}
+        </Pane>
+        {/* Above the canvas, below the markers (600) and tooltips (650): a lake or river fill never tints a chip. */}
+        <Pane name="webcams" style={{ zIndex: 450, pointerEvents: 'none' }}>
           {webcamsActive && shownWebcams.map(w => (
             <Marker
               key={w.id}
               pane="webcams"
               position={[w.lat, w.lon]}
-              icon={webcamStatus(w, now) === 'stale' ? WEBCAM_ICON_STALE : WEBCAM_ICON}
+              icon={webcamChipIconAt(webcamStatus(w, now) === 'stale', offsetOf(camOffsets, w.id))}
               interactive={false}
               keyboard={false}
             />
