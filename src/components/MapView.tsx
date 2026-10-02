@@ -6,6 +6,7 @@ import { Draggable, divIcon } from 'leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer, LeafletMouseEvent } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
+import { useSegmentedWaterways } from '@/hooks/useSegmentedWaterways';
 import useWebcamData from '@/hooks/useWebcamData';
 import { colorFor, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
 import { apiUrl, IS_MOBILE } from '@/lib/api';
@@ -526,6 +527,10 @@ export default function MapView() {
   // current observation) come through as `not_defined` and render in gray —
   // they're still useful as "a gauge exists here" markers.
   const gaugeList = useMemo(() => Object.values(gaugeMap), [gaugeMap]);
+  // River re-segmentation (src/lib/riverSegments.ts): each stretch of river is owned by the nearest
+  // flood-staged gauge along it. Depends only on the waterways and on which gauges HAVE flood stages,
+  // not on live categories. Null until the gauge list is known (or a 3 s grace period passes).
+  const { data: riverData, key: riverKey } = useSegmentedWaterways(waterways, gaugeList);
   // id -> name, for friendly labels in the admin analytics panel.
   const gaugeNames = useMemo(() => {
     const m: Record<string, string> = {};
@@ -564,14 +569,14 @@ export default function MapView() {
         <TapResolver onTap={resolveTap} />
         <Basemap />
         <AlertsLayer alerts={drawnAlerts} />
-        {waterways && (
+        {riverData && (
           <GeoJSON
             // Re-mount only when the underlying dataset changes or when the
             // stream-visibility threshold flips, so canvas paths aren't
             // rebuilt on every gauge tick.
-            key={zoom >= STREAM_MIN_ZOOM ? 'with-streams' : 'lakes-only'}
+            key={`${zoom >= STREAM_MIN_ZOOM ? 'with-streams' : 'lakes-only'}-${riverKey}`}
             ref={geoJsonRef as any}
-            data={waterways}
+            data={riverData}
             style={styleFeature as any}
             filter={filterFeature as any}
             onEachFeature={onEachFeature as any}
