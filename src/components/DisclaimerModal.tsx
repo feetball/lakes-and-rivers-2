@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 // is remembered in localStorage so returning visitors aren't nagged. Bump
 // STORAGE_KEY's version suffix to force the disclaimer to re-show everyone
 // (e.g. after a material wording change).
-const STORAGE_KEY = 'tx-flood-map:disclaimer-accepted:v1';
+const STORAGE_KEY = 'tx-flood-map:disclaimer-accepted:v2';
 
 export default function DisclaimerModal() {
   // Start hidden and decide on mount: localStorage isn't available during SSR,
@@ -74,8 +74,19 @@ export default function DisclaimerModal() {
             any government agency; it displays their public data.
           </p>
           <p style={{ margin: 0 }}>
-            <strong>Do not</strong> rely on this map for flood-safety decisions.
-            Always check{' '}
+            Use this map as a <strong>supplement, never your only source</strong>.
+            Gauge readings and the warnings shown here can be late, wrong or
+            missing. In an emergency call 911. For official flood information
+            check the{' '}
+            <a
+              href="https://www.weather.gov/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#60a5fa' }}
+            >
+              National Weather Service
+            </a>
+            ,{' '}
             <a
               href="https://water.noaa.gov/"
               target="_blank"
@@ -84,7 +95,7 @@ export default function DisclaimerModal() {
             >
               NOAA / National Water Prediction Service
             </a>{' '}
-            and your local emergency authorities for official flood information.
+            and your local emergency authorities.
           </p>
         </div>
         <button
