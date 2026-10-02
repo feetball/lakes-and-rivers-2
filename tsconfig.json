@@ -11,6 +11,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // Lets the pure modules that tests/*.test.mjs imports through Node's type
+    // stripping name their siblings with the .ts extension Node requires. Safe
+    // with noEmit: the bundler resolves the same files either way.
+    "allowImportingTsExtensions": true,
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],

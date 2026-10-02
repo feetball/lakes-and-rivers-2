@@ -14,6 +14,7 @@
     "data:build": "node scripts/build-waterways-data.mjs",
     "data:build:refresh": "node scripts/build-waterways-data.mjs --refresh",
     "data:refresh-list": "node scripts/refresh-gauges-list.mjs",
+    "data:places": "node scripts/build-places-data.mjs",
     "data:cache:clear": "rm -rf data-cache/gauges",
     "data:cache:pack": "node scripts/pack-cache.mjs",
     "data:cache:unpack": "node scripts/unpack-cache.mjs",

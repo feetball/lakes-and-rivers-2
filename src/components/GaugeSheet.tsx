@@ -6,6 +6,7 @@ import type { GaugeStatus } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
 import GaugeDetailSections from './GaugeDetailSections';
 import GaugeShareButton from './GaugeShareButton';
+import FavoriteStar from './FavoriteStar';
 
 interface Props {
   gauge: GaugeStatus;
@@ -157,6 +158,7 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, lineHeight: 1.25 }}>{gauge.name}</h2>
             <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>Site ID: {gauge.id}</div>
           </div>
+          <FavoriteStar id={gauge.id} name={gauge.name} />
           <button
             onClick={onClose}
             aria-label="Close"

@@ -1,47 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useDeviceLocation } from '@/hooks/useDeviceLocation';
+import { controlTop } from './controlSlots';
 
 interface Props {
   // Called with the user's position once a fix is available.
   onLocated: (lat: number, lon: number) => void;
 }
 
-// "Center on me" control. Goes through the Capacitor Geolocation plugin, which
-// maps to CoreLocation / Google Play services in the native apps (with the OS
-// permission prompt — see the Info.plist / AndroidManifest notes in
-// docs/mobile-app.md) and to navigator.geolocation on the web, so one code
-// path serves all three. The plugin is imported lazily so the web bundle
-// only pays for it on the first tap.
+// "Center on me" control. The geolocation itself (Capacitor plugin in the apps,
+// navigator.geolocation on the web) lives in src/lib/location.ts, shared with the gauge
+// list's "Near me" tab, so one code path serves all three platforms.
 export default function LocateButton({ onLocated }: Props) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function locate() {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const { Geolocation } = await import('@capacitor/geolocation');
-      const pos = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: false, // a river is not a parking space; coarse is fine and faster
-        timeout: 15_000,
-        maximumAge: 60_000,
-      });
-      onLocated(pos.coords.latitude, pos.coords.longitude);
-    } catch (e) {
-      setError(describe(e));
-      window.setTimeout(() => setError(null), 4000);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { busy, failure, locate } = useDeviceLocation({ failureClearMs: 4000 });
 
   return (
     <div
       style={{
         position: 'absolute',
-        top: 'calc(env(safe-area-inset-top, 0) + 12px)',
+        top: controlTop(0),
         right: 12,
         zIndex: 1000,
         display: 'flex',
@@ -49,7 +26,7 @@ export default function LocateButton({ onLocated }: Props) {
         gap: 8,
       }}
     >
-      {error && (
+      {failure && (
         <span
           role="status"
           style={{
@@ -62,12 +39,12 @@ export default function LocateButton({ onLocated }: Props) {
             maxWidth: 220,
           }}
         >
-          {error}
+          {failure.message}
         </span>
       )}
       <button
         type="button"
-        onClick={locate}
+        onClick={() => { void locate(onLocated); }}
         disabled={busy}
         aria-label="Center map on my location"
         title="Center map on my location"
@@ -98,17 +75,4 @@ export default function LocateButton({ onLocated }: Props) {
       </button>
     </div>
   );
-}
-
-// Short, user-facing reason a fix failed. Browser GeolocationPositionError
-// carries a numeric code; the native plugin throws Errors with a message.
-function describe(e: unknown): string {
-  const code = (e as { code?: number } | null)?.code;
-  if (code === 1) return 'Location permission denied';
-  if (code === 2) return 'Location unavailable';
-  if (code === 3) return 'Location timed out';
-  const msg = (e as { message?: string } | null)?.message ?? '';
-  if (/denied|permission/i.test(msg)) return 'Location permission denied';
-  if (/not enabled|disabled|unavailable/i.test(msg)) return 'Location services are off';
-  return 'Couldn’t get your location';
 }

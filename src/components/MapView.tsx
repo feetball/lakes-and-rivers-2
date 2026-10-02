@@ -13,6 +13,9 @@ import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types
 import Legend from './Legend';
 import LocateButton from './LocateButton';
 import GaugeSheet from './GaugeSheet';
+import GaugeListControl from './GaugeListControl';
+import { ABOVE_SHEET, GAUGE_MIN_ZOOM, PLACE_MIN_ZOOM, flyToAtLeast } from '@/lib/mapFly';
+import { runBackHandler } from '@/lib/backButton';
 import HoverHydrograph from './HoverHydrograph';
 import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
@@ -209,6 +212,7 @@ export default function MapView() {
       const { App } = await import('@capacitor/app');
       if (cancelled) return;
       handle = await App.addListener('backButton', () => {
+        if (runBackHandler()) return; // the gauge list sheet
         if (selectedRef.current) {
           setSelected(null);
           return;
@@ -242,6 +246,17 @@ export default function MapView() {
     // fix from dragging the view off the Texas extent.
     map.flyTo([lat, lon], Math.max(map.getZoom(), STREAM_MIN_ZOOM + 2), { duration: 0.8 });
   };
+  // Gauge list (favorites / near me / search): bring the picked gauge into the strip above
+  // its sheet, then open the sheet like a map tap would. Never zooms out.
+  const flyToGauge = (g: GaugeStatus) => {
+    const map = mapRef.current;
+    if (map) flyToAtLeast(map, g.lat, g.lon, { minZoom: GAUGE_MIN_ZOOM, landAt: ABOVE_SHEET });
+    selectGauge(g);
+  };
+  const flyToPlace = (p: { lat: number; lon: number }) => {
+    const map = mapRef.current;
+    if (map) flyToAtLeast(map, p.lat, p.lon, { minZoom: PLACE_MIN_ZOOM });
+  };
   // Shared links (https://txfloods.kuecker.us/?gauge=AMAT2) open that gauge's
   // sheet on the website, once the gauge list has loaded. The apps are not
   // served from a URL a link can point at, so they skip this. The parameter is
@@ -258,8 +273,7 @@ export default function MapView() {
     window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
     const g = gaugeData.gauges[wanted.trim().toUpperCase()];
     if (!g) return;
-    selectGauge(g);
-    mapRef.current?.flyTo([g.lat, g.lon], Math.max(mapRef.current.getZoom(), STREAM_MIN_ZOOM + 2), { duration: 0.8 });
+    flyToGauge(g);
   }, [gaugeData]);
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
@@ -466,6 +480,15 @@ export default function MapView() {
       </MapContainer>
 
       <LocateButton onLocated={onLocated} />
+      <GaugeListControl
+        gauges={gaugeData?.gauges}
+        updatedAt={gaugeData?.updatedAt}
+        loading={gaugesLoading}
+        refreshFailed={!atIso && !!gaugesError}
+        snapshot={atIso !== null}
+        onPickGauge={flyToGauge}
+        onPickPlace={flyToPlace}
+      />
       {/* A refresh failed but we still have a snapshot (from an earlier poll
           or the persisted last-good copy): say so instead of silently showing
           old colors. Live mode only — history/forecast have their own loading
