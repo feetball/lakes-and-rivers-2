@@ -712,6 +712,10 @@ async function fetchObservations(gaugesMeta) {
       if (!g?.lid || g?.state?.abbreviation !== 'TX') continue;
       const observed = g.status?.observed;
       const cat = observed?.floodCategory ?? g.ObservedFloodCategory;
+      // NWPS answers "no reading" with primary -999 and validTime
+      // 0001-01-01T00:00:00Z (see isValidStage/cleanTime in src/lib/gaugeStatus.ts).
+      // Keep neither: a -999 "stage" would be categorized as Normal below.
+      const hasReading = typeof observed?.primary === 'number' && observed.primary > -100;
       obs.set(g.lid, {
         // Normalize to the app's FloodCategory union. NWPS also emits
         // operational strings (out_of_service, obs_not_current, low_threshold)
@@ -720,8 +724,8 @@ async function fetchObservations(gaugesMeta) {
         // The derivation step below then upgrades not_defined from thresholds,
         // exactly mirroring the runtime resolveCategory() path.
         category: VALID_CATEGORIES.has(cat) ? cat : 'not_defined',
-        observedStage: typeof observed?.primary === 'number' ? observed.primary : null,
-        observedAt: observed?.validTime ?? null,
+        observedStage: hasReading ? observed.primary : null,
+        observedAt: hasReading && Date.parse(observed.validTime) > 0 ? observed.validTime : null,
       });
     }
     console.log(`      observations for ${obs.size} TX gauges`);
@@ -824,10 +828,18 @@ async function build() {
     // NWPS frequently leaves floodCategory null even when the gauge has a
     // valid stage + thresholds. Derive from thresholds in that case so the
     // meta-shipped fallback paints real colors instead of "no data".
+    // Only when at least one flood stage is defined: with none (a third of
+    // Texas gauges) there is nothing to compare against, so the category stays
+    // not_defined (gray) instead of falling through to a blue "Normal" — the
+    // same rule as categorizeByStage() in src/lib/floodStatus.ts.
     let category = o.category;
-    if ((category === 'not_defined' || !category) && typeof o.observedStage === 'number' && m.thresholds) {
-      const t = m.thresholds;
-      const valid = (n) => typeof n === 'number' && n > -100;
+    const t = m.thresholds;
+    const valid = (n) => typeof n === 'number' && n > -100;
+    if (
+      (category === 'not_defined' || !category) &&
+      valid(o.observedStage) &&
+      t && [t.major, t.moderate, t.minor, t.action].some(valid)
+    ) {
       if (valid(t.major) && o.observedStage >= t.major) category = 'major';
       else if (valid(t.moderate) && o.observedStage >= t.moderate) category = 'moderate';
       else if (valid(t.minor) && o.observedStage >= t.minor) category = 'minor';

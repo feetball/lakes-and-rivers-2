@@ -242,6 +242,25 @@ export default function MapView() {
     // fix from dragging the view off the Texas extent.
     map.flyTo([lat, lon], Math.max(map.getZoom(), STREAM_MIN_ZOOM + 2), { duration: 0.8 });
   };
+  // Shared links (https://txfloods.kuecker.us/?gauge=AMAT2) open that gauge's
+  // sheet on the website, once the gauge list has loaded. The apps are not
+  // served from a URL a link can point at, so they skip this. The parameter is
+  // dropped afterwards so a reload or a copied address bar starts clean.
+  const deepLinkDone = useRef(false);
+  useEffect(() => {
+    if (IS_MOBILE || deepLinkDone.current || !gaugeData?.gauges) return;
+    deepLinkDone.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const wanted = params.get('gauge');
+    if (wanted === null) return;
+    params.delete('gauge');
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    const g = gaugeData.gauges[wanted.trim().toUpperCase()];
+    if (!g) return;
+    selectGauge(g);
+    mapRef.current?.flyTo([g.lat, g.lon], Math.max(mapRef.current.getZoom(), STREAM_MIN_ZOOM + 2), { duration: 0.8 });
+  }, [gaugeData]);
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
     const saved = loadView();

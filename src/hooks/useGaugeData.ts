@@ -4,6 +4,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import type { GaugesResponse } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
+import { repairGauges } from '@/lib/gaugeStatus';
 
 const LIVE_URL = apiUrl('/api/gauges');
 
@@ -24,13 +25,22 @@ function isUsable(data: unknown): data is GaugesResponse {
   return Number.isFinite(t) && t > 0 && !!d.gauges && Object.keys(d.gauges).length > 0;
 }
 
+// Copies written by older builds can hold -999 readings, and a "Normal" for
+// gauges with no flood stages (only the stored copy is distrusted on that: see
+// repairGaugeStatus). Answers from the server get the sentinel repair too, in
+// case an older Worker or stored snapshot still sends them.
+function withRepairedGauges(data: GaugesResponse, stored = false): GaugesResponse {
+  const gauges = repairGauges(data.gauges, { distrustNormal: stored });
+  return gauges === data.gauges ? data : { ...data, gauges };
+}
+
 function readLastGood(): GaugesResponse | undefined {
   if (typeof window === 'undefined') return undefined;
   try {
     const raw = window.localStorage.getItem(LAST_GOOD_KEY);
     if (!raw) return undefined;
     const parsed: unknown = JSON.parse(raw);
-    return isUsable(parsed) ? parsed : undefined;
+    return isUsable(parsed) ? withRepairedGauges(parsed, true) : undefined;
   } catch {
     return undefined;
   }
@@ -47,7 +57,8 @@ function writeLastGood(data: GaugesResponse): void {
 const fetcher = async (url: string): Promise<GaugesResponse> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`gauges fetch ${res.status}`);
-  return res.json();
+  const data: GaugesResponse = await res.json();
+  return data?.gauges && typeof data.gauges === 'object' ? withRepairedGauges(data) : data;
 };
 
 // When `atIso` is null we pull live data (polled). When it's in the past we

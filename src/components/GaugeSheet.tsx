@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
+import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge, hasValidThresholds } from '@/lib/floodStatus';
 import type { GaugeStatus } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
+import GaugeDetailSections from './GaugeDetailSections';
+import GaugeShareButton from './GaugeShareButton';
 
 interface Props {
   gauge: GaugeStatus;
@@ -57,6 +59,16 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
   const obsAge = dataAgeMs(gauge.observedAt);
   const obsStale = obsAge !== null && obsAge > STALE_DATA_MS;
 
+  // Gray means "no category", and the reason differs: say which, so a reading
+  // without flood stages never reads as a status. An all-empty thresholds object
+  // is NWS's "none defined"; null thresholds only mean we do not have them (a
+  // gauge newer than the build-time list), which proves nothing either way.
+  const noFloodStages = !!gauge.thresholds && !hasValidThresholds(gauge.thresholds);
+  const noStagesGray = noFloodStages && gauge.category === 'not_defined';
+  const statusLabel = noStagesGray && gauge.observedStage !== null
+    ? 'No flood stages defined'
+    : CATEGORY_LABELS[gauge.category];
+
   const [records, setRecords] = useState<FloodRecord[]>([]);
 
   useEffect(() => {
@@ -80,6 +92,26 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
   }, [gauge.id]);
 
   const record = records.find(r => r.isRecord);
+
+  const recordRow = record && (
+    <div
+      style={{
+        display: 'flex', justifyContent: 'space-between',
+        background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 13,
+        borderLeft: `3px solid ${CATEGORY_COLORS.major}`,
+        gridColumn: '1 / -1',
+      }}
+    >
+      <span>
+        <span style={{ color: CATEGORY_COLORS.major, marginRight: 6, fontSize: 11 }}>
+          Record
+        </span>
+        {formatPeakDate(record.date)}
+      </span>
+      <span>{record.stage} ft</span>
+    </div>
+  
+  );
 
   return (
     <>
@@ -145,7 +177,7 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
           }}
         >
           <div style={{ fontSize: 12, color: '#9ca3af' }}>Status</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color }}>{CATEGORY_LABELS[gauge.category]}</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color }}>{statusLabel}</div>
           {gauge.observedStage !== null && (
             <div style={{ fontSize: 14, marginTop: 4 }}>
               Observed: <strong>{gauge.observedStage} {gauge.unit ?? ''}</strong>
@@ -166,7 +198,19 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
           )}
         </div>
 
-        {gauge.thresholds && (
+        {noStagesGray && (
+          <div
+            style={{
+              background: '#1f2937', borderRadius: 8, padding: '8px 10px', fontSize: 13, lineHeight: 1.45,
+            }}
+          >
+            NWS has not defined flood stages for this gauge, so it has no flood category and is shown gray.
+            A reading here does not mean conditions are normal.
+          </div>
+        )}
+        {noFloodStages && recordRow && <div style={{ marginTop: 8 }}>{recordRow}</div>}
+
+        {!noFloodStages && gauge.thresholds && (
           <div>
             <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Flood stage thresholds</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
@@ -185,27 +229,12 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
                   </div>
                 );
               })}
-              {record && (
-                <div
-                  style={{
-                    display: 'flex', justifyContent: 'space-between',
-                    background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 13,
-                    borderLeft: `3px solid ${CATEGORY_COLORS.major}`,
-                    gridColumn: '1 / -1',
-                  }}
-                >
-                  <span>
-                    <span style={{ color: CATEGORY_COLORS.major, marginRight: 6, fontSize: 11 }}>
-                      Record
-                    </span>
-                    {formatPeakDate(record.date)}
-                  </span>
-                  <span>{record.stage} ft</span>
-                </div>
-              )}
+              {recordRow}
             </div>
           </div>
         )}
+
+        <GaugeDetailSections gauge={gauge} />
 
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Hydrograph</div>
@@ -237,6 +266,7 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
         >
           Full hydrograph on water.noaa.gov →
         </a>
+        <GaugeShareButton gauge={gauge} />
       </div>
     </>
   );

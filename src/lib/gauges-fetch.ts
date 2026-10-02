@@ -1,39 +1,27 @@
 import { unstable_cache } from 'next/cache';
 import { readPublicDataText } from '@/lib/data-assets';
-import type { FloodCategory, GaugeStatus, GaugesResponse } from '@/lib/types';
+import type { GaugeStatus, GaugesResponse } from '@/lib/types';
 import { sanitizeThresholds, categorizeByStage } from '@/lib/floodStatus';
+import { gaugeFromNwpsEntry, normalizeCategory, repairMetaEntry, type GaugeMetaEntry } from '@/lib/gaugeStatus';
 
 const NWPS_LIST = 'https://api.water.noaa.gov/nwps/v1/gauges?state=TX';
 export const GAUGES_CACHE_TAG = 'gauges-list';
 
-type MetaEntry = {
-  id: string; name: string; lat: number; lon: number;
-  usgsId: string | null;
-  thresholds: { action: number | null; minor: number | null; moderate: number | null; major: number | null } | null;
-  unit: string | null;
-  // Build-time observation snapshot. Lets the runtime fallback ship real
-  // (stale) flood categories instead of "not_defined" until the live cache
-  // populates. Optional because pre-observation builds may still be loaded.
-  category?: FloodCategory;
-  observedStage?: number | null;
-  observedAt?: string | null;
-};
-
 type MetaFile = {
-  gauges: MetaEntry[];
+  gauges: GaugeMetaEntry[];
   observationsAt?: string | null;
   builtAt?: string;
 };
 
-let metaCache: { entries: Map<string, MetaEntry>; observationsAt: string | null } | null = null;
-async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observationsAt: string | null }> {
+let metaCache: { entries: Map<string, GaugeMetaEntry>; observationsAt: string | null } | null = null;
+async function loadMeta(): Promise<{ entries: Map<string, GaugeMetaEntry>; observationsAt: string | null }> {
   if (metaCache && metaCache.entries.size > 0) return metaCache;
   try {
     const raw = await readPublicDataText('gauges-meta.json');
     if (raw === null) throw new Error('gauges-meta.json not found (fs or ASSETS binding)');
     const parsed = JSON.parse(raw) as MetaFile;
     const entries = new Map(
-      parsed.gauges.map(g => [g.id, { ...g, thresholds: sanitizeThresholds(g.thresholds) }]),
+      parsed.gauges.map(g => [g.id, repairMetaEntry({ ...g, thresholds: sanitizeThresholds(g.thresholds) })]),
     );
     metaCache = { entries, observationsAt: parsed.observationsAt ?? null };
   } catch (err) {
@@ -50,29 +38,6 @@ async function loadMeta(): Promise<{ entries: Map<string, MetaEntry>; observatio
     return { entries: new Map(), observationsAt: null };
   }
   return metaCache;
-}
-
-const VALID: FloodCategory[] = ['no_flooding', 'not_defined', 'action', 'minor', 'moderate', 'major'];
-function normalizeCategory(raw: unknown): FloodCategory {
-  return typeof raw === 'string' && (VALID as string[]).includes(raw)
-    ? (raw as FloodCategory)
-    : 'not_defined';
-}
-
-// NWPS often returns floodCategory: null even for gauges with a valid current
-// observation and full set of thresholds. Without this, those gauges paint
-// "No data" gray on the map even though the gauge sheet shows real values.
-// When the upstream category is missing but we have both stage and thresholds,
-// derive it ourselves via the same comparison NWS uses.
-function resolveCategory(
-  rawCategory: unknown,
-  stage: number | null,
-  thresholds: GaugeStatus['thresholds'],
-): FloodCategory {
-  const normalized = normalizeCategory(rawCategory);
-  if (normalized !== 'not_defined') return normalized;
-  if (stage === null || !thresholds) return normalized;
-  return categorizeByStage(stage, thresholds);
 }
 
 // Per-attempt upstream timeout. NWPS's TX list is ~13 MB and takes ~40 s on a
@@ -98,21 +63,7 @@ export async function processNwpsList(list: any[]): Promise<GaugesResponse> {
   const gauges: Record<string, GaugeStatus> = {};
   for (const g of list) {
     if (!g?.lid || g?.state?.abbreviation !== 'TX') continue;
-    const obs = g.status?.observed;
-    const m = meta.get(g.lid);
-    const stage = typeof obs?.primary === 'number' ? obs.primary : null;
-    const thresholds = m?.thresholds ?? null;
-    gauges[g.lid] = {
-      id: g.lid,
-      name: g.name ?? g.lid,
-      lat: g.latitude,
-      lon: g.longitude,
-      category: resolveCategory(obs?.floodCategory ?? g.ObservedFloodCategory, stage, thresholds),
-      observedStage: stage,
-      observedAt: obs?.validTime ?? null,
-      unit: obs?.primaryUnit ?? g.flood?.stageUnits ?? m?.unit ?? null,
-      thresholds,
-    };
+    gauges[g.lid] = gaugeFromNwpsEntry(g, meta.get(g.lid));
   }
   return { gauges, updatedAt: new Date().toISOString() };
 }

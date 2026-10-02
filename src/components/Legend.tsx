@@ -87,6 +87,11 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
               <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{counts[cat]}</span>
             </div>
           ))}
+          {/* Gray must never read as "safe": NWS publishes no flood stages for a
+              third of Texas gauges, and others simply have no recent reading. */}
+          <div style={{ color: '#9ca3af', fontSize: 11, lineHeight: 1.35, maxWidth: 190 }}>
+            Gray: no flood stages defined (or no recent reading)
+          </div>
           <div
             style={{
               marginTop: 6,

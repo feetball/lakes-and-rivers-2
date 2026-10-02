@@ -1,0 +1,238 @@
+{
+ "gauges": [
+  {
+   "id": "AMAT2",
+   "name": "Canadian River at Amarillo",
+   "lat": 35.470277777778,
+   "lon": -101.87916666667,
+   "usgsId": "07227500",
+   "reachId": "19984864",
+   "thresholds": {
+    "action": 6,
+    "minor": 7,
+    "moderate": 10,
+    "major": 15
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 0.92,
+   "observedAt": "2026-09-16T22:30:00Z"
+  },
+  {
+   "id": "HNFT2",
+   "name": "North Fork Guadalupe River near Hunt",
+   "lat": 30.063888888889,
+   "lon": -99.386666666667,
+   "usgsId": "08165300",
+   "reachId": "3585678",
+   "thresholds": {
+    "action": null,
+    "minor": null,
+    "moderate": null,
+    "major": null
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 1.49,
+   "observedAt": "2026-09-16T22:15:00Z"
+  },
+  {
+   "id": "GRHT2",
+   "name": "Guadalupe River above Bear Creek at Kerrville",
+   "lat": 30.069444444444,
+   "lon": -99.195,
+   "usgsId": "08166140",
+   "reachId": "3585626",
+   "thresholds": {
+    "action": null,
+    "minor": null,
+    "moderate": null,
+    "major": null
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 2.98,
+   "observedAt": "2026-09-16T22:20:00Z"
+  },
+  {
+   "id": "LNXT2",
+   "name": "South Fork Guadalupe River at Lynx Haven Crossing near Hunt, TX",
+   "lat": 29.980181,
+   "lon": -99.4423,
+   "usgsId": "08165400",
+   "reachId": null,
+   "thresholds": {
+    "action": null,
+    "minor": null,
+    "moderate": null,
+    "major": null
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 4.49,
+   "observedAt": "2026-09-16T22:20:00Z"
+  },
+  {
+   "id": "CDPT2",
+   "name": "Pease River at Childress 17SE",
+   "lat": 34.2275,
+   "lon": -100.07333333333,
+   "usgsId": "07307800",
+   "reachId": "14001847",
+   "thresholds": {
+    "action": 12,
+    "minor": 13,
+    "moderate": 21,
+    "major": 25
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": -999,
+   "observedAt": "0001-01-01T00:00:00Z"
+  },
+  {
+   "id": "BDLT2",
+   "name": "North Texas Lakes at Lake Daniel",
+   "lat": 32.647777777778,
+   "lon": -98.869166666667,
+   "usgsId": "08086600",
+   "reachId": "5526193",
+   "thresholds": {
+    "action": null,
+    "minor": null,
+    "moderate": null,
+    "major": null
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": -999,
+   "observedAt": "0001-01-01T00:00:00Z"
+  },
+  {
+   "id": "BKCT2",
+   "name": "Devils River at Bakers Crossing near Juno",
+   "lat": 29.95,
+   "lon": -101.13027777778,
+   "usgsId": null,
+   "reachId": "12095661",
+   "thresholds": {
+    "action": 4,
+    "minor": 6,
+    "moderate": 8,
+    "major": 15
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 2.56,
+   "observedAt": "2026-09-16T22:15:00Z"
+  },
+  {
+   "id": "BOQT2",
+   "name": "Rio Grande at Boquillas Crossing",
+   "lat": 29.1835386,
+   "lon": -102.9754409,
+   "usgsId": "08375300",
+   "reachId": "1131000968",
+   "thresholds": {
+    "action": 10,
+    "minor": 13,
+    "moderate": 15,
+    "major": 20
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 2.31,
+   "observedAt": "2026-09-16T22:00:00Z"
+  },
+  {
+   "id": "KRRT2",
+   "name": "Guadalupe River at Kerrville",
+   "lat": 30.053055555556,
+   "lon": -99.163055555556,
+   "usgsId": "08166200",
+   "reachId": "3585724",
+   "thresholds": {
+    "action": 7,
+    "minor": 9,
+    "moderate": 12,
+    "major": 20
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 1.08,
+   "observedAt": "2026-09-16T22:20:00Z"
+  },
+  {
+   "id": "ANPT2",
+   "name": "Tide Gauge above Aransas Pass",
+   "lat": 27.837,
+   "lon": -97.039,
+   "usgsId": null,
+   "reachId": null,
+   "thresholds": {
+    "action": null,
+    "minor": null,
+    "moderate": null,
+    "major": null
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 1.19,
+   "observedAt": "2026-09-16T22:36:00Z"
+  },
+  {
+   "id": "ABIT2",
+   "name": "West Central Texas Lakes at Lake Abilene",
+   "lat": 32.234444444444,
+   "lon": -99.888611111111,
+   "usgsId": "08083270",
+   "reachId": "5491689",
+   "thresholds": {
+    "action": 2012.3,
+    "minor": null,
+    "moderate": null,
+    "major": null
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 1992.04,
+   "observedAt": "2026-09-16T22:30:00Z"
+  },
+  {
+   "id": "CMKT2",
+   "name": "Devils River at Pafford Crossing near Comstock",
+   "lat": 29.676388888889,
+   "lon": -101,
+   "usgsId": "08449400",
+   "reachId": "165886321",
+   "thresholds": {
+    "action": 4,
+    "minor": 5,
+    "moderate": 6,
+    "major": 12
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 2.2,
+   "observedAt": "2026-09-16T22:15:00Z"
+  },
+  {
+   "id": "BRPT2",
+   "name": "Big Sandy Creek (Trinity River Basin) near Bridgeport",
+   "lat": 33.231666666667,
+   "lon": -97.694444444444,
+   "usgsId": "08044000",
+   "reachId": "1305635",
+   "thresholds": {
+    "action": 11,
+    "minor": 12,
+    "moderate": 14,
+    "major": 16
+   },
+   "unit": "ft",
+   "category": "no_flooding",
+   "observedStage": 0.7,
+   "observedAt": "2026-09-16T09:15:00Z"
+  }
+ ]
+}
