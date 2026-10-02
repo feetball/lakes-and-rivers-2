@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, GeoJSON, CircleMarker, Marker, Tooltip, useMapEvents } from 'react-leaflet';
+import { MapContainer, GeoJSON, CircleMarker, Marker, Pane, Tooltip, useMapEvents } from 'react-leaflet';
 import { Draggable, divIcon } from 'leaflet';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer, LeafletMouseEvent } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
+import useWebcamData from '@/hooks/useWebcamData';
 import { colorFor, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
 import { apiUrl, IS_MOBILE } from '@/lib/api';
+import { camerasNear, partitionWebcams, webcamStatus, type Webcam } from '@/lib/webcams';
 import Basemap from '@/components/Basemap';
 import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
@@ -15,13 +17,13 @@ import LocateButton from './LocateButton';
 import GaugeSheet from './GaugeSheet';
 import GaugeListControl from './GaugeListControl';
 import { ABOVE_SHEET, GAUGE_MIN_ZOOM, PLACE_MIN_ZOOM, flyToAtLeast } from '@/lib/mapFly';
-import { runBackHandler } from '@/lib/backButton';
+import { pushBackHandler, runBackHandler } from '@/lib/backButton';
+import WebcamSheet from './WebcamSheet';
 import HoverHydrograph from './HoverHydrograph';
 import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
 import DraggablePanel from './DraggablePanel';
 import { track } from '@/lib/track';
-// --- F1 alerts ---
 import { useAlerts } from '@/hooks/useAlerts';
 import { alertLevel, alertsAt, geometryBounds } from '@/lib/alerts-fetch';
 import AlertsLayer from './AlertsLayer';
@@ -29,7 +31,6 @@ import AlertSheet from './AlertSheet';
 import AlertsListSheet from './AlertsListSheet';
 import AlertsStatusChip from './AlertsStatusChip';
 import type { AlertLevel, NwsAlert } from '@/lib/types';
-// --- end F1 ---
 
 // Below this zoom, hide stream/river lines and only paint waterbodies.
 // Painting thousands of canvas polylines while panning the whole state is
@@ -49,7 +50,8 @@ const TX_BOUNDS: [[number, number], [number, number]] = [
 const VIEW_KEY = 'tfm:view';
 const LEGEND_VISIBLE_KEY = 'tfm:legend-visible';
 const TIMELINE_VISIBLE_KEY = 'tfm:timeline-visible';
-const ALERTS_VISIBLE_KEY = 'tfm:layer-alerts'; // F1 alerts
+const ALERTS_VISIBLE_KEY = 'tfm:layer-alerts';
+const WEBCAMS_VISIBLE_KEY = 'tfm:webcams-visible';
 
 // Gauge dots. The store apps draw them larger and accept taps far from the dot
 // itself: a fingertip can't reliably land inside an 11 px circle. The website
@@ -61,6 +63,10 @@ const GAUGE_OUTLINE = IS_MOBILE ? 1.5 : 1;
 // Gauges can sit closer together than that, so the NEAREST one wins rather than
 // whichever dot happens to be on top.
 const GAUGE_TAP_RADIUS = 24;
+// River cameras: a 44 px target (22 px radius) in the apps, the glyph itself (24 px chip)
+// plus a little slack with a mouse. A gauge within GAUGE_TAP_RADIUS always wins, so a
+// camera at a gauge's own site is opened from that gauge's sheet instead.
+const WEBCAM_TAP_RADIUS = IS_MOBILE ? 22 : 14;
 // Mobile apps only. Leaflet treats a finger that moves 3 px or more (|dx|+|dy|)
 // between touch-down and touch-up as the start of a pan and calls preventDefault
 // on the touchmove, which makes iOS cancel its own tap, so a fingertip that
@@ -71,6 +77,22 @@ const GAUGE_TAP_RADIUS = 24;
 // and it applies to every drag in the app, mouse and trackpad included.
 const TAP_SLOP_PX = 10;
 if (IS_MOBILE) Draggable.mergeOptions({ clickTolerance: TAP_SLOP_PX });
+
+// River camera glyph: a light chip with a dark camera, which no flood category uses, and
+// bigger than a gauge dot so one at a gauge's own site shows as a ring around it. The
+// marker is drawn under the gauge dots and takes no pointer events itself: taps are
+// resolved on the map (see `resolveTap`) so they can never steal a gauge's tap.
+const WEBCAM_GLYPH =
+  '<path d="M6.5 8.2c0-.66.54-1.2 1.2-1.2h1.02c.34 0 .66-.16.86-.44l.5-.68c.19-.26.5-.42.82-.42h1.2c.32 0 .63.16.82.42l.5.68c.2.28.52.44.86.44h1.02c.66 0 1.2.54 1.2 1.2v5.1c0 .66-.54 1.2-1.2 1.2H7.7c-.66 0-1.2-.54-1.2-1.2V8.2z" fill="#0b1220"/><circle cx="11" cy="10.8" r="2" fill="#e5e7eb"/>';
+const webcamIcon = (stale: boolean) =>
+  divIcon({
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    html: `<svg width="24" height="24" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="5" fill="${stale ? '#fde68a' : '#e5e7eb'}" stroke="${stale ? '#b45309' : '#0b1220'}" stroke-width="1.5"/>${WEBCAM_GLYPH}</svg>`,
+  });
+const WEBCAM_ICON = webcamIcon(false);
+const WEBCAM_ICON_STALE = webcamIcon(true);
 
 // "You are here". Deliberately not a plain dot: gauges are solid circles in
 // the same size range and "Normal" is blue, so a blue dot read as another
@@ -97,15 +119,15 @@ function loadView(): SavedView | null {
   return null;
 }
 
-// Defaults to visible when the key is missing or unparsable.
-function loadVisible(key: string): boolean {
-  if (typeof window === 'undefined') return true;
+// Falls back to `fallback` (visible, unless a layer says otherwise) when the key is missing or unparsable.
+function loadVisible(key: string, fallback = true): boolean {
+  if (typeof window === 'undefined') return fallback;
   try {
     const raw = window.localStorage.getItem(key);
-    if (raw === null) return true;
+    if (raw === null) return fallback;
     return JSON.parse(raw) === true;
   } catch {
-    return true;
+    return fallback;
   }
 }
 
@@ -131,42 +153,35 @@ function ZoomTracker({ onChange }: { onChange: (z: number) => void }) {
   return null;
 }
 
-// Mobile apps only: a tap that missed every layer (open ground near a dot)
-// still opens the nearest gauge within reach. Taps that hit a layer are
-// resolved by that layer's own click handler first — see `resolveTap`.
+// A tap that missed every layer (open ground near a dot or a camera, or an alert
+// outline) still opens the nearest gauge within reach (apps), camera or alert. Taps that
+// hit a layer are resolved by that layer's own click handler first — see `resolveTap`.
 function TapResolver({ onTap }: { onTap: (e: MouseEvent) => void }) {
   useMapEvents({ click: (e) => onTap(e.originalEvent) });
   return null;
 }
 
-// --- F1 alerts ---
-// Website: a click that no gauge or waterway claimed (see `handledTaps`) may land on
-// an NWS alert outline. In the apps the same hand-off happens inside `resolveTap`.
-function AlertClickResolver({ onClick }: { onClick: (e: MouseEvent, lat: number, lon: number) => void }) {
-  useMapEvents({ click: (e) => onClick(e.originalEvent, e.latlng.lat, e.latlng.lng) });
-  return null;
-}
-// --- end F1 ---
-
 // Native click events that `resolveTap` has already acted on (see there).
 // Events are unique objects, so nothing needs cleaning up.
 const handledTaps = new WeakSet<object>();
 
-// The gauge whose center is closest to `point` (container px), if any lies
-// within `radius`. A gauge whose dot is entirely off screen is never a
-// candidate, so a tap at the edge of the screen can't open one you can't see.
-function nearestGauge(
+// The gauge (or camera) whose center is closest to `point` (container px), if any
+// lies within `radius`. One whose marker is entirely off screen (`margin` is its
+// size) is never a candidate, so a tap at the edge of the screen can't open one you
+// can't see.
+function nearestGauge<T extends { lat: number; lon: number }>(
   map: LeafletMap,
   point: { x: number; y: number },
-  gauges: GaugeStatus[],
+  gauges: T[],
   radius: number,
-): GaugeStatus | null {
+  margin: number = GAUGE_RADIUS,
+): T | null {
   const size = map.getSize();
-  let best: GaugeStatus | null = null;
+  let best: T | null = null;
   let bestSq = radius * radius;
   for (const g of gauges) {
     const c = map.latLngToContainerPoint([g.lat, g.lon]);
-    if (c.x < -GAUGE_RADIUS || c.y < -GAUGE_RADIUS || c.x > size.x + GAUGE_RADIUS || c.y > size.y + GAUGE_RADIUS) continue;
+    if (c.x < -margin || c.y < -margin || c.x > size.x + margin || c.y > size.y + margin) continue;
     const sq = (c.x - point.x) ** 2 + (c.y - point.y) ** 2;
     if (sq <= bestSq) {
       best = g;
@@ -176,7 +191,7 @@ function nearestGauge(
   return best;
 }
 
-const EMPTY_ALERTS: NwsAlert[] = []; // F1 alerts
+const EMPTY_ALERTS: NwsAlert[] = [];
 
 type Waterways = FeatureCollection<Geometry, WaterwayProperties>;
 
@@ -184,52 +199,80 @@ export default function MapView() {
   const [waterways, setWaterways] = useState<Waterways | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<GaugeStatus | null>(null);
-  // Open a gauge sheet and record the open for analytics. Both click paths
-  // (marker + waterway) go through here so tracking can't be forgotten on one.
-  const selectGauge = (g: GaugeStatus) => {
-    // Belt-and-suspenders: dismiss any pending/active hover preview so it
-    // can never linger on top of the sheet we're about to open.
+  // The camera whose sheet is open, as of when it was tapped; `openWebcam` below is the same
+  // camera from the newest list, so the sheet follows a refresh.
+  const [selectedWebcam, setSelectedWebcam] = useState<Webcam | null>(null);
+  // One sheet at a time: opening any of them (gauge, camera, alert, alert list) goes
+  // through here first. The hover preview is dismissed too, so it can never linger on
+  // top of the sheet we're about to open.
+  const dismissSheets = () => {
     if (hoverTimerRef.current) {
       window.clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
     setHoverChart(null);
+    setSelected(null);
+    setSelectedWebcam(null);
+    setAlertSheet(null);
+    setAlertsListOpen(false);
+  };
+  // Open a gauge sheet and record the open for analytics. Every path (marker, waterway,
+  // list, camera sheet, shared link) goes through here so tracking can't be forgotten.
+  const selectGauge = (g: GaugeStatus) => {
+    dismissSheets();
     setSelected(g);
     track({ type: 'gauge_open', gaugeId: g.id });
   };
+  // No analytics event: cameras add nothing to what the app collects.
+  const selectWebcam = (w: Webcam) => {
+    dismissSheets();
+    setSelectedWebcam(w);
+  };
+  // What the open alert sheet shows: every alert at the tapped point, or one picked
+  // from the list.
+  const [alertSheet, setAlertSheet] = useState<NwsAlert[] | null>(null);
+  const [alertsListOpen, setAlertsListOpen] = useState(false);
   const [hoverChart, setHoverChart] = useState<{ gauge: GaugeStatus; x: number; y: number } | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
-  // Mobile-app tap resolution. Every tappable thing on the map (a gauge dot, a
-  // river, a lake, open ground near a dot) reports through here, so one tap
-  // opens exactly one gauge: the nearest gauge center within GAUGE_TAP_RADIUS,
-  // else the gauge of the waterway that was tapped. Leaflet runs the layer's
-  // click handler before the map's and hands both the same native event, so
-  // the first to resolve a tap claims it (in `handledTaps`) and the other
-  // becomes a no-op.
-  const resolveTap = (ev: MouseEvent | undefined, fallback?: GaugeStatus) => {
+  // Tap resolution. Every tappable thing on the map (a gauge dot, a river, a
+  // lake, a camera, an alert area, open ground near a dot) reports through here, so one tap
+  // opens exactly one thing. In priority order: the nearest gauge center within
+  // GAUGE_TAP_RADIUS (apps only), else the gauge dot that was hit directly (the
+  // website), else the nearest river camera within WEBCAM_TAP_RADIUS (when the
+  // layer is on), else the gauge of the waterway that was tapped. Leaflet runs
+  // the layer's click handler before the map's and hands both the same native
+  // event, so the first to resolve a tap claims it (in `handledTaps`) and the
+  // other becomes a no-op.
+  const resolveTap = (ev: MouseEvent | undefined, hit: { gauge?: GaugeStatus; waterway?: GaugeStatus } = {}) => {
     if (ev) {
       if (handledTaps.has(ev)) return;
       handledTaps.add(ev);
     }
     const map = mapRef.current;
-    const near = ev && map
-      ? nearestGauge(map, map.mouseEventToContainerPoint(ev), Object.values(gaugeMapRef.current), GAUGE_TAP_RADIUS)
+    const point = ev && map ? map.mouseEventToContainerPoint(ev) : null;
+    const near = IS_MOBILE && map && point
+      ? nearestGauge(map, point, Object.values(gaugeMapRef.current), GAUGE_TAP_RADIUS)
       : null;
-    const target = near ?? fallback;
-    if (target) selectGauge(target);
-    // F1 alerts: nothing gauge-like was hit, so the tap may be on an alert outline.
-    else if (ev && map) {
-      const at = map.mouseEventToLatLng(ev);
+    const gauge = near ?? hit.gauge;
+    if (gauge) return selectGauge(gauge);
+    const cam = map && point ? nearestGauge(map, point, shownWebcamsRef.current, WEBCAM_TAP_RADIUS, 12) : null;
+    if (cam) return selectWebcam(cam);
+    if (hit.waterway) return selectGauge(hit.waterway);
+    // Nothing gauge-like was hit: last, the tap may be inside an alert outline.
+    if (map && point) {
+      const at = map.containerPointToLatLng(point);
       openAlertsAt(at.lat, at.lng);
     }
   };
-  // Android back button (hardware or gesture): close the open gauge sheet
-  // first; with nothing open, hand the app to the launcher — the same thing
-  // Android 12+ does for a root activity. Registering ANY listener replaces
-  // Capacitor's default (which would navigate web-view history), so both
-  // branches are ours to handle. Never fires on iOS or the web.
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
+  // Android back button (hardware or gesture): close the topmost open sheet first
+  // (they register in `backButton.ts`, newest first); with nothing open, hand the app
+  // to the launcher — the same thing Android 12+ does for a root activity. Registering
+  // ANY listener replaces Capacitor's default (which would navigate web-view history),
+  // so both branches are ours to handle. Never fires on iOS or the web.
+  const sheetOpen = selected !== null || selectedWebcam !== null || alertSheet !== null || alertsListOpen;
+  // dismissSheets only touches state setters and a ref, so the first render's copy is fine.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => (sheetOpen ? pushBackHandler(dismissSheets) : undefined), [sheetOpen]);
   useEffect(() => {
     if (!IS_MOBILE) return;
     let cancelled = false;
@@ -238,12 +281,7 @@ export default function MapView() {
       const { App } = await import('@capacitor/app');
       if (cancelled) return;
       handle = await App.addListener('backButton', () => {
-        if (runBackHandler()) return; // the gauge list sheet
-        if (closeAlertSheetsRef.current()) return; // F1 alerts
-        if (selectedRef.current) {
-          setSelected(null);
-          return;
-        }
+        if (runBackHandler()) return;
         void App.minimizeApp();
       });
     })();
@@ -254,6 +292,9 @@ export default function MapView() {
   }, []);
   // null = live; ISO = historical snapshot.
   const [atIso, setAtIso] = useState<string | null>(null);
+  // Alerts and camera photos describe right now, so both layers are hidden (with the
+  // reason in the Legend) while the timeline shows another time.
+  const live = atIso === null;
   const {
     data: gaugeData,
     error: gaugesError,
@@ -261,29 +302,36 @@ export default function MapView() {
     isValidating: gaugesValidating,
     mutate: refreshGauges,
   } = useGaugeData(atIso);
+  // River cameras. The list is fetched whether or not the layer is on (about 20 KB, so a
+  // gauge's sheet can offer its camera); `now` moves every minute so a photo that ages
+  // past 3 h or 24 h changes state without waiting for the next poll.
+  const { data: webcamData, error: webcamsError } = useWebcamData();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+  const { shown: shownWebcams, offline: offlineWebcams } = useMemo(
+    () => partitionWebcams(webcamData?.webcams ?? [], now),
+    [webcamData, now],
+  );
+  const openWebcam = selectedWebcam
+    ? webcamData?.webcams.find(w => w.id === selectedWebcam.id) ?? selectedWebcam
+    : null;
+  const [webcamsVisible, setWebcamsVisible] = useState<boolean>(() => loadVisible(WEBCAMS_VISIBLE_KEY, false));
+  const webcamsActive = webcamsVisible && live;
+  // Only cameras that are drawn can be tapped.
+  const shownWebcamsRef = useRef<Webcam[]>([]);
+  shownWebcamsRef.current = webcamsActive ? shownWebcams : [];
   const mapRef = useRef<LeafletMap | null>(null);
-  // --- F1 alerts: NWS flood warnings & watches (unofficial overlay) ---
-  // The layer is a per-viewer preference; it is also off while the timeline shows
-  // another time, because alerts describe right now.
+  // NWS flood warnings & watches (unofficial overlay). A per-viewer preference.
   const [alertsOn, setAlertsOn] = useState<boolean>(() => loadVisible(ALERTS_VISIBLE_KEY));
-  const alertsLive = atIso === null;
-  const alertsActive = alertsOn && alertsLive;
+  const alertsActive = alertsOn && live;
   const alertsHook = useAlerts(alertsActive);
   const alertsReady = alertsActive && alertsHook.state.kind === 'ready';
   const drawnAlerts = alertsReady ? alertsHook.alerts : EMPTY_ALERTS;
   const alertsRef = useRef<NwsAlert[]>(EMPTY_ALERTS);
   alertsRef.current = drawnAlerts;
-  // What the open alert sheet shows: every alert at the tapped point, or one picked
-  // from the list.
-  const [alertSheet, setAlertSheet] = useState<NwsAlert[] | null>(null);
-  const [alertsListOpen, setAlertsListOpen] = useState(false);
-  const closeAlertSheetsRef = useRef<() => boolean>(() => false);
-  closeAlertSheetsRef.current = () => {
-    if (!alertSheet && !alertsListOpen) return false;
-    setAlertSheet(null);
-    setAlertsListOpen(false);
-    return true;
-  };
   const alertAgeMs = alertsHook.state.kind === 'ready' ? alertsHook.state.ageMs : null;
   const alertsStale = alertsHook.state.kind === 'ready' && alertsHook.state.stale;
   const alertsAsOf = alertsHook.updatedAt
@@ -298,7 +346,7 @@ export default function MapView() {
   function openAlertsAt(lat: number, lon: number) {
     const hit = alertsAt(alertsRef.current, lon, lat);
     if (hit.length > 0) {
-      setAlertsListOpen(false);
+      dismissSheets();
       setAlertSheet(hit);
     }
   }
@@ -316,16 +364,9 @@ export default function MapView() {
         duration: 0.8,
       });
     }
-    setAlertsListOpen(false);
+    dismissSheets();
     setAlertSheet([a]);
   }
-  // Website: a click nobody else claimed (see `handledTaps`).
-  const onWebClick = (ev: MouseEvent, lat: number, lon: number) => {
-    if (handledTaps.has(ev)) return;
-    handledTaps.add(ev);
-    openAlertsAt(lat, lon);
-  };
-  // --- end F1 ---
   // Where the user is, once they've tapped the locate button.
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const onLocated = (lat: number, lon: number) => {
@@ -459,11 +500,7 @@ export default function MapView() {
     layer.bindTooltip(label, { sticky: true, direction: 'top', opacity: 0.9 });
     layer.on('click', (e: LeafletMouseEvent) => {
       const live = gid ? gaugeMapRef.current[gid] : undefined;
-      if (IS_MOBILE) resolveTap(e.originalEvent, live);
-      else if (live) {
-        handledTaps.add(e.originalEvent); // F1 alerts: claimed, not an alert click
-        selectGauge(live);
-      }
+      resolveTap(e.originalEvent, { waterway: live });
     });
   };
 
@@ -506,12 +543,9 @@ export default function MapView() {
       >
         <ViewPersister />
         <ZoomTracker onChange={setZoom} />
-        {IS_MOBILE && <TapResolver onTap={resolveTap} />}
+        <TapResolver onTap={resolveTap} />
         <Basemap />
-        {/* --- F1 alerts --- */}
         <AlertsLayer alerts={drawnAlerts} />
-        {!IS_MOBILE && <AlertClickResolver onClick={onWebClick} />}
-        {/* --- end F1 --- */}
         {waterways && (
           <GeoJSON
             // Re-mount only when the underlying dataset changes or when the
@@ -525,6 +559,19 @@ export default function MapView() {
             onEachFeature={onEachFeature as any}
           />
         )}
+        {/* Below the canvas the waterways and gauge dots are drawn on (overlay pane, 400). */}
+        <Pane name="webcams" style={{ zIndex: 399, pointerEvents: 'none' }}>
+          {webcamsActive && shownWebcams.map(w => (
+            <Marker
+              key={w.id}
+              pane="webcams"
+              position={[w.lat, w.lon]}
+              icon={webcamStatus(w, now) === 'stale' ? WEBCAM_ICON_STALE : WEBCAM_ICON}
+              interactive={false}
+              keyboard={false}
+            />
+          ))}
+        </Pane>
         {gaugeList.map(g => (
           <CircleMarker
             key={g.id}
@@ -538,11 +585,7 @@ export default function MapView() {
             }}
             eventHandlers={{
               click: (e) => {
-                if (IS_MOBILE) resolveTap(e.originalEvent, g);
-                else {
-                  handledTaps.add(e.originalEvent); // F1 alerts: claimed, not an alert click
-                  selectGauge(g);
-                }
+                resolveTap(e.originalEvent, { gauge: g });
               },
               mouseover: (e) => {
                 // Touch taps fire mouseover but never mouseout, so the hover
@@ -618,7 +661,6 @@ export default function MapView() {
         </div>
       )}
 
-      {/* --- F1 alerts --- */}
       {alertsActive && (
         <AlertsStatusChip
           state={alertsHook.state}
@@ -629,7 +671,6 @@ export default function MapView() {
           }
         />
       )}
-      {/* --- end F1 --- */}
 
       {legendVisible && (
         <DraggablePanel
@@ -650,12 +691,25 @@ export default function MapView() {
             alertsLayer={{
               enabled: alertsOn,
               onToggle: on => { setAlertsOn(on); saveVisible(ALERTS_VISIBLE_KEY, on); },
-              hiddenForTimeline: !alertsLive,
+              hiddenForTimeline: !live,
               state: alertsHook.state,
               count: drawnAlerts.length,
               byLevel: alertsByLevel,
               asOf: alertsAsOf,
-              onOpenList: () => setAlertsListOpen(true),
+              onOpenList: () => { dismissSheets(); setAlertsListOpen(true); },
+            }}
+            webcams={{
+              enabled: webcamsVisible,
+              onToggle: on => {
+                setWebcamsVisible(on);
+                saveVisible(WEBCAMS_VISIBLE_KEY, on);
+                if (!on) setSelectedWebcam(null);
+              },
+              hiddenForTimeline: !live,
+              shown: shownWebcams.length,
+              offline: offlineWebcams.length,
+              unavailable: !webcamData && !!webcamsError,
+              loading: !webcamData && !webcamsError,
             }}
           />
         </DraggablePanel>
@@ -750,8 +804,29 @@ export default function MapView() {
         </div>
       )}
       {hoverChart && <HoverHydrograph gauge={hoverChart.gauge} x={hoverChart.x} y={hoverChart.y} />}
-      {selected && <GaugeSheet gauge={selected} onClose={() => setSelected(null)} />}
-      {/* --- F1 alerts --- */}
+      {selected && (
+        <GaugeSheet
+          gauge={selected}
+          onClose={() => setSelected(null)}
+          webcam={(() => {
+            const cam = live ? shownWebcams.find(w => w.gaugeId === selected.id) : undefined;
+            return cam ? { name: cam.name, onOpen: () => selectWebcam(cam) } : undefined;
+          })()}
+        />
+      )}
+      {openWebcam && (() => {
+        const gauge = openWebcam.gaugeId ? gaugeMap[openWebcam.gaugeId] : undefined;
+        return (
+          <WebcamSheet
+            webcam={openWebcam}
+            gaugeName={gauge?.name}
+            onOpenGauge={gauge ? () => selectGauge(gauge) : undefined}
+            siblings={camerasNear(openWebcam, shownWebcams)}
+            onSelectSibling={selectWebcam}
+            onClose={() => setSelectedWebcam(null)}
+          />
+        );
+      })()}
       {alertSheet && (
         <AlertSheet
           key={alertSheet.map(a => a.id).join('|')}
@@ -771,7 +846,6 @@ export default function MapView() {
           onClose={() => setAlertsListOpen(false)}
         />
       )}
-      {/* --- end F1 --- */}
     </div>
   );
 }

@@ -1,0 +1,114 @@
+[
+ {
+  "id": "ADDT2",
+  "name": "Langham Creek at Addicks Reservoir",
+  "lat": 29.791111111111,
+  "lon": -95.623333333333,
+  "usgsId": "08073000"
+ },
+ {
+  "id": "BAKT2",
+  "name": "Buffalo Bayou at Barker Reservoir",
+  "lat": 29.769722222222,
+  "lon": -95.646944444444,
+  "usgsId": "08072500"
+ },
+ {
+  "id": "BMKT2",
+  "name": "Manadas Creek at Bristol Road nr Laredo",
+  "lat": 27.5838,
+  "lon": -99.5147,
+  "usgsId": null
+ },
+ {
+  "id": "BNBT2",
+  "name": "North Texas Lakes at Benbrook Lake",
+  "lat": 32.650555555556,
+  "lon": -97.448333333333,
+  "usgsId": "08046500"
+ },
+ {
+  "id": "COMT2",
+  "name": "Guadalupe River at Comfort",
+  "lat": 29.96523889,
+  "lon": -98.8971667,
+  "usgsId": "08167000"
+ },
+ {
+  "id": "DALT2",
+  "name": "Trinity River at Dallas",
+  "lat": 32.7747222222222,
+  "lon": -96.8216666666667,
+  "usgsId": "08057000"
+ },
+ {
+  "id": "GRHT2",
+  "name": "Guadalupe River above Bear Creek at Kerrville",
+  "lat": 30.069444444444,
+  "lon": -99.195,
+  "usgsId": "08166140"
+ },
+ {
+  "id": "HSJT2",
+  "name": "San Jacinto River at Lake Houston",
+  "lat": 29.916111111111,
+  "lon": -95.141111111111,
+  "usgsId": "08072000"
+ },
+ {
+  "id": "LCTT2",
+  "name": "West Fork San Jacinto River at Lake Conroe",
+  "lat": 30.358333333333,
+  "lon": -95.560833333333,
+  "usgsId": "08067600"
+ },
+ {
+  "id": "SAFT2",
+  "name": "San Pedro Creek at Furnish Street",
+  "lat": 29.406111111111112,
+  "lon": -98.51055555555556,
+  "usgsId": null
+ },
+ {
+  "id": "SIOT2",
+  "name": "Olmos Creek at Dresden Drive",
+  "lat": 29.498888888889,
+  "lon": -98.51,
+  "usgsId": "08177700"
+ },
+ {
+  "id": "UMBT2",
+  "name": "Tierra Blanca Creek 8SW Umbarger",
+  "lat": 34.8502777777778,
+  "lon": -102.175555555556,
+  "usgsId": "07295500"
+ },
+ {
+  "id": "UMRT2",
+  "name": "Palo Duro Creek 6NNW Umbarger",
+  "lat": 35.03550556,
+  "lon": -102.1506,
+  "usgsId": "07295500"
+ },
+ {
+  "id": "WMBT2",
+  "name": "Blanco River at Wimberley",
+  "lat": 29.994166666667,
+  "lon": -98.088611111111,
+  "usgsId": "08171000"
+ },
+ {
+  "id": "ZAJT2",
+  "name": "Zacate Creek at Jacaman Road",
+  "lat": 27.5612,
+  "lon": -99.4712,
+  "usgsId": null
+ },
+ {
+  "id": "ZACT2",
+  "name": "Zacate Creek at Laredo",
+  "lat": 27.53611111111111,
+  "lon": -99.50027777777778,
+  "usgsId": "08458995"
+ }
+]

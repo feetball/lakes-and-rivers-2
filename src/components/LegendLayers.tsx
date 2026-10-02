@@ -151,8 +151,43 @@ export function AlertsLegendLayer(p: AlertsLegendProps) {
   );
 }
 
-// The "Layers" heading and body. Other layer toggles go inside as siblings of the
-// alerts row.
+export interface WebcamsLegendProps {
+  enabled: boolean;
+  onToggle: (on: boolean) => void;
+  // The timeline is on a past or future time: photos are from now, so they are hidden.
+  hiddenForTimeline: boolean;
+  /** Cameras drawn on the map (photo under 24 h old). */
+  shown: number;
+  /** Cameras hidden because their newest photo is over 24 h old (or they have none). */
+  offline: number;
+  loading: boolean;
+  unavailable: boolean;
+}
+
+export function WebcamsLegendLayer(p: WebcamsLegendProps) {
+  return (
+    <LayerToggle label="River cameras" checked={p.enabled} onChange={p.onToggle}>
+      {p.enabled && (
+        <div style={{ ...muted, marginBottom: 6 }}>
+          {p.hiddenForTimeline ? (
+            'Hidden while the timeline shows another time. Camera photos are from right now; return to live to see them.'
+          ) : p.unavailable ? (
+            <span role="status" style={{ color: '#fbbf24' }}>⚠ Could not load the camera list. No cameras are shown.</span>
+          ) : p.loading ? (
+            'Loading cameras…'
+          ) : (
+            <>
+              {p.shown} {p.shown === 1 ? 'camera' : 'cameras'} shown. Still photos from USGS, not live video.
+              {p.offline > 0 && <> {p.offline} {p.offline === 1 ? 'camera' : 'cameras'} offline (no photo in 24 h), not shown.</>}
+            </>
+          )}
+        </div>
+      )}
+    </LayerToggle>
+  );
+}
+
+// The "Layers" heading and body: one LayerToggle row per optional map layer.
 export default function LegendLayers({ children }: { children: ReactNode }) {
   return (
     <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #1f2937' }}>

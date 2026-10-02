@@ -11,6 +11,8 @@ import FavoriteStar from './FavoriteStar';
 interface Props {
   gauge: GaugeStatus;
   onClose: () => void;
+  /** A USGS river camera at this gauge's site, when the app knows of one that is online. */
+  webcam?: { name: string; onOpen: () => void };
 }
 
 interface FloodRecord {
@@ -48,7 +50,7 @@ function formatPeakDate(raw: string): string {
   return raw;
 }
 
-export default function GaugeSheet({ gauge, onClose }: Props) {
+export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
   const color = CATEGORY_COLORS[gauge.category];
   const observedAt = gauge.observedAt
     ? new Date(gauge.observedAt).toLocaleString([], {
@@ -199,6 +201,19 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
             </div>
           )}
         </div>
+
+        {webcam && (
+          <button
+            onClick={webcam.onOpen}
+            style={{
+              width: '100%', minHeight: 44, textAlign: 'left', marginBottom: 14,
+              background: '#1f2937', border: '1px solid #374151', borderRadius: 8,
+              color: '#e5e7eb', fontSize: 14, padding: '8px 12px', cursor: 'pointer',
+            }}
+          >
+            📷 River camera at this site: {webcam.name} →
+          </button>
+        )}
 
         {noStagesGray && (
           <div

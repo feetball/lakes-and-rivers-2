@@ -5,9 +5,7 @@ import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAg
 import type { FloodCategory } from '@/lib/types';
 import { IS_MOBILE } from '@/lib/api';
 import AdminControls from './AdminControls';
-// --- F1 alerts: Layers section ---
-import LegendLayers, { AlertsLegendLayer, type AlertsLegendProps } from './LegendLayers';
-// --- end F1 ---
+import LegendLayers, { AlertsLegendLayer, WebcamsLegendLayer, type AlertsLegendProps, type WebcamsLegendProps } from './LegendLayers';
 
 interface Props {
   counts: Record<FloodCategory, number>;
@@ -18,12 +16,12 @@ interface Props {
   onForceRefreshed?: () => void;
   // gaugeId -> display name, passed through to the admin analytics panel.
   gaugeNames?: Record<string, string>;
-  // --- F1 alerts: Layers section ---
+  // Optional map layers, rendered in one "Layers" section. Omitted = no row.
   alertsLayer?: AlertsLegendProps;
-  // --- end F1 ---
+  webcams?: WebcamsLegendProps;
 }
 
-export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames, alertsLayer }: Props) {
+export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames, alertsLayer, webcams }: Props) {
   const [open, setOpen] = useState(true);
   // epoch-0 (1970-01-01T00:00:00Z) is the "no real observation yet" sentinel
   // the API ships when the live NWPS cache is still cold. Formatting it
@@ -135,13 +133,12 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
             )}
             <span>· refreshes every 10 min</span>
           </div>
-          {/* --- F1 alerts: Layers section --- */}
-          {alertsLayer && (
+          {(alertsLayer || webcams) && (
             <LegendLayers>
-              <AlertsLegendLayer {...alertsLayer} />
+              {alertsLayer && <AlertsLegendLayer {...alertsLayer} />}
+              {webcams && <WebcamsLegendLayer {...webcams} />}
             </LegendLayers>
           )}
-          {/* --- end F1 --- */}
           {/* The admin login is an operator tool for the web deploy; store
               apps ship without it (and without the session probe it makes). */}
           {!IS_MOBILE && <AdminControls onRefreshed={onForceRefreshed} gaugeNames={gaugeNames} />}
