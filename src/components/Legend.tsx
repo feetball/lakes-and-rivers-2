@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs } from '@/lib/floodStatus';
-import type { FloodCategory } from '@/lib/types';
+import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, type DisplayCategory } from '@/lib/floodStatus';
 import { IS_MOBILE } from '@/lib/api';
 import AdminControls from './AdminControls';
 import LegendLayers, { AlertsLegendLayer, WebcamsLegendLayer, type AlertsLegendProps, type WebcamsLegendProps } from './LegendLayers';
 
 interface Props {
-  counts: Record<FloodCategory, number>;
+  counts: Record<DisplayCategory, number>;
   updatedAt?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -94,10 +93,10 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
               <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{counts[cat]}</span>
             </div>
           ))}
-          {/* Gray must never read as "safe": NWS publishes no flood stages for a
+          {/* Neither gray nor tan may read as "safe": NWS publishes no flood stages for a
               third of Texas gauges, and others simply have no recent reading. */}
           <div style={{ color: '#9ca3af', fontSize: 11, lineHeight: 1.35, maxWidth: 190 }}>
-            Gray: no flood stages defined (or no recent reading)
+            Gray and tan are not an all-clear: no recent reading, or NWS defines no flood stages to compare against
           </div>
           <div
             style={{

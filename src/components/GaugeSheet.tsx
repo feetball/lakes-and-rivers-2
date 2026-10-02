@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge, hasValidThresholds } from '@/lib/floodStatus';
+import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, hasValidThresholds } from '@/lib/floodStatus';
 import type { GaugeStatus } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
 import GaugeDetailSections from './GaugeDetailSections';
@@ -51,7 +51,8 @@ function formatPeakDate(raw: string): string {
 }
 
 export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
-  const color = CATEGORY_COLORS[gauge.category];
+  const kind = displayCategory(gauge);
+  const color = CATEGORY_COLORS[kind];
   const observedAt = gauge.observedAt
     ? new Date(gauge.observedAt).toLocaleString([], {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -62,15 +63,14 @@ export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
   const obsAge = dataAgeMs(gauge.observedAt);
   const obsStale = obsAge !== null && obsAge > STALE_DATA_MS;
 
-  // Gray means "no category", and the reason differs: say which, so a reading
-  // without flood stages never reads as a status. An all-empty thresholds object
-  // is NWS's "none defined"; null thresholds only mean we do not have them (a
-  // gauge newer than the build-time list), which proves nothing either way.
+  // No category has two reasons and two looks: tan "No flood stages" (a reading, but NWS
+  // defines no stages to compare it with) and gray "No data" (no reading), so a reading
+  // without flood stages never reads as a status. An all-empty thresholds object is NWS's
+  // "none defined"; null thresholds only mean we do not have them (a gauge newer than the
+  // build-time list), which proves nothing either way.
   const noFloodStages = !!gauge.thresholds && !hasValidThresholds(gauge.thresholds);
-  const noStagesGray = noFloodStages && gauge.category === 'not_defined';
-  const statusLabel = noStagesGray && gauge.observedStage !== null
-    ? 'No flood stages defined'
-    : CATEGORY_LABELS[gauge.category];
+  const noStagesNote = noFloodStages && (kind === 'no_stages' || kind === 'not_defined');
+  const statusLabel = CATEGORY_LABELS[kind];
 
   const [records, setRecords] = useState<FloodRecord[]>([]);
 
@@ -215,13 +215,13 @@ export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
           </button>
         )}
 
-        {noStagesGray && (
+        {noStagesNote && (
           <div
             style={{
               background: '#1f2937', borderRadius: 8, padding: '8px 10px', fontSize: 13, lineHeight: 1.45,
             }}
           >
-            NWS has not defined flood stages for this gauge, so it has no flood category and is shown gray.
+            NWS has not defined flood stages for this gauge, so it has no flood category.
             A reading here does not mean conditions are normal.
           </div>
         )}

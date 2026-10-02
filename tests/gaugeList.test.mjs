@@ -170,7 +170,21 @@ test('describeItem: fresh, stale, unknown time, no reading, no stages', () => {
   assert.ok(none.segments.some(s => /No current reading/.test(s.text)));
   assert.ok(!/Normal/.test(none.ariaLabel));
   const noStages = describeItem(toListItem({ ...byId('HNTT2'), thresholds: { action: null, minor: null, moderate: null, major: null } }, NOW));
-  assert.ok(noStages.segments.some(s => /no flood stages defined/.test(s.text)));
+  assert.ok(noStages.segments.some(s => s.text === 'No flood stages'));
+  assert.ok(!/Normal|No data|No current reading/.test(noStages.ariaLabel));
+  assert.match(noStages.ariaLabel, /no flood stages/);
+  // Thresholds we do not have (null) are not "none defined": the old caveat on "Normal" stays.
+  const unknown = describeItem(toListItem({ ...byId('HNTT2'), thresholds: null }, NOW));
+  assert.ok(unknown.segments.some(s => /no flood stages defined/.test(s.text)));
+});
+
+test('a gauge with a reading but no flood stages is "no flood stages" in the list, not "no data"', () => {
+  const none = { action: null, minor: null, moderate: null, major: null };
+  assert.equal(listCategory(withEdits('HNTT2', { thresholds: none })), 'no_stages');
+  assert.equal(listCategory(withEdits('HNTT2', { thresholds: none, category: 'not_defined' })), 'no_stages');
+  assert.equal(listCategory(withEdits('HNTT2', { thresholds: none, observedStage: null, category: 'not_defined' })), 'not_defined');
+  assert.equal(statusRank('no_stages'), STATUS_RANK.not_defined);
+  assert.ok(CATEGORY_COLORS.no_stages && CATEGORY_COLORS.no_stages !== CATEGORY_COLORS.not_defined);
 });
 
 test('describeItem shows distance in miles', () => {

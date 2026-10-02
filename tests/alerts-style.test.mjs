@@ -7,8 +7,8 @@ import { ALERT_LEVELS, ALERT_STYLE } from '../src/lib/alertStyle.ts';
 import { contrast, dE } from './helpers/color.mjs';
 
 const LAND = '#e2dfda'; // Basemap.tsx EARTH_COLOR
-// src/lib/floodStatus.ts CATEGORY_COLORS plus the "you are here" violet (globals.css).
-const GAUGE = { nodata: '#94a3b8', normal: '#2563eb', action: '#eab308', minor: '#f97316', moderate: '#dc2626', major: '#7f1d1d', you: '#8b5cf6' };
+// src/lib/floodStatus.ts CATEGORY_COLORS (incl. the tan "no flood stages") plus the "you are here" violet (globals.css).
+const GAUGE = { nodata: '#94a3b8', nostages: '#a18e72', normal: '#2563eb', action: '#eab308', minor: '#f97316', moderate: '#dc2626', major: '#7f1d1d', you: '#8b5cf6' };
 const KINDS = ['normal', 'protanopia', 'deuteranopia', 'tritanopia'];
 
 test('every alert outline is at least 4.5:1 against the land colour', () => {

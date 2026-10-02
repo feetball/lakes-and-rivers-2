@@ -10,7 +10,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import './helpers/ts-imports.mjs';
 
-const { categorizeByStage, hasValidThresholds, isValidStage } = await import('../src/lib/floodStatus.ts');
+const { CATEGORY_COLORS, CATEGORY_LABELS, categorizeByStage, colorFor, displayCategory, hasValidThresholds, isValidStage } =
+  await import('../src/lib/floodStatus.ts');
 const { cleanTime, extractForecast, gaugeFromNwpsEntry, normalizeCategory, repairMetaEntry, resolveCategory } =
   await import('../src/lib/gaugeStatus.ts');
 
@@ -258,4 +259,55 @@ test('cleanTime: only real times survive', () => {
   assert.equal(cleanTime('not a date'), null);
   assert.equal(cleanTime(undefined), null);
   assert.equal(cleanTime(1759401900000), null);
+});
+
+// ---------------------------------------------------------------------------
+// displayCategory: "no flood stages" is not "no data"
+// ---------------------------------------------------------------------------
+
+test('displayCategory: a reading with no defined flood stages is no_stages (tan), never no_data (gray) or Normal', () => {
+  for (const lid of ['HNFT2', 'GRHT2', 'LNXT2']) {
+    const g = status(lid);
+    assert.equal(g.category, 'not_defined', `${lid}: the API category stays not_defined`);
+    assert.equal(displayCategory(g), 'no_stages', lid);
+    assert.equal(CATEGORY_LABELS[displayCategory(g)], 'No flood stages', lid);
+    assert.notEqual(colorFor(displayCategory(g)), CATEGORY_COLORS.not_defined, lid);
+    assert.notEqual(colorFor(displayCategory(g)), CATEGORY_COLORS.no_flooding, lid);
+  }
+});
+
+test('displayCategory: a gauge that reports nothing stays no_data, with or without flood stages', () => {
+  for (const lid of ['CDPT2', 'BDLT2']) {
+    const g = status(lid);
+    assert.equal(g.observedStage, null, lid);
+    assert.equal(displayCategory(g), 'not_defined', lid);
+  }
+  assert.equal(displayCategory({ category: 'not_defined', observedStage: null, thresholds: AMARILLO }), 'not_defined');
+  assert.equal(displayCategory({ category: 'not_defined', observedStage: -999, thresholds: NONE }), 'not_defined');
+});
+
+test('displayCategory: a "Normal" with no flood stages behind it becomes no_stages; a real Normal stays', () => {
+  assert.equal(displayCategory({ category: 'no_flooding', observedStage: 2.1, thresholds: NONE }), 'no_stages');
+  assert.equal(displayCategory({ category: 'no_flooding', observedStage: 2.1, thresholds: SENTINELS }), 'no_stages');
+  assert.equal(displayCategory({ category: 'no_flooding', observedStage: 3.88, thresholds: AMARILLO }), 'no_flooding');
+});
+
+test('displayCategory: unknown thresholds (null) prove nothing, and a flood category is never replaced', () => {
+  assert.equal(displayCategory({ category: 'not_defined', observedStage: 2.1, thresholds: null }), 'not_defined');
+  assert.equal(displayCategory({ category: 'no_flooding', observedStage: 2.1, thresholds: null }), 'no_flooding');
+  for (const category of ['action', 'minor', 'moderate', 'major']) {
+    assert.equal(displayCategory({ category, observedStage: 12, thresholds: NONE }), category);
+  }
+});
+
+test('displayCategory: only the gauges with a reading and no stages move; the rest of the sample is unchanged', () => {
+  for (const lid of LIST.keys()) {
+    const g = status(lid);
+    const shown = displayCategory(g);
+    if (shown === 'no_stages') {
+      assert.ok(isValidStage(g.observedStage) && g.thresholds && !hasValidThresholds(g.thresholds), lid);
+    } else {
+      assert.equal(shown, g.category, lid);
+    }
+  }
 });

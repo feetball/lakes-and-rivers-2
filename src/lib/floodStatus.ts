@@ -1,7 +1,14 @@
-import type { FloodCategory } from './types';
+import type { FloodCategory, GaugeStatus } from './types';
 
-export const CATEGORY_ORDER: FloodCategory[] = [
+// What the map, the list and the sheets show for a gauge: the API's FloodCategory
+// plus one state the API never sends, `no_stages` (see displayCategory). It is
+// derived on the client so the API contract, the cached snapshots and the app
+// builds already installed on phones stay as they are.
+export type DisplayCategory = FloodCategory | 'no_stages';
+
+export const CATEGORY_ORDER: DisplayCategory[] = [
   'not_defined',
+  'no_stages',
   'no_flooding',
   'action',
   'minor',
@@ -9,8 +16,13 @@ export const CATEGORY_ORDER: FloodCategory[] = [
   'major',
 ];
 
-export const CATEGORY_COLORS: Record<FloodCategory, string> = {
+export const CATEGORY_COLORS: Record<DisplayCategory, string> = {
   not_defined: '#94a3b8',  // slate — no live data
+  // Warm tan — there IS a reading but NWS publishes no flood stages for the gauge. Not blue
+  // (that is "Normal"), not slate (that is "No data"), not green (reads as safe); far from
+  // every other status, alert and "you are here" colour, colour-blind viewers included
+  // (tests/gauge-palette.test.mjs, tests/alerts-style.test.mjs).
+  no_stages:   '#a18e72',
   no_flooding: '#2563eb',  // blue — normal
   action:      '#eab308',  // yellow — nearing flood stage
   minor:       '#f97316',  // orange
@@ -18,8 +30,9 @@ export const CATEGORY_COLORS: Record<FloodCategory, string> = {
   major:       '#7f1d1d',  // dark red
 };
 
-export const CATEGORY_LABELS: Record<FloodCategory, string> = {
+export const CATEGORY_LABELS: Record<DisplayCategory, string> = {
   not_defined: 'No data',
+  no_stages: 'No flood stages',
   no_flooding: 'Normal',
   action: 'Action',
   minor: 'Minor flood',
@@ -27,7 +40,7 @@ export const CATEGORY_LABELS: Record<FloodCategory, string> = {
   major: 'Major flood',
 };
 
-export function colorFor(category: FloodCategory | undefined | null): string {
+export function colorFor(category: DisplayCategory | undefined | null): string {
   return CATEGORY_COLORS[category ?? 'not_defined'] ?? CATEGORY_COLORS.not_defined;
 }
 
@@ -73,6 +86,22 @@ export function categorizeByStage(stage: number, t: Thresholds): FloodCategory {
   if (valid(t.minor) && stage >= t.minor) return 'minor';
   if (valid(t.action) && stage >= t.action) return 'action';
   return 'no_flooding';
+}
+
+// The category to SHOW for a gauge. It is the gauge's own category except that gray splits
+// in two, so "no flood stages" never reads as "no data": a gauge that reports a stage but
+// whose flood stages NWS has not defined (a third of Texas gauges) is `no_stages`, and only
+// a gauge that reports nothing stays `not_defined` ("No data"). An all-empty thresholds
+// object is NWS's "none defined"; null thresholds only mean we do not have them (a gauge
+// newer than the build-time list), which proves nothing either way, so those are left alone.
+// A "Normal" with no flood stages behind it is a statement about nothing, so it becomes
+// `no_stages` too. A flood category is never replaced.
+export function displayCategory(g: Pick<GaugeStatus, 'category' | 'observedStage' | 'thresholds'>): DisplayCategory {
+  if (
+    (g.category === 'not_defined' || g.category === 'no_flooding') &&
+    g.thresholds && !hasValidThresholds(g.thresholds) && isValidStage(g.observedStage)
+  ) return 'no_stages';
+  return g.category;
 }
 
 // Live gauge data refreshes every ~30 min; past a few missed cycles a reading

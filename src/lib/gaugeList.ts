@@ -2,8 +2,8 @@
 // status ranking, sorting, reading age and text search. No React and no DOM, so it
 // runs under node:test (tests/gaugeList.test.mjs).
 
-import type { FloodCategory, GaugeStatus } from './types.ts';
-import { CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from './floodStatus.ts';
+import type { GaugeStatus } from './types.ts';
+import { CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, type DisplayCategory } from './floodStatus.ts';
 
 export interface LatLon {
   lat: number;
@@ -48,16 +48,17 @@ function spokenMiles(km: number): string {
 // ---------------------------------------------------------------------------
 
 /** Worst first. Anything the API sends that is not listed here ranks as "no data". */
-export const STATUS_RANK: Readonly<Record<FloodCategory, number>> = {
+export const STATUS_RANK: Readonly<Record<DisplayCategory, number>> = {
   major: 5,
   moderate: 4,
   minor: 3,
   action: 2,
   no_flooding: 1,
   not_defined: 0,
+  no_stages: 0, // no more to go on than "no data": same rank, so the order within them is unchanged
 };
 
-export function statusRank(category: FloodCategory): number {
+export function statusRank(category: DisplayCategory): number {
   return Object.hasOwn(STATUS_RANK, category) ? STATUS_RANK[category] : 0;
 }
 
@@ -88,13 +89,15 @@ export function readingAgeMs(gauge: Pick<GaugeStatus, 'observedAt'>, nowMs: numb
 }
 
 /**
- * The category the list shows and sorts by. It is the gauge's own category with one
+ * The category the list shows and sorts by: what the map shows (displayCategory, so a gauge
+ * with a reading but no flood stages is "no flood stages", not "no data"), with one more
  * exception: "Normal" needs a reading behind it, so a gauge that reports nothing is
  * listed as "no data" instead of looking all clear. A flood category is never downgraded.
  */
-export function listCategory(gauge: GaugeStatus): FloodCategory {
+export function listCategory(gauge: GaugeStatus): DisplayCategory {
   if (!Object.hasOwn(STATUS_RANK, gauge.category)) return 'not_defined';
-  return gauge.category === 'no_flooding' && !hasReading(gauge) ? 'not_defined' : gauge.category;
+  const category = displayCategory(gauge);
+  return category === 'no_flooding' && !hasReading(gauge) ? 'not_defined' : category;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +107,7 @@ export function listCategory(gauge: GaugeStatus): FloodCategory {
 export interface GaugeListItem {
   gauge: GaugeStatus;
   /** See listCategory. */
-  category: FloodCategory;
+  category: DisplayCategory;
   hasReading: boolean;
   /** False for a gauge with no flood stages: its category cannot mean much. */
   hasStages: boolean;
@@ -388,6 +391,10 @@ function statusPiece(item: GaugeListItem, snapshot: boolean): Piece {
         : { text: 'No current reading', spoken: 'no current reading' };
     }
     return { text: 'Flood stages not defined', spoken: 'flood stages not defined' };
+  }
+  if (item.category === 'no_stages') {
+    const label = CATEGORY_LABELS.no_stages;
+    return { text: label, spoken: label.toLowerCase() };
   }
   // "Normal" with no flood stages to compare against is a statement about nothing: say so.
   const note = item.category === 'no_flooding' && !item.hasStages ? ' (no flood stages defined)' : '';

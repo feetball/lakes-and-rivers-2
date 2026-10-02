@@ -41,8 +41,8 @@ function Forecast({ gauge, detail, failed, nowMs }: { gauge: GaugeStatus; detail
         </span>
       );
     case 'crest': {
-      const color = CATEGORY_COLORS[v.category];
       const noStages = !hasValidThresholds(gauge.thresholds);
+      const color = CATEGORY_COLORS[noStages ? 'no_stages' : v.category];
       return (
         <>
           <div>

@@ -8,11 +8,11 @@ import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer, 
 import { useGaugeData } from '@/hooks/useGaugeData';
 import { useSegmentedWaterways } from '@/hooks/useSegmentedWaterways';
 import useWebcamData from '@/hooks/useWebcamData';
-import { colorFor, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
+import { colorFor, displayCategory, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge, type DisplayCategory } from '@/lib/floodStatus';
 import { apiUrl, IS_MOBILE } from '@/lib/api';
 import { camerasNear, partitionWebcams, webcamStatus, type Webcam } from '@/lib/webcams';
 import Basemap from '@/components/Basemap';
-import type { FloodCategory, GaugeStatus, WaterwayProperties } from '@/lib/types';
+import type { GaugeStatus, WaterwayProperties } from '@/lib/types';
 import Legend from './Legend';
 import LocateButton from './LocateButton';
 import GaugeSheet from './GaugeSheet';
@@ -477,9 +477,9 @@ export default function MapView() {
 
   const styleFeature = (feature?: Feature<Geometry, WaterwayProperties>): PathOptions => {
     const gid = feature?.properties?.gaugeId;
-    const cat: FloodCategory | undefined = gid ? gaugeMapRef.current[gid]?.category : undefined;
+    const g = gid ? gaugeMapRef.current[gid] : undefined;
     const isWaterbody = feature?.geometry?.type === 'Polygon' || feature?.geometry?.type === 'MultiPolygon';
-    const color = colorFor(cat);
+    const color = colorFor(g && displayCategory(g));
     return isWaterbody
       ? { color, weight: 1, fillColor: color, fillOpacity: 0.55 }
       : { color, weight: 2.5, opacity: 0.9 };
@@ -496,7 +496,7 @@ export default function MapView() {
       const gid = f?.properties?.gaugeId;
       const name = f?.properties?.name ?? 'Unnamed waterway';
       const g = gid ? gaugeMap[gid] : undefined;
-      const label = g ? `${name} — ${CATEGORY_LABELS[g.category]}` : name;
+      const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g)]}` : name;
       const tip = (child as any).getTooltip?.();
       if (tip) tip.setContent(label);
     });
@@ -515,7 +515,7 @@ export default function MapView() {
     const gid = feature.properties?.gaugeId;
     const name = feature.properties?.name ?? 'Unnamed waterway';
     const g = gid ? gaugeMapRef.current[gid] : undefined;
-    const label = g ? `${name} — ${CATEGORY_LABELS[g.category]}` : name;
+    const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g)]}` : name;
     layer.bindTooltip(label, { sticky: true, direction: 'top', opacity: 0.9 });
     layer.on('click', (e: LeafletMouseEvent) => {
       const live = gid ? gaugeMapRef.current[gid] : undefined;
@@ -523,9 +523,10 @@ export default function MapView() {
     });
   };
 
-  // Render every gauge we know about. Gauges with no thresholds (or no
-  // current observation) come through as `not_defined` and render in gray —
-  // they're still useful as "a gauge exists here" markers.
+  // Render every gauge we know about. A gauge with no current observation comes
+  // through as `not_defined` and renders gray ("No data"); one with a reading but
+  // no NWS flood stages renders tan ("No flood stages", see displayCategory).
+  // Either way it is still useful as a "a gauge exists here" marker.
   const gaugeList = useMemo(() => Object.values(gaugeMap), [gaugeMap]);
   // River re-segmentation (src/lib/riverSegments.ts): each stretch of river is owned by the nearest
   // flood-staged gauge along it. Depends only on the waterways and on which gauges HAVE flood stages,
@@ -538,10 +539,10 @@ export default function MapView() {
     return m;
   }, [gaugeList]);
   const categoryCounts = useMemo(() => {
-    const counts: Record<FloodCategory, number> = {
-      not_defined: 0, no_flooding: 0, action: 0, minor: 0, moderate: 0, major: 0,
+    const counts: Record<DisplayCategory, number> = {
+      not_defined: 0, no_stages: 0, no_flooding: 0, action: 0, minor: 0, moderate: 0, major: 0,
     };
-    for (const g of gaugeList) counts[g.category]++;
+    for (const g of gaugeList) counts[displayCategory(g)]++;
     return counts;
   }, [gaugeList]);
 
@@ -603,7 +604,7 @@ export default function MapView() {
             pathOptions={{
               color: '#0b1220',
               weight: GAUGE_OUTLINE,
-              fillColor: colorFor(g.category),
+              fillColor: colorFor(displayCategory(g)),
               fillOpacity: 1,
             }}
             eventHandlers={{
@@ -631,7 +632,7 @@ export default function MapView() {
           >
             {/* Tip 1 px inside the top edge of the dot, whatever its size (-4 at radius 5). */}
             <Tooltip direction="top" offset={[0, 1 - GAUGE_RADIUS]}>
-              {g.name} — {CATEGORY_LABELS[g.category]}
+              {g.name} — {CATEGORY_LABELS[displayCategory(g)]}
             </Tooltip>
           </CircleMarker>
         ))}
