@@ -166,7 +166,7 @@ export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
             aria-label="Close"
             style={{
               background: 'transparent', border: 'none', color: '#9ca3af',
-              fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: 4,
+              fontSize: 22, lineHeight: 1, cursor: 'pointer', minWidth: 44, minHeight: 44,
             }}
           >×</button>
         </div>

@@ -54,6 +54,9 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
         padding: open ? '10px 12px' : '8px 12px',
         boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
         maxWidth: 'calc(100vw - 24px)',
+        // With both optional layers on the panel is tall: never taller than the screen below the map buttons.
+        maxHeight: 'calc(100dvh - 140px)',
+        overflowY: 'auto',
         fontSize: 13,
       }}
     >

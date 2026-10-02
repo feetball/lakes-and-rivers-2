@@ -21,10 +21,12 @@ export interface GaugeListData {
 interface Props extends GaugeListData {
   onPickGauge: (gauge: GaugeStatus) => void;
   onPickPlace: (place: Place) => void;
+  /** Called as the list opens, so the parent can close any other sheet (one at a time). */
+  onOpen?: () => void;
 }
 
 // The list button under the Locate button (slot 1 in controlSlots.ts) and the sheet it opens.
-export default function GaugeListControl({ onPickGauge, onPickPlace, ...data }: Props) {
+export default function GaugeListControl({ onPickGauge, onPickPlace, onOpen, ...data }: Props) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -39,7 +41,7 @@ export default function GaugeListControl({ onPickGauge, onPickPlace, ...data }: 
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => { onOpen?.(); setOpen(true); }}
         aria-label="Gauge list: favorites, gauges near me and search"
         aria-haspopup="dialog"
         title="Favorites, gauges near me and search"

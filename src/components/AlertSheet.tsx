@@ -16,14 +16,14 @@ interface Props {
 }
 
 export const ALERT_SOURCE_NOTE =
-  'Source: National Weather Service (api.weather.gov). This app is not affiliated with or endorsed by NOAA or the NWS.';
+  'Source: National Weather Service (api.weather.gov), shown as received. Unofficial: this app is not affiliated with or endorsed by NOAA or the NWS, and is not a substitute for weather.gov, the NWS or local officials.';
 
 const fmtTime = (iso: string | null): string | null =>
   iso
     ? new Date(iso).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
     : null;
 
-// Bottom sheet for one NWS alert, in the GaugeSheet pattern.
+// Bottom sheet for one NWS flood warning or watch, in the GaugeSheet pattern.
 export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
   const [index, setIndex] = useState(0);
   const alert = alerts[Math.min(index, alerts.length - 1)];
@@ -43,7 +43,7 @@ export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
       />
       <div
         role="dialog"
-        aria-label={`NWS alert: ${alert.event}`}
+        aria-label={`NWS flood warning or watch: ${alert.event}`}
         style={{
           position: 'absolute',
           left: 0,
@@ -67,7 +67,7 @@ export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
         </div>
 
         {alerts.length > 1 && (
-          <div role="tablist" aria-label="Alerts at this spot" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div role="tablist" aria-label="Warnings and watches at this spot" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
             {alerts.map((a, i) => (
               <button
                 key={a.id}
@@ -115,7 +115,7 @@ export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
           <button
             onClick={onClose}
             aria-label="Close"
-            style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '8px 10px' }}
+            style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 22, lineHeight: 1, cursor: 'pointer', minWidth: 44, minHeight: 44 }}
           >
             ×
           </button>
@@ -131,9 +131,9 @@ export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
         </div>
 
         {alert.geometrySource === 'zones' && (
-          <Note>The outline shows every NWS forecast zone named in this alert, not the exact spot at risk.</Note>
+          <Note>The outline shows every NWS forecast zone named in this warning or watch, not the exact spot at risk.</Note>
         )}
-        {alert.geometrySource === 'none' && <Note>No outline is available for this alert. The areas it covers are listed above.</Note>}
+        {alert.geometrySource === 'none' && <Note>No outline is available for this warning or watch. The areas it covers are listed above.</Note>}
 
         {instruction && (
           <div style={{ marginBottom: 12 }}>
@@ -157,7 +157,7 @@ export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
           }
         >
           {stale && '⚠ Warnings may be out of date. '}
-          {ageMs !== null ? updatedText(ageMs) : 'Update time unknown'}. An alert may have changed or ended since.
+          {ageMs !== null ? updatedText(ageMs) : 'Update time unknown'}. This warning or watch may have changed or ended since; check weather.gov.
         </div>
         <div style={{ color: '#9ca3af', fontSize: 11, lineHeight: 1.45 }}>{ALERT_SOURCE_NOTE}</div>
         <a

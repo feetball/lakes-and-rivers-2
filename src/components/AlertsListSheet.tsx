@@ -16,7 +16,7 @@ interface Props {
   onClose: () => void;
 }
 
-// The "Active alerts" list. It is also the way in for alerts with no outline on the
+// The "NWS flood warnings and watches" list. It is also the way in for ones with no outline on the
 // map (an alert whose zone shapes could not be fetched) and for screen-reader users,
 // who cannot tap a polygon.
 export default function AlertsListSheet({ alerts, ageMs, stale, asOf, onPick, onClose }: Props) {
@@ -26,7 +26,7 @@ export default function AlertsListSheet({ alerts, ageMs, stale, asOf, onPick, on
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1200 }} aria-hidden />
       <div
         role="dialog"
-        aria-label="Active flood alerts"
+        aria-label="NWS flood warnings and watches"
         style={{
           position: 'absolute',
           left: 0,
@@ -49,11 +49,11 @@ export default function AlertsListSheet({ alerts, ageMs, stale, asOf, onPick, on
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#374151' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, flex: 1 }}>Active flood alerts ({alerts.length})</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, flex: 1 }}>NWS flood warnings and watches ({alerts.length})</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '8px 10px' }}
+            style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 22, lineHeight: 1, cursor: 'pointer', minWidth: 44, minHeight: 44 }}
           >
             ×
           </button>
@@ -61,7 +61,7 @@ export default function AlertsListSheet({ alerts, ageMs, stale, asOf, onPick, on
 
         {alerts.length === 0 ? (
           <p style={{ fontSize: 14, lineHeight: 1.45, margin: '8px 0 12px' }}>
-            No active flood warnings or watches in Texas{asOf ? ` (as of ${asOf})` : ''}
+            The NWS feed lists no flood warnings or watches for Texas{asOf ? ` (as of ${asOf})` : ''}. That is not an all-clear: check weather.gov.
           </p>
         ) : (
           <ul style={{ listStyle: 'none', margin: '0 0 12px', padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>

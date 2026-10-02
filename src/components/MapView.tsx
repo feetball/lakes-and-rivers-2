@@ -239,7 +239,8 @@ export default function MapView() {
   // opens exactly one thing. In priority order: the nearest gauge center within
   // GAUGE_TAP_RADIUS (apps only), else the gauge dot that was hit directly (the
   // website), else the nearest river camera within WEBCAM_TAP_RADIUS (when the
-  // layer is on), else the gauge of the waterway that was tapped. Leaflet runs
+  // layer is on), else the gauge of the waterway that was tapped, else an NWS warning or
+  // watch outline containing the point (outlines are not interactive). Leaflet runs
   // the layer's click handler before the map's and hands both the same native
   // event, so the first to resolve a tap claims it (in `handledTaps`) and the
   // other becomes a no-op.
@@ -256,7 +257,14 @@ export default function MapView() {
     const gauge = near ?? hit.gauge;
     if (gauge) return selectGauge(gauge);
     const cam = map && point ? nearestGauge(map, point, shownWebcamsRef.current, WEBCAM_TAP_RADIUS, 12) : null;
-    if (cam) return selectWebcam(cam);
+    if (cam) {
+      // Website: a river line drawn above a dot takes that dot's click, so a tap squarely on a
+      // gauge dot that has a camera on top of it arrives here as a waterway hit. The dot still wins.
+      const dot = !IS_MOBILE && map && point
+        ? nearestGauge(map, point, Object.values(gaugeMapRef.current), GAUGE_RADIUS + GAUGE_OUTLINE)
+        : null;
+      return dot ? selectGauge(dot) : selectWebcam(cam);
+    }
     if (hit.waterway) return selectGauge(hit.waterway);
     // Nothing gauge-like was hit: last, the tap may be inside an alert outline.
     if (map && point) {
@@ -271,7 +279,6 @@ export default function MapView() {
   // so both branches are ours to handle. Never fires on iOS or the web.
   const sheetOpen = selected !== null || selectedWebcam !== null || alertSheet !== null || alertsListOpen;
   // dismissSheets only touches state setters and a ref, so the first render's copy is fine.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => (sheetOpen ? pushBackHandler(dismissSheets) : undefined), [sheetOpen]);
   useEffect(() => {
     if (!IS_MOBILE) return;
@@ -320,6 +327,13 @@ export default function MapView() {
     : null;
   const [webcamsVisible, setWebcamsVisible] = useState<boolean>(() => loadVisible(WEBCAMS_VISIBLE_KEY, false));
   const webcamsActive = webcamsVisible && live;
+  // Leaving live (timeline on another time) hides the live-only layers, so their sheets go too.
+  useEffect(() => {
+    if (live) return;
+    setSelectedWebcam(null);
+    setAlertSheet(null);
+    setAlertsListOpen(false);
+  }, [live]);
   // Only cameras that are drawn can be tapped.
   const shownWebcamsRef = useRef<Webcam[]>([]);
   shownWebcamsRef.current = webcamsActive ? shownWebcams : [];
@@ -406,6 +420,8 @@ export default function MapView() {
     const g = gaugeData.gauges[wanted.trim().toUpperCase()];
     if (!g) return;
     flyToGauge(g);
+    // Runs once, when the first gauge list arrives (deepLinkDone), so the handlers can't go stale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gaugeData]);
   // Read once on mount so we don't re-center after the user pans.
   const [initialView] = useState<SavedView>(() => {
@@ -632,6 +648,7 @@ export default function MapView() {
         snapshot={atIso !== null}
         onPickGauge={flyToGauge}
         onPickPlace={flyToPlace}
+        onOpen={dismissSheets}
       />
       {/* A refresh failed but we still have a snapshot (from an earlier poll
           or the persisted last-good copy): say so instead of silently showing
@@ -690,7 +707,11 @@ export default function MapView() {
             gaugeNames={gaugeNames}
             alertsLayer={{
               enabled: alertsOn,
-              onToggle: on => { setAlertsOn(on); saveVisible(ALERTS_VISIBLE_KEY, on); },
+              onToggle: on => {
+                setAlertsOn(on);
+                saveVisible(ALERTS_VISIBLE_KEY, on);
+                if (!on) { setAlertSheet(null); setAlertsListOpen(false); }
+              },
               hiddenForTimeline: !live,
               state: alertsHook.state,
               count: drawnAlerts.length,

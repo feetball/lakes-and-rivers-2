@@ -89,7 +89,7 @@ const muted = { color: '#9ca3af', fontSize: 11, lineHeight: 1.4 } as const;
 
 export function AlertsLegendLayer(p: AlertsLegendProps) {
   return (
-    <LayerToggle label="Flood warnings & watches" checked={p.enabled} onChange={p.onToggle}>
+    <LayerToggle label="NWS flood warnings and watches" checked={p.enabled} onChange={p.onToggle}>
       {p.enabled && p.hiddenForTimeline && (
         <div style={{ ...muted, marginBottom: 6 }}>Hidden while the timeline shows another time. Warnings describe right now; return to live to see them.</div>
       )}
@@ -126,7 +126,7 @@ export function AlertsLegendLayer(p: AlertsLegendProps) {
               })}
               {p.count === 0 ? (
                 <div role="status" style={muted}>
-                  No active flood warnings or watches in Texas{p.asOf ? ` (as of ${p.asOf})` : ''}
+                  The NWS feed lists no flood warnings or watches for Texas{p.asOf ? ` (as of ${p.asOf})` : ''}. Not an all-clear: check weather.gov.
                 </div>
               ) : (
                 <button
@@ -134,7 +134,7 @@ export function AlertsLegendLayer(p: AlertsLegendProps) {
                   onClick={p.onOpenList}
                   style={{ minHeight: 44, background: '#1f2937', border: '1px solid #374151', borderRadius: 8, color: '#e5e7eb', fontSize: 13, cursor: 'pointer' }}
                 >
-                  Active alerts ({p.count})
+                  Warnings and watches list ({p.count})
                 </button>
               )}
               {p.state.stale && (
@@ -142,7 +142,7 @@ export function AlertsLegendLayer(p: AlertsLegendProps) {
                   ⚠ Warnings may be out of date. {updatedText(p.state.ageMs)}.
                 </div>
               )}
-              <div style={muted}>Unofficial copy of National Weather Service alerts.</div>
+              <div style={muted}>Unofficial copy of NWS flood warnings and watches. Not a substitute for weather.gov, the NWS or local officials.</div>
             </>
           )}
         </div>
