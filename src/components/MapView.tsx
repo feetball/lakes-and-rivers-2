@@ -21,6 +21,15 @@ import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
 import DraggablePanel from './DraggablePanel';
 import { track } from '@/lib/track';
+// --- F1 alerts ---
+import { useAlerts } from '@/hooks/useAlerts';
+import { alertLevel, alertsAt, geometryBounds } from '@/lib/alerts-fetch';
+import AlertsLayer from './AlertsLayer';
+import AlertSheet from './AlertSheet';
+import AlertsListSheet from './AlertsListSheet';
+import AlertsStatusChip from './AlertsStatusChip';
+import type { AlertLevel, NwsAlert } from '@/lib/types';
+// --- end F1 ---
 
 // Below this zoom, hide stream/river lines and only paint waterbodies.
 // Painting thousands of canvas polylines while panning the whole state is
@@ -40,6 +49,7 @@ const TX_BOUNDS: [[number, number], [number, number]] = [
 const VIEW_KEY = 'tfm:view';
 const LEGEND_VISIBLE_KEY = 'tfm:legend-visible';
 const TIMELINE_VISIBLE_KEY = 'tfm:timeline-visible';
+const ALERTS_VISIBLE_KEY = 'tfm:layer-alerts'; // F1 alerts
 
 // Gauge dots. The store apps draw them larger and accept taps far from the dot
 // itself: a fingertip can't reliably land inside an 11 px circle. The website
@@ -129,6 +139,15 @@ function TapResolver({ onTap }: { onTap: (e: MouseEvent) => void }) {
   return null;
 }
 
+// --- F1 alerts ---
+// Website: a click that no gauge or waterway claimed (see `handledTaps`) may land on
+// an NWS alert outline. In the apps the same hand-off happens inside `resolveTap`.
+function AlertClickResolver({ onClick }: { onClick: (e: MouseEvent, lat: number, lon: number) => void }) {
+  useMapEvents({ click: (e) => onClick(e.originalEvent, e.latlng.lat, e.latlng.lng) });
+  return null;
+}
+// --- end F1 ---
+
 // Native click events that `resolveTap` has already acted on (see there).
 // Events are unique objects, so nothing needs cleaning up.
 const handledTaps = new WeakSet<object>();
@@ -156,6 +175,8 @@ function nearestGauge(
   }
   return best;
 }
+
+const EMPTY_ALERTS: NwsAlert[] = []; // F1 alerts
 
 type Waterways = FeatureCollection<Geometry, WaterwayProperties>;
 
@@ -196,6 +217,11 @@ export default function MapView() {
       : null;
     const target = near ?? fallback;
     if (target) selectGauge(target);
+    // F1 alerts: nothing gauge-like was hit, so the tap may be on an alert outline.
+    else if (ev && map) {
+      const at = map.mouseEventToLatLng(ev);
+      openAlertsAt(at.lat, at.lng);
+    }
   };
   // Android back button (hardware or gesture): close the open gauge sheet
   // first; with nothing open, hand the app to the launcher — the same thing
@@ -213,6 +239,7 @@ export default function MapView() {
       if (cancelled) return;
       handle = await App.addListener('backButton', () => {
         if (runBackHandler()) return; // the gauge list sheet
+        if (closeAlertSheetsRef.current()) return; // F1 alerts
         if (selectedRef.current) {
           setSelected(null);
           return;
@@ -235,6 +262,70 @@ export default function MapView() {
     mutate: refreshGauges,
   } = useGaugeData(atIso);
   const mapRef = useRef<LeafletMap | null>(null);
+  // --- F1 alerts: NWS flood warnings & watches (unofficial overlay) ---
+  // The layer is a per-viewer preference; it is also off while the timeline shows
+  // another time, because alerts describe right now.
+  const [alertsOn, setAlertsOn] = useState<boolean>(() => loadVisible(ALERTS_VISIBLE_KEY));
+  const alertsLive = atIso === null;
+  const alertsActive = alertsOn && alertsLive;
+  const alertsHook = useAlerts(alertsActive);
+  const alertsReady = alertsActive && alertsHook.state.kind === 'ready';
+  const drawnAlerts = alertsReady ? alertsHook.alerts : EMPTY_ALERTS;
+  const alertsRef = useRef<NwsAlert[]>(EMPTY_ALERTS);
+  alertsRef.current = drawnAlerts;
+  // What the open alert sheet shows: every alert at the tapped point, or one picked
+  // from the list.
+  const [alertSheet, setAlertSheet] = useState<NwsAlert[] | null>(null);
+  const [alertsListOpen, setAlertsListOpen] = useState(false);
+  const closeAlertSheetsRef = useRef<() => boolean>(() => false);
+  closeAlertSheetsRef.current = () => {
+    if (!alertSheet && !alertsListOpen) return false;
+    setAlertSheet(null);
+    setAlertsListOpen(false);
+    return true;
+  };
+  const alertAgeMs = alertsHook.state.kind === 'ready' ? alertsHook.state.ageMs : null;
+  const alertsStale = alertsHook.state.kind === 'ready' && alertsHook.state.stale;
+  const alertsAsOf = alertsHook.updatedAt
+    ? new Date(alertsHook.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : null;
+  const alertsByLevel = useMemo(() => {
+    const c: Record<AlertLevel, number> = { emergency: 0, flash: 0, warning: 0, watch: 0, advisory: 0 };
+    for (const a of drawnAlerts) c[alertLevel(a)]++;
+    return c;
+  }, [drawnAlerts]);
+  // Open the sheet for the alerts whose outline contains the point (strongest first).
+  function openAlertsAt(lat: number, lon: number) {
+    const hit = alertsAt(alertsRef.current, lon, lat);
+    if (hit.length > 0) {
+      setAlertsListOpen(false);
+      setAlertSheet(hit);
+    }
+  }
+  // From the list: show the alert on the map above the sheet that is about to cover
+  // the lower part of the screen, then open it.
+  function pickAlert(a: NwsAlert) {
+    const map = mapRef.current;
+    const b = a.geometry ? geometryBounds(a.geometry) : null;
+    if (map && b) {
+      const below = map.getSize().y * 0.5;
+      map.flyToBounds([[b.south, b.west], [b.north, b.east]], {
+        paddingTopLeft: [24, 72],
+        paddingBottomRight: [24, below],
+        maxZoom: 11,
+        duration: 0.8,
+      });
+    }
+    setAlertsListOpen(false);
+    setAlertSheet([a]);
+  }
+  // Website: a click nobody else claimed (see `handledTaps`).
+  const onWebClick = (ev: MouseEvent, lat: number, lon: number) => {
+    if (handledTaps.has(ev)) return;
+    handledTaps.add(ev);
+    openAlertsAt(lat, lon);
+  };
+  // --- end F1 ---
   // Where the user is, once they've tapped the locate button.
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const onLocated = (lat: number, lon: number) => {
@@ -369,7 +460,10 @@ export default function MapView() {
     layer.on('click', (e: LeafletMouseEvent) => {
       const live = gid ? gaugeMapRef.current[gid] : undefined;
       if (IS_MOBILE) resolveTap(e.originalEvent, live);
-      else if (live) selectGauge(live);
+      else if (live) {
+        handledTaps.add(e.originalEvent); // F1 alerts: claimed, not an alert click
+        selectGauge(live);
+      }
     });
   };
 
@@ -414,6 +508,10 @@ export default function MapView() {
         <ZoomTracker onChange={setZoom} />
         {IS_MOBILE && <TapResolver onTap={resolveTap} />}
         <Basemap />
+        {/* --- F1 alerts --- */}
+        <AlertsLayer alerts={drawnAlerts} />
+        {!IS_MOBILE && <AlertClickResolver onClick={onWebClick} />}
+        {/* --- end F1 --- */}
         {waterways && (
           <GeoJSON
             // Re-mount only when the underlying dataset changes or when the
@@ -441,7 +539,10 @@ export default function MapView() {
             eventHandlers={{
               click: (e) => {
                 if (IS_MOBILE) resolveTap(e.originalEvent, g);
-                else selectGauge(g);
+                else {
+                  handledTaps.add(e.originalEvent); // F1 alerts: claimed, not an alert click
+                  selectGauge(g);
+                }
               },
               mouseover: (e) => {
                 // Touch taps fire mouseover but never mouseout, so the hover
@@ -517,6 +618,19 @@ export default function MapView() {
         </div>
       )}
 
+      {/* --- F1 alerts --- */}
+      {alertsActive && (
+        <AlertsStatusChip
+          state={alertsHook.state}
+          top={
+            (waterways && !atIso && gaugesError && gaugeData) || liveDataStale
+              ? 'calc(env(safe-area-inset-top, 0px) + 76px)'
+              : 'calc(env(safe-area-inset-top, 0px) + 12px)'
+          }
+        />
+      )}
+      {/* --- end F1 --- */}
+
       {legendVisible && (
         <DraggablePanel
           storageKey="tfm:legend-pos"
@@ -533,6 +647,16 @@ export default function MapView() {
             refreshing={gaugesValidating}
             onForceRefreshed={() => { refreshGauges(); }}
             gaugeNames={gaugeNames}
+            alertsLayer={{
+              enabled: alertsOn,
+              onToggle: on => { setAlertsOn(on); saveVisible(ALERTS_VISIBLE_KEY, on); },
+              hiddenForTimeline: !alertsLive,
+              state: alertsHook.state,
+              count: drawnAlerts.length,
+              byLevel: alertsByLevel,
+              asOf: alertsAsOf,
+              onOpenList: () => setAlertsListOpen(true),
+            }}
           />
         </DraggablePanel>
       )}
@@ -627,6 +751,27 @@ export default function MapView() {
       )}
       {hoverChart && <HoverHydrograph gauge={hoverChart.gauge} x={hoverChart.x} y={hoverChart.y} />}
       {selected && <GaugeSheet gauge={selected} onClose={() => setSelected(null)} />}
+      {/* --- F1 alerts --- */}
+      {alertSheet && (
+        <AlertSheet
+          key={alertSheet.map(a => a.id).join('|')}
+          alerts={alertSheet}
+          ageMs={alertAgeMs}
+          stale={alertsStale}
+          onClose={() => setAlertSheet(null)}
+        />
+      )}
+      {alertsListOpen && (
+        <AlertsListSheet
+          alerts={drawnAlerts}
+          ageMs={alertAgeMs}
+          stale={alertsStale}
+          asOf={alertsAsOf}
+          onPick={pickAlert}
+          onClose={() => setAlertsListOpen(false)}
+        />
+      )}
+      {/* --- end F1 --- */}
     </div>
   );
 }
