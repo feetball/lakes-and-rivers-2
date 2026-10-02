@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { AlertLevel } from '@/lib/types';
 import { ALERT_LEVELS, ALERT_STYLE } from '@/lib/alertStyle';
 import { updatedText, type AlertsState } from '@/lib/alerts-view';
@@ -187,12 +187,50 @@ export function WebcamsLegendLayer(p: WebcamsLegendProps) {
   );
 }
 
+const LAYERS_OPEN_KEY = 'tfm:legend-layers-open';
+
+function loadLayersOpen(): boolean {
+  try { return window.localStorage.getItem(LAYERS_OPEN_KEY) === '1'; } catch { return false; }
+}
+
 // The "Layers" heading and body: one LayerToggle row per optional map layer.
-export default function LegendLayers({ children }: { children: ReactNode }) {
+// Collapsed until the person opens it: with both layers expanded the legend is
+// taller than most of a phone screen and hides the map on first launch. The
+// one-line summary keeps the layers' state visible while collapsed.
+export default function LegendLayers({ children, summary }: { children: ReactNode; summary?: string }) {
+  const [open, setOpen] = useState<boolean>(() => typeof window !== 'undefined' && loadLayersOpen());
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    try { window.localStorage.setItem(LAYERS_OPEN_KEY, next ? '1' : '0'); } catch { /* private mode: just not remembered */ }
+  };
   return (
     <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #1f2937' }}>
-      <div style={{ fontWeight: 600, marginBottom: 2 }}>Layers</div>
-      {children}
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={toggle}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          width: '100%',
+          minHeight: 44,
+          padding: 0,
+          background: 'none',
+          border: 'none',
+          color: '#e5e7eb',
+          fontSize: 13,
+          fontWeight: 600,
+          textAlign: 'left',
+          cursor: 'pointer',
+        }}
+      >
+        <span aria-hidden style={{ fontSize: 10, width: 10 }}>{open ? '▼' : '▶'}</span>
+        <span>Layers</span>
+        {!open && summary && <span style={{ fontWeight: 400, color: '#9ca3af', fontSize: 11 }}>· {summary}</span>}
+      </button>
+      {open && children}
     </div>
   );
 }

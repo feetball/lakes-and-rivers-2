@@ -137,7 +137,12 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
             <span>· refreshes every 10 min</span>
           </div>
           {(alertsLayer || webcams) && (
-            <LegendLayers>
+            <LegendLayers
+              summary={[
+                alertsLayer && `warnings ${alertsLayer.enabled ? 'on' : 'off'}`,
+                webcams && `cameras ${webcams.enabled ? 'on' : 'off'}`,
+              ].filter(Boolean).join(', ')}
+            >
               {alertsLayer && <AlertsLegendLayer {...alertsLayer} />}
               {webcams && <WebcamsLegendLayer {...webcams} />}
             </LegendLayers>

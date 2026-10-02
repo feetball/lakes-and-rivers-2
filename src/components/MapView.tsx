@@ -24,6 +24,7 @@ import TimelineSlider from './TimelineSlider';
 import LoadingBanner from './LoadingBanner';
 import DraggablePanel from './DraggablePanel';
 import { track } from '@/lib/track';
+import { LEGEND_ABOVE_TIMELINE_PX, useNarrowScreen } from '@/hooks/useNarrowScreen';
 import { useAlerts } from '@/hooks/useAlerts';
 import { alertLevel, alertsAt, geometryBounds } from '@/lib/alerts-fetch';
 import AlertsLayer from './AlertsLayer';
@@ -432,6 +433,7 @@ export default function MapView() {
   const geoJsonRef = useRef<LeafletGeoJSON | null>(null);
   const [legendVisible, setLegendVisible] = useState<boolean>(() => loadVisible(LEGEND_VISIBLE_KEY));
   const [timelineVisible, setTimelineVisible] = useState<boolean>(() => loadVisible(TIMELINE_VISIBLE_KEY));
+  const narrowScreen = useNarrowScreen();
   const hideLegend = () => { setLegendVisible(false); saveVisible(LEGEND_VISIBLE_KEY, false); };
   const showLegend = () => { setLegendVisible(true); saveVisible(LEGEND_VISIBLE_KEY, true); };
   // Hiding the timeline also snaps back to live — otherwise the map could be
@@ -693,7 +695,11 @@ export default function MapView() {
         <DraggablePanel
           storageKey="tfm:legend-pos"
           defaultAnchor={{
-            bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
+            // On a narrow screen the timeline spans almost the full width and would
+            // sit on top of the legend (hiding its last rows, the layer toggles and
+            // the "Updated" line), so the legend starts above it. Beside it, or
+            // alone, it keeps the corner.
+            bottom: `calc(env(safe-area-inset-bottom, 0) + ${narrowScreen && timelineVisible ? LEGEND_ABOVE_TIMELINE_PX : 12}px)`,
             left: 12,
           }}
           onHide={hideLegend}
