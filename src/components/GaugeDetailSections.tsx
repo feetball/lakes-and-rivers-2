@@ -6,7 +6,7 @@ import {
   CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, categorizeByStage, dataAgeMs, formatAge, hasValidThresholds,
 } from '@/lib/floodStatus';
 import { viewForecast } from '@/lib/forecastView';
-import type { DetailCrest, DetailImpact, GaugeDetail } from '@/lib/gaugeDetail';
+import { risingQuicklyRate, type DetailCrest, type DetailImpact, type GaugeDetail } from '@/lib/gaugeDetail';
 import { formatCalendarDate, formatWhen, relativeTime } from '@/lib/timeFormat';
 import type { GaugeStatus } from '@/lib/types';
 import GaugeHydrograph from './GaugeHydrograph';
@@ -63,7 +63,7 @@ function Forecast({ gauge, detail, failed, nowMs }: { gauge: GaugeStatus; detail
   }
 }
 
-function Trend({ detail, failed }: { detail?: GaugeDetail; failed: boolean }) {
+function Trend({ detail, failed, nowMs }: { detail?: GaugeDetail; failed: boolean; nowMs: number }) {
   if (!detail) {
     return <span style={{ color: failed ? '#fbbf24' : '#9ca3af' }}>{failed ? 'Trend unavailable right now.' : 'Loading…'}</span>;
   }
@@ -72,9 +72,14 @@ function Trend({ detail, failed }: { detail?: GaugeDetail; failed: boolean }) {
   }
   const glyph = detail.trend === 'rising' ? '▲' : detail.trend === 'falling' ? '▼' : '▬';
   const rate = detail.trendFtPerHour;
+  // Says "rising quickly" in amber from 1 ft/h up (see RAPID_RISE_FT_PER_HOUR); a stale trend never does.
+  const quick = risingQuicklyRate(detail, nowMs) !== null;
   return (
     <span>
-      {glyph} <strong style={{ textTransform: 'capitalize' }}>{detail.trend}</strong>
+      {glyph}{' '}
+      <strong style={quick ? { color: '#fbbf24' } : { textTransform: 'capitalize' }}>
+        {quick ? 'Rising quickly' : detail.trend}
+      </strong>
       {detail.trend !== 'steady' && <> at {Math.abs(rate).toFixed(2)} {detail.unit ?? 'ft'}/h</>}
       <span style={{ color: '#9ca3af', fontSize: 12 }}> · over the last 3 h of readings</span>
     </span>
@@ -169,7 +174,7 @@ export default function GaugeDetailSections({ gauge }: { gauge: GaugeStatus }) {
       <div style={label}>Outlook <span style={{ color: '#6b7280' }}>· NWS data via NWPS</span></div>
       <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Row name="Forecast"><Forecast gauge={gauge} detail={data} failed={failed} nowMs={nowMs} /></Row>
-        <Row name="Trend"><Trend detail={data} failed={failed} /></Row>
+        <Row name="Trend"><Trend detail={data} failed={failed} nowMs={nowMs} /></Row>
       </div>
 
       {failed && (

@@ -8,7 +8,7 @@ import './helpers/ts-imports.mjs';
 
 const {
   buildDetail, computeTrend, downsample, forecastCrest, normalizeImpacts, normalizeRecord,
-  normalizeSeries, resolveGaugeId, OBSERVED_MAX_POINTS,
+  normalizeSeries, resolveGaugeId, risingQuicklyRate, OBSERVED_MAX_POINTS, RAPID_RISE_FT_PER_HOUR,
 } = await import('../src/lib/gaugeDetail.ts');
 const { repairGaugeStatus, repairGauges } = await import('../src/lib/gaugeStatus.ts');
 
@@ -323,4 +323,73 @@ test('repairGauges: returns the same map when nothing needs fixing, a repaired c
   assert.equal(fixed.A, mixed.A);
   assert.equal(fixed.B.observedStage, null);
   assert.equal(mixed.B.observedStage, -999, 'input not mutated');
+});
+
+// ---------------------------------------------------------------------------
+// risingQuicklyRate: the warning sign a gauge without flood stages can still give
+// ---------------------------------------------------------------------------
+
+// REAL: USGS 15-minute gage height at Hunt (HNFT2, no NWS flood stages), the 4 July 2025 Kerr County flood.
+const HUNT = JSON.parse(readFileSync(new URL('./fixtures/usgs-iv/hunt-2025-07-04.json', import.meta.url), 'utf8'));
+const HUNT_PTS = HUNT.values.map(([iso, v]) => ({ t: T(iso), v }));
+// What the sheet would have said at `iso`: the trend from the readings up to then, then the rule.
+const huntAt = (iso) => {
+  const now = T(iso);
+  const pts = HUNT_PTS.filter((p) => p.t <= now);
+  const last = pts[pts.length - 1];
+  const tr = computeTrend(pts, now);
+  return { rate: risingQuicklyRate({ ...tr, observedAt: new Date(last.t).toISOString(), unit: 'ft' }, now), stage: last.v, tr };
+};
+
+test('risingQuicklyRate: the Hunt flood is flagged 2.5 hours before the crest, at 6.9 ft', () => {
+  assert.equal(RAPID_RISE_FT_PER_HOUR, 1);
+  const crest = HUNT_PTS.reduce((a, b) => (b.v > a.v ? b : a));
+  assert.equal(crest.v, 21.2);
+  const flagged = HUNT_PTS.map((p) => ({ ...huntAt(new Date(p.t).toISOString()), t: p.t })).filter((r) => r.rate !== null);
+  assert.ok(flagged.length > 10);
+  const first = flagged[0];
+  assert.equal(new Date(first.t).toISOString(), '2025-07-04T08:00:00.000Z');
+  assert.equal(first.stage, 6.86);
+  assert.ok(crest.t - first.t >= 2.4 * 3_600_000, `${(crest.t - first.t) / 3_600_000} h of warning`);
+  // nothing before the storm, and nothing once the river is falling
+  for (const r of flagged) assert.ok(r.t >= T('2025-07-04T08:00:00Z') && r.t <= T('2025-07-04T11:45:00Z'), new Date(r.t).toISOString());
+});
+
+test('risingQuicklyRate: quiet before the rise, silent on the way down, and the day after', () => {
+  for (const iso of ['2025-07-04T00:00:00Z', '2025-07-04T06:00:00Z', '2025-07-04T07:30:00Z']) assert.equal(huntAt(iso).rate, null, iso);
+  for (const iso of ['2025-07-04T12:30:00Z', '2025-07-04T18:00:00Z', '2025-07-05T12:00:00Z']) assert.equal(huntAt(iso).rate, null, iso);
+  // 07:45Z is rising at 0.84 ft/h: a rise, but under the line
+  const early = huntAt('2025-07-04T07:45:00Z');
+  assert.equal(early.tr.trend, 'rising');
+  assert.ok(early.tr.trendFtPerHour < 1);
+});
+
+test('risingQuicklyRate: the real Oct 2026 gauges (steady) are never flagged', () => {
+  const observed = fx('HNFT2-observed-tail.json');
+  const now = Date.parse(observed.data[observed.data.length - 1].validTime) + 5 * 60_000;
+  assert.equal(risingQuicklyRate(buildDetail('HNFT2', { record: fx('HNFT2-record.json'), observed, forecast: NO_FORECAST }, now), now), null);
+  assert.equal(risingQuicklyRate(buildDetail('AMAT2', { ...AMAT2, forecast: NO_FORECAST }, AMAT2_NOW), AMAT2_NOW), null);
+});
+
+test('risingQuicklyRate: needs a fresh reading, a rise, and a stage in feet', () => {
+  const now = T('2026-10-02T12:00:00Z');
+  const fresh = new Date(now - 10 * 60_000).toISOString();
+  const base = { trend: 'rising', trendFtPerHour: 2.4, observedAt: fresh, unit: 'ft' };
+  assert.equal(risingQuicklyRate(base, now), 2.4);
+  assert.equal(risingQuicklyRate({ ...base, unit: 'FT' }, now), 2.4);
+  assert.equal(risingQuicklyRate({ ...base, unit: null }, now), 2.4);
+  assert.equal(risingQuicklyRate({ ...base, trendFtPerHour: 1 }, now), 1);
+  assert.equal(risingQuicklyRate({ ...base, trendFtPerHour: 0.99 }, now), null);
+  assert.equal(risingQuicklyRate({ ...base, trend: 'falling', trendFtPerHour: -3 }, now), null);
+  assert.equal(risingQuicklyRate({ ...base, trend: 'steady', trendFtPerHour: 0 }, now), null);
+  assert.equal(risingQuicklyRate({ ...base, trend: null, trendFtPerHour: null }, now), null);
+  assert.equal(risingQuicklyRate({ ...base, unit: 'kcfs' }, now), null);
+  // a reading older than 90 minutes cannot say what the water is doing now
+  assert.equal(risingQuicklyRate({ ...base, observedAt: new Date(now - 91 * 60_000).toISOString() }, now), null);
+  assert.equal(risingQuicklyRate({ ...base, observedAt: new Date(now - 89 * 60_000).toISOString() }, now), 2.4);
+  assert.equal(risingQuicklyRate({ ...base, observedAt: null }, now), null);
+  assert.equal(risingQuicklyRate({ ...base, observedAt: 'garbage' }, now), null);
+  assert.equal(risingQuicklyRate({ ...base, trendFtPerHour: Number.NaN }, now), null);
+  assert.equal(risingQuicklyRate(undefined, now), null);
+  assert.equal(risingQuicklyRate(null, now), null);
 });

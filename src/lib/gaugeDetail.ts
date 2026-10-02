@@ -3,7 +3,7 @@
 // sheet out. No Next/Workers imports so tests/gaugeDetail.test.mjs can run it
 // against real NWPS responses; the route does the fetching and caching.
 import { cleanTime } from './gaugeStatus';
-import { isValidStage } from './floodStatus';
+import { STALE_DATA_MS, isValidStage } from './floodStatus';
 
 /** One stage reading or forecast value: epoch milliseconds and the stage. */
 export interface DetailPoint { t: number; v: number }
@@ -164,6 +164,35 @@ export function computeTrend(points: DetailPoint[], nowMs: number): TrendResult 
   const rate = Math.round((num / den) * 100) / 100 + 0;
   const trend: Trend = Math.abs(rate) < STEADY_FT_PER_HOUR ? 'steady' : rate > 0 ? 'rising' : 'falling';
   return { trendFtPerHour: rate, trend };
+}
+
+/**
+ * A stage gaining at least this many feet an hour (the 3-hour slope above) is "rising quickly".
+ * It needs no flood stage, so it is the one warning sign a gauge without NWS stages can give.
+ * Chosen by replaying real USGS 15-minute data through computeTrend (tests/fixtures/usgs-iv):
+ * Hunt on 2025-07-04 (1.6 to 21.2 ft in under 5 h) crosses it at 6.9 ft, 2.5 h before the crest;
+ * from May to August 2025 it fires 3 times at Hunt and 5 at Shoal Creek in Austin, each a real
+ * rise, and about 0.2 % and 0.7 % of the time.
+ */
+export const RAPID_RISE_FT_PER_HOUR = 1;
+
+/**
+ * The rate (ft/h) when this gauge's stage is rising quickly right now, else null. "Right now"
+ * means the newest reading is no older than STALE_DATA_MS at `nowMs` (the trend itself is
+ * cached for up to 10 minutes), and only stages in feet count: a lake level is an elevation
+ * and a rate in other units would not mean the same thing.
+ */
+export function risingQuicklyRate(
+  detail: Pick<GaugeDetail, 'trend' | 'trendFtPerHour' | 'observedAt' | 'unit'> | null | undefined,
+  nowMs: number,
+): number | null {
+  if (!detail || detail.trend !== 'rising') return null;
+  const rate = detail.trendFtPerHour;
+  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate < RAPID_RISE_FT_PER_HOUR) return null;
+  if (detail.unit !== null && !/^ft$/i.test(detail.unit.trim())) return null;
+  const newest = detail.observedAt ? Date.parse(detail.observedAt) : NaN;
+  if (!Number.isFinite(newest) || nowMs - newest > STALE_DATA_MS) return null;
+  return rate;
 }
 
 /**

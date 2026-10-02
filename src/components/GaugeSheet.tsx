@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, hasValidThresholds } from '@/lib/floodStatus';
+import { risingQuicklyRate } from '@/lib/gaugeDetail';
 import type { GaugeStatus } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
+import { useGaugeDetail } from '@/hooks/useGaugeDetail';
 import GaugeDetailSections from './GaugeDetailSections';
+import GaugeNeighbor from './GaugeNeighbor';
 import GaugeShareButton from './GaugeShareButton';
 import FavoriteStar from './FavoriteStar';
 
@@ -13,6 +16,12 @@ interface Props {
   onClose: () => void;
   /** A USGS river camera at this gauge's site, when the app knows of one that is online. */
   webcam?: { name: string; onOpen: () => void };
+  /**
+   * For a gauge without flood stages: the nearest gauge with them on the same river
+   * (src/lib/riverNeighbor.ts), if the map's river data finds one. `snapshot` is true while
+   * the map shows a timeline snapshot instead of live data.
+   */
+  neighbor?: { gauge: GaugeStatus; snapshot: boolean; onOpen: () => void };
 }
 
 interface FloodRecord {
@@ -50,7 +59,7 @@ function formatPeakDate(raw: string): string {
   return raw;
 }
 
-export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
+export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) {
   const kind = displayCategory(gauge);
   const color = CATEGORY_COLORS[kind];
   const observedAt = gauge.observedAt
@@ -71,6 +80,11 @@ export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
   const noFloodStages = !!gauge.thresholds && !hasValidThresholds(gauge.thresholds);
   const noStagesNote = noFloodStages && (kind === 'no_stages' || kind === 'not_defined');
   const statusLabel = CATEGORY_LABELS[kind];
+
+  // A fast rise is the one warning sign that needs no flood stage, so it is said up here, not
+  // only in the Outlook section below. Same cached request as that section (SWR dedupes it).
+  const { data: detail } = useGaugeDetail(gauge.id);
+  const risingRate = risingQuicklyRate(detail, Date.now());
 
   const [records, setRecords] = useState<FloodRecord[]>([]);
 
@@ -188,6 +202,20 @@ export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
               {observedAt && <span style={{ color: '#9ca3af', marginLeft: 6 }}>· {observedAt}</span>}
             </div>
           )}
+          {risingRate !== null && (
+            <div
+              role="status"
+              style={{
+                marginTop: 8, padding: '6px 8px', borderRadius: 6,
+                background: '#78350f55', border: '1px solid #b4530988',
+                color: '#fbbf24', fontSize: 12, lineHeight: 1.4,
+              }}
+            >
+              <strong>▲ Rising quickly:</strong> about {risingRate.toFixed(1)} ft per hour over the last 3 hours.
+              {noFloodStages && ' NWS defines no flood stages for this gauge, so there is no official level to compare it with.'}
+              {' '}A fast rise can mean flooding is starting. Not an official warning: check weather.gov and local officials.
+            </div>
+          )}
           {obsStale && obsAge !== null && (
             <div
               style={{
@@ -224,6 +252,14 @@ export default function GaugeSheet({ gauge, onClose, webcam }: Props) {
             NWS has not defined flood stages for this gauge, so it has no flood category.
             A reading here does not mean conditions are normal.
           </div>
+        )}
+        {noStagesNote && neighbor && (
+          <GaugeNeighbor
+            neighbor={neighbor.gauge}
+            from={gauge}
+            snapshot={neighbor.snapshot}
+            onOpen={neighbor.onOpen}
+          />
         )}
         {noFloodStages && recordRow && <div style={{ marginTop: 8 }}>{recordRow}</div>}
 

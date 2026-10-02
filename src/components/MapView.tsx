@@ -7,6 +7,8 @@ import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions, Layer, LeafletMouseEvent } from 'leaflet';
 import { useGaugeData } from '@/hooks/useGaugeData';
 import { useSegmentedWaterways } from '@/hooks/useSegmentedWaterways';
+import { findStagedNeighbor } from '@/lib/riverNeighbor';
+import { hasFloodStages } from '@/lib/riverSegments';
 import useWebcamData from '@/hooks/useWebcamData';
 import { colorFor, displayCategory, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge, type DisplayCategory } from '@/lib/floodStatus';
 import { apiUrl, IS_MOBILE } from '@/lib/api';
@@ -532,6 +534,13 @@ export default function MapView() {
   // flood-staged gauge along it. Depends only on the waterways and on which gauges HAVE flood stages,
   // not on live categories. Null until the gauge list is known (or a 3 s grace period passes).
   const { data: riverData, key: riverKey } = useSegmentedWaterways(waterways, gaugeList);
+  // For the open gauge sheet of a gauge without flood stages: the gauge with them that owns its stretch
+  // of river on the map (src/lib/riverNeighbor.ts). Thresholds and positions are static, so it is worked
+  // out once per opened gauge, from the gauges as they are now; its live status is read at render time.
+  const riverNeighbor = useMemo(
+    () => (selected?.thresholds && !hasFloodStages(selected.thresholds) ? findStagedNeighbor(riverData, selected, gaugeMapRef.current) : null),
+    [selected, riverData],
+  );
   // id -> name, for friendly labels in the admin analytics panel.
   const gaugeNames = useMemo(() => {
     const m: Record<string, string> = {};
@@ -841,6 +850,10 @@ export default function MapView() {
         <GaugeSheet
           gauge={selected}
           onClose={() => setSelected(null)}
+          neighbor={(() => {
+            const n = riverNeighbor ? gaugeMap[riverNeighbor.id] : undefined;
+            return n ? { gauge: n, snapshot: !live, onOpen: () => selectGauge(n) } : undefined;
+          })()}
           webcam={(() => {
             const cam = live ? shownWebcams.find(w => w.gaugeId === selected.id) : undefined;
             return cam ? { name: cam.name, onOpen: () => selectWebcam(cam) } : undefined;
