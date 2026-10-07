@@ -1,10 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, type DisplayCategory } from '@/lib/floodStatus';
-import { IS_MOBILE } from '@/lib/api';
-import AdminControls from './AdminControls';
+import { onExternalLinkClick, PRIVACY_URL, SUPPORT_URL } from '@/lib/externalLink';
+import { analyticsOptedOut, setAnalyticsOptOut } from '@/lib/track';
 import LegendLayers, { AlertsLegendLayer, WebcamsLegendLayer, type AlertsLegendProps, type WebcamsLegendProps } from './LegendLayers';
+
+// The admin login is an operator tool for the web deploy. In the store apps this is
+// `null` and the import is dropped at build time, so the login UI and its endpoints are
+// not in the app binary at all. The env read must stay inline (not IS_MOBILE): webpack
+// only prunes a dead `import()` when the condition is a literal in this module.
+const AdminControls = process.env.NEXT_PUBLIC_MOBILE === '1' ? null : dynamic(() => import('./AdminControls'));
+
+const footerLink = { color: '#9ca3af', textDecoration: 'underline', padding: '4px 0' } as const;
 
 interface Props {
   counts: Record<DisplayCategory, number>;
@@ -22,6 +31,9 @@ interface Props {
 
 export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames, alertsLayer, webcams }: Props) {
   const [open, setOpen] = useState(true);
+  // Read after mount: localStorage does not exist during the static prerender.
+  const [statsOn, setStatsOn] = useState(true);
+  useEffect(() => { setStatsOn(!analyticsOptedOut()); }, []);
   // epoch-0 (1970-01-01T00:00:00Z) is the "no real observation yet" sentinel
   // the API ships when the live NWPS cache is still cold. Formatting it
   // verbatim renders as "Dec 31" in US timezones, which reads like a real (and
@@ -146,14 +158,25 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
               {webcams && <WebcamsLegendLayer {...webcams} />}
             </LegendLayers>
           )}
-          {/* The admin login is an operator tool for the web deploy; store
-              apps ship without it (and without the session probe it makes). */}
-          {!IS_MOBILE && <AdminControls onRefreshed={onForceRefreshed} gaugeNames={gaugeNames} />}
-          {process.env.NEXT_PUBLIC_APP_VERSION && (
-            <div style={{ marginTop: 4, color: '#6b7280', fontSize: 10 }}>
-              v{process.env.NEXT_PUBLIC_APP_VERSION}
-            </div>
-          )}
+          {AdminControls && <AdminControls onRefreshed={onForceRefreshed} gaugeNames={gaugeNames} />}
+          <label style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, color: '#9ca3af', fontSize: 11, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={statsOn}
+              onChange={e => { setStatsOn(e.target.checked); setAnalyticsOptOut(!e.target.checked); }}
+              style={{ margin: 0 }}
+            />
+            Share anonymous usage stats
+          </label>
+          <div style={{ marginTop: 2, color: '#6b7280', fontSize: 11, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" onClick={onExternalLinkClick} style={footerLink}>
+              Privacy
+            </a>
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" onClick={onExternalLinkClick} style={footerLink}>
+              Support
+            </a>
+            {process.env.NEXT_PUBLIC_APP_VERSION && <span>v{process.env.NEXT_PUBLIC_APP_VERSION}</span>}
+          </div>
           <style>{`@keyframes tfm-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
         </div>
       )}

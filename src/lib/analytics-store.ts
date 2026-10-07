@@ -26,6 +26,10 @@ import { getDataBucket, type R2BucketLike } from '@/lib/r2-data';
 
 const RAW_PREFIX = 'analytics/raw/';
 const ROLLUP_PREFIX = 'analytics/rollup/';
+// One random key per UTC day, mixed into the visitor hash (see the track route). It is
+// deleted when the day is compacted, after which a day's hashes can no longer be
+// recomputed from an IP address, even by us.
+const SALT_PREFIX = 'analytics/salt/';
 
 export type TrackEvent = {
   // 'pageview' | 'gauge_open' — kept open-ended so new event types don't need a
@@ -36,8 +40,9 @@ export type TrackEvent = {
   // Referrer hostname only (no full URL / query) — enough for "where from",
   // without storing anything identifying.
   referrer?: string;
-  // Opaque per-visitor hash (sha256 of ip+ua+day, truncated). Lets us count
-  // uniques without storing IPs. Rotates daily so it isn't a stable tracker.
+  // Opaque per-visitor hash (sha256 of the day's random salt + ip + ua, truncated).
+  // Lets us count daily uniques without storing IPs. The salt is deleted when the day
+  // is compacted, so it is neither a stable tracker nor reversible afterwards.
   visitor?: string;
   // ISO timestamp.
   at: string;
@@ -166,6 +171,28 @@ export async function recordEvents(events: TrackEvent[], rand: string): Promise<
   }
 }
 
+// The day's salt, created on first use. Two instances racing on a new day can each
+// write one; events hashed with the losing salt then count as extra visitors for that
+// day, an accepted over-count. `fresh` is supplied by the caller (crypto.randomUUID).
+let saltCache: { day: string; salt: string } | null = null;
+export async function getDailySalt(day: string, fresh: string): Promise<string | null> {
+  if (saltCache?.day === day) return saltCache.salt;
+  try {
+    const backend = await getBackend();
+    if (!backend) return null;
+    const key = `${SALT_PREFIX}${day}.json`;
+    let salt = (await backend.readJson<{ salt: string }>(key))?.salt;
+    if (!salt) {
+      salt = fresh;
+      await backend.put(key, JSON.stringify({ salt }));
+    }
+    saltCache = { day, salt };
+    return salt;
+  } catch {
+    return null;
+  }
+}
+
 function emptyDay(day: string): DayAggregate {
   return { day, pageviews: 0, visitors: 0, gaugeOpens: {}, referrers: {} };
 }
@@ -235,6 +262,45 @@ async function compactDay(backend: Backend, day: string): Promise<DayAggregate> 
   } while (cursor);
   await backend.deleteAll(refs);
   return agg;
+}
+
+// Retention: fold every finished day's raw events into its rollup and delete the raw
+// events and the day's salt. Run from the gauge-refresh cron so the per-event records
+// last about a day whether or not anyone opens the admin panel. Best-effort; returns
+// the number of days compacted.
+export async function compactPastDays(today: string): Promise<number> {
+  try {
+    const backend = await getBackend();
+    if (!backend) return 0;
+    const rawDays = new Set<string>();
+    let cursor: string | undefined;
+    do {
+      const page = await backend.listPage(RAW_PREFIX, cursor);
+      for (const it of page.items) {
+        const seg = it.pathname.slice(RAW_PREFIX.length).split('/')[0];
+        if (seg && seg < today) rawDays.add(seg);
+      }
+      cursor = page.cursor;
+    } while (cursor);
+    for (const day of rawDays) await compactDay(backend, day);
+    await deletePastSalts(backend, today);
+    return rawDays.size;
+  } catch {
+    return 0;
+  }
+}
+
+async function deletePastSalts(backend: Backend, today: string): Promise<void> {
+  const refs: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await backend.listPage(SALT_PREFIX, cursor);
+    for (const it of page.items) {
+      if (it.pathname.slice(SALT_PREFIX.length, SALT_PREFIX.length + 10) < today) refs.push(it.ref);
+    }
+    cursor = page.cursor;
+  } while (cursor);
+  await backend.deleteAll(refs);
 }
 
 type AnalyticsSummary = { totals: Omit<DayAggregate, 'day'>; byDay: DayAggregate[] };

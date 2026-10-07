@@ -6,8 +6,25 @@
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
+	<!-- Must match the App Privacy answers in App Store Connect and the privacy policy
+	     (src/app/privacy/page.tsx): the anonymous app-opened / gauge-opened events sent to
+	     /api/track (src/lib/track.ts), which the user can switch off in the legend. Location
+	     is not listed because it never leaves the device. -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array/>
 </dict>

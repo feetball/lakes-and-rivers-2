@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { GAUGES_CACHE_TAG, getCachedGauges } from '@/lib/gauges-fetch';
 import { writeGaugesBlob } from '@/lib/gauges-store';
+import { compactPastDays } from '@/lib/analytics-store';
 
 // Hit by an external scheduler (a docker sidecar — see docker-compose.yml)
 // every 30 min. Invalidates the shared gauge cache and kicks off a background
@@ -51,9 +52,15 @@ export async function GET(req: Request) {
       console.warn('[cron] snapshot store write failed (serving from data cache only):', err);
     }
     console.log(`[cron] refreshed ${Object.keys(data.gauges).length} gauges at ${data.updatedAt}`);
-    return NextResponse.json({ ok: true, status: 'refreshed', count: Object.keys(data.gauges).length, snapshotStored: stored });
+    // Analytics retention (the privacy policy promises it): finished days' raw events
+    // and salts are folded into daily totals. After the refresh so a large first
+    // backlog cannot eat the refresh's time budget; never fails the cron.
+    const analyticsDaysCompacted = await compactPastDays(new Date().toISOString().slice(0, 10));
+    return NextResponse.json({ ok: true, status: 'refreshed', count: Object.keys(data.gauges).length, snapshotStored: stored, analyticsDaysCompacted });
   } catch (err) {
     console.warn('[cron] refresh failed:', err);
+    // Retention does not depend on NWPS being up.
+    await compactPastDays(new Date().toISOString().slice(0, 10));
     return NextResponse.json({ ok: false, status: 'refresh failed', detail: String(err) }, { status: 502 });
   }
 }

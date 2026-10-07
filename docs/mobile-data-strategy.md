@@ -204,11 +204,10 @@ Two honest caveats on a one-time price:
 
 ## Before you ship (checklist)
 
-1. **API on a domain you own.** `MOBILE_API_BASE` is frozen into every
-   installed copy. Today it defaults to the `workers.dev` URL; if that
-   Worker is ever renamed or moved, installed apps break until a store
-   update. Add a custom domain to the Worker (Cloudflare → Workers → Settings
-   → Domains & Routes) and build with `MOBILE_API_BASE=https://api.yourdomain`.
+1. **API on a domain you own: done.** `MOBILE_API_BASE` is frozen into every
+   installed copy, so it defaults to `https://txfloods.kuecker.us`, the
+   website's custom domain on the same Worker, not the `workers.dev` URL
+   (which breaks installed apps if the Worker is renamed or moved).
 2. **Tiles: done.** The tile server is live at `https://tiles.kuecker.us` and
    every build uses it by default, with OSM as an outage fallback. Run
    `tiles-worker/scripts/smoke.sh` before a release to confirm it is healthy,

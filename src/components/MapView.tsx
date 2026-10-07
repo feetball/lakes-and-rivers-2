@@ -36,6 +36,7 @@ import AlertsLayer from './AlertsLayer';
 import AlertSheet from './AlertSheet';
 import AlertsListSheet from './AlertsListSheet';
 import AlertsStatusChip from './AlertsStatusChip';
+import { CLEAR_OF_CONTROLS_RIGHT, EDGE_LEFT, EDGE_RIGHT } from './controlSlots';
 import type { AlertLevel, NwsAlert } from '@/lib/types';
 
 // Below this zoom, hide stream/river lines and only paint waterbodies.
@@ -752,18 +753,20 @@ export default function MapView() {
         onPickPlace={flyToPlace}
         onOpen={dismissSheets}
       />
-      {/* A refresh failed but we still have a snapshot (from an earlier poll
-          or the persisted last-good copy): say so instead of silently showing
-          old colors. Live mode only — history/forecast have their own loading
-          states and nothing sensible to fall back to. */}
-      {waterways && !atIso && gaugesError && gaugeData && (
+      {/* A refresh failed. With a snapshot (from an earlier poll or the persisted
+          last-good copy) say so instead of silently showing old colors; without
+          one (first launch with no connection) the map has no gauges at all, which
+          must never read as "no rivers are flooding". Live mode only:
+          history/forecast have their own loading states and nothing sensible to
+          fall back to. */}
+      {waterways && !atIso && gaugesError && (
         <div
           role="status"
           style={{
             position: 'absolute',
             top: 'calc(env(safe-area-inset-top, 0) + 12px)',
-            left: 12,
-            right: 68, // clear the locate button
+            left: EDGE_LEFT,
+            right: CLEAR_OF_CONTROLS_RIGHT,
             zIndex: 1000,
             background: 'rgba(120,53,15,0.92)',
             backdropFilter: 'blur(6px)',
@@ -775,8 +778,17 @@ export default function MapView() {
             lineHeight: 1.35,
           }}
         >
-          Can&apos;t reach the server — showing gauge data from{' '}
-          {new Date(gaugeData.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.
+          {gaugeData ? (
+            <>
+              Can&apos;t reach the server — showing gauge data from{' '}
+              {new Date(gaugeData.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.
+            </>
+          ) : (
+            <>
+              Can&apos;t reach the server — no gauge readings to show yet. Retrying
+              automatically.
+            </>
+          )}
         </div>
       )}
 
@@ -784,7 +796,7 @@ export default function MapView() {
         <AlertsStatusChip
           state={alertsHook.state}
           top={
-            (waterways && !atIso && gaugesError && gaugeData) || liveDataStale
+            (waterways && !atIso && gaugesError) || liveDataStale
               ? 'calc(env(safe-area-inset-top, 0px) + 76px)'
               : 'calc(env(safe-area-inset-top, 0px) + 12px)'
           }
@@ -800,7 +812,7 @@ export default function MapView() {
             // the "Updated" line), so the legend starts above it. Beside it, or
             // alone, it keeps the corner.
             bottom: `calc(env(safe-area-inset-bottom, 0) + ${narrowScreen && timelineVisible ? LEGEND_ABOVE_TIMELINE_PX : 12}px)`,
-            left: 12,
+            left: EDGE_LEFT,
           }}
           onHide={hideLegend}
         >
@@ -858,7 +870,7 @@ export default function MapView() {
         <div
           style={{
             position: 'absolute',
-            right: 12,
+            right: EDGE_RIGHT,
             bottom: 'calc(env(safe-area-inset-bottom, 0) + 12px)',
             zIndex: 1000,
             display: 'flex',
@@ -907,7 +919,7 @@ export default function MapView() {
       {liveDataStale && liveDataAge !== null && (
         <div
           style={{
-            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+            position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: '50%', transform: 'translateX(-50%)',
             maxWidth: 'calc(100vw - 24px)',
             background: 'rgba(120,53,15,0.92)', border: '1px solid #b45309',
             color: '#fde68a', padding: '8px 12px',
@@ -922,12 +934,13 @@ export default function MapView() {
       {loadError && (
         <div
           style={{
-            position: 'absolute', top: 12, left: 12, right: 12,
+            position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: EDGE_LEFT, right: EDGE_RIGHT,
             background: '#7f1d1d', color: '#fff', padding: '8px 12px',
             borderRadius: 8, fontSize: 13, zIndex: 1000,
           }}
         >
-          Couldn&apos;t load waterways data ({loadError}). Run <code>pnpm data:build</code>.
+          Couldn&apos;t load the river and lake map ({loadError}). Please {IS_MOBILE ? 'close and reopen the app' : 'reload the page'}.
+          {process.env.NODE_ENV === 'development' && <> Run <code>pnpm data:build</code>.</>}
         </div>
       )}
       {hoverChart && <HoverHydrograph gauge={hoverChart.gauge} x={hoverChart.x} y={hoverChart.y} />}

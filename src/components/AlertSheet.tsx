@@ -5,6 +5,7 @@ import type { NwsAlert } from '@/lib/types';
 import { alertLevel } from '@/lib/alerts-fetch';
 import { ALERT_STYLE } from '@/lib/alertStyle';
 import { reflowNwsText, relativeTime, updatedText } from '@/lib/alerts-view';
+import { onExternalLinkClick } from '@/lib/externalLink';
 
 interface Props {
   // Every alert at the tapped point, strongest first.
@@ -164,6 +165,7 @@ export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
           href={alert.web}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={onExternalLinkClick}
           style={{ display: 'inline-block', marginTop: 12, padding: '10px 0', color: '#60a5fa', fontSize: 14, textDecoration: 'none' }}
         >
           Open on weather.gov →

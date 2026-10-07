@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import type { GaugeStatus } from '@/lib/types';
 import type { Place } from '@/lib/places';
 import GaugeListSheet from './GaugeListSheet';
-import { controlTop } from './controlSlots';
+import { EDGE_RIGHT, controlTop } from './controlSlots';
 
 export interface GaugeListData {
   gauges: Record<string, GaugeStatus> | undefined;
@@ -48,7 +48,7 @@ export default function GaugeListControl({ onPickGauge, onPickPlace, onOpen, ...
         style={{
           position: 'absolute',
           top: controlTop(1),
-          right: 12,
+          right: EDGE_RIGHT,
           zIndex: 1000,
           width: 44,
           height: 44,

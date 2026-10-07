@@ -21,6 +21,31 @@ function appPlatform(): AppPlatform | undefined {
   return window.location.protocol === 'capacitor:' ? 'ios' : 'android';
 }
 
+// The user's "Share anonymous usage stats" switch (Legend), remembered on this device.
+// Off means nothing is queued or sent at all.
+const OPT_OUT_KEY = 'tfm:analytics-off';
+// Set once the user flips the switch, so storage is not read on every event.
+let sessionOptOut: boolean | null = null;
+
+export function analyticsOptedOut(): boolean {
+  try {
+    return window.localStorage.getItem(OPT_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setAnalyticsOptOut(off: boolean): void {
+  try {
+    if (off) window.localStorage.setItem(OPT_OUT_KEY, '1');
+    else window.localStorage.removeItem(OPT_OUT_KEY);
+  } catch {
+    // storage blocked: the choice lasts for this session only
+  }
+  sessionOptOut = off;
+  if (off) queue = [];
+}
+
 const FLUSH_INTERVAL_MS = 5000;
 const MAX_BATCH_SIZE = 20;
 
@@ -83,6 +108,7 @@ function attachUnloadListeners(): void {
 export function track(body: TrackBody): void {
   if (typeof window === 'undefined') return;
   try {
+    if (sessionOptOut ?? analyticsOptedOut()) return;
     attachUnloadListeners();
     queue.push(body);
     if (queue.length >= MAX_BATCH_SIZE) {

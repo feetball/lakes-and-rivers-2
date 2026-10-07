@@ -1,6 +1,7 @@
 'use client';
 
 import type { AlertsState } from '@/lib/alerts-view';
+import { CLEAR_OF_CONTROLS_RIGHT, EDGE_LEFT } from './controlSlots';
 
 // Shown on the map (not only in the Legend, which can be hidden) when the warnings
 // layer is on but cannot be trusted: an empty overlay must never read as "no warnings".
@@ -13,8 +14,8 @@ export default function AlertsStatusChip({ state, top }: { state: AlertsState; t
       style={{
         position: 'absolute',
         top,
-        left: 12,
-        right: 68, // clear the locate button
+        left: EDGE_LEFT,
+        right: CLEAR_OF_CONTROLS_RIGHT,
         zIndex: 1000,
         width: 'fit-content',
         maxWidth: 'calc(100vw - 80px)',

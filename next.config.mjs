@@ -13,10 +13,11 @@ const pkg = JSON.parse(
 // MOBILE_API_BASE, inlined below as NEXT_PUBLIC_API_BASE. See
 // docs/mobile-app.md.
 const MOBILE = process.env.MOBILE_BUILD === '1';
-// Default API origin baked into the app. Override with MOBILE_API_BASE. Prefer
-// a domain you own here — the value ships inside every installed copy, so
-// moving the backend later means a store update unless the hostname is yours.
-const DEFAULT_MOBILE_API_BASE = 'https://texas-flood-map.daniel-8d6.workers.dev';
+// Default API origin baked into the app. Override with MOBILE_API_BASE. It is
+// the website's own domain (the same Worker): the value ships inside every
+// installed copy, so it must be a hostname we own, never the workers.dev
+// address, which is tied to the Cloudflare account.
+const DEFAULT_MOBILE_API_BASE = 'https://txfloods.kuecker.us';
 
 // Opt-in: let `next dev` access Cloudflare bindings (ASSETS/R2/D1) through a
 // local miniflare, for testing the Workers-specific code paths in dev:

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { onExternalLinkClick, PRIVACY_URL } from '@/lib/externalLink';
 
 // One-time liability disclaimer shown on a visitor's first arrival. Acceptance
 // is remembered in localStorage so returning visitors aren't nagged. Bump
@@ -82,6 +83,7 @@ export default function DisclaimerModal() {
               href="https://www.weather.gov/"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={onExternalLinkClick}
               style={{ color: '#60a5fa' }}
             >
               National Weather Service
@@ -91,11 +93,23 @@ export default function DisclaimerModal() {
               href="https://water.noaa.gov/"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={onExternalLinkClick}
               style={{ color: '#60a5fa' }}
             >
               NOAA / National Water Prediction Service
             </a>{' '}
             and your local emergency authorities.
+          </p>
+          <p style={{ margin: '12px 0 0', fontSize: 12, color: '#94a3b8' }}>
+            <a
+              href={PRIVACY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onExternalLinkClick}
+              style={{ color: '#94a3b8' }}
+            >
+              Privacy policy
+            </a>
           </p>
         </div>
         <button

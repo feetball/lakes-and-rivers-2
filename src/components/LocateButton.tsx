@@ -1,7 +1,7 @@
 'use client';
 
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
-import { controlTop } from './controlSlots';
+import { EDGE_RIGHT, controlTop } from './controlSlots';
 
 interface Props {
   // Called with the user's position once a fix is available.
@@ -19,7 +19,7 @@ export default function LocateButton({ onLocated }: Props) {
       style={{
         position: 'absolute',
         top: controlTop(0),
-        right: 12,
+        right: EDGE_RIGHT,
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
