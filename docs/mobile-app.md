@@ -87,7 +87,7 @@ Build-time overrides (all optional):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `MOBILE_API_BASE` | the Worker's `workers.dev` URL (see `next.config.mjs`) | where the app fetches gauge data. **Use a domain you own before shipping** — this value is frozen into every installed copy. |
+| `MOBILE_API_BASE` | `https://txfloods.kuecker.us`, the website's domain on the same Worker (see `next.config.mjs`) | where the app fetches gauge data. This value is frozen into every installed copy, so keep it a domain you own. |
 | `NEXT_PUBLIC_VECTOR_TILE_URL` | `https://tiles.kuecker.us/texas/{z}/{x}/{y}.mvt` (see `src/lib/api.ts`) | the vector basemap, served by [`tiles-worker/`](../tiles-worker/README.md). **Normally leave it unset.** An empty value means "no vector tiles": `scripts/build-mobile.mjs` then refuses to build unless `NEXT_PUBLIC_TILE_URL` names another raster provider (or `ALLOW_OSM_TILES=1` for a non-store test build). |
 | `NEXT_PUBLIC_TILE_URL` | OpenStreetMap | the raster layer used as the **automatic fallback** while the tile server is failing (and as the only layer if the vector URL is empty). Set it to a paid raster provider if you do not want OSM, even as a fallback. |
 | `NEXT_PUBLIC_TILE_ATTRIBUTION` | OSM credit | attribution HTML for that raster provider |
@@ -160,7 +160,9 @@ want different ones — they're permanent afterwards):
 1. **Versions.** In Xcode select the *App* target → *General*: **Version**
    (e.g. `1.0.0`, what users see) and **Build** (an integer that must go up on
    every upload, e.g. `1`, `2`, `3`…). These are `MARKETING_VERSION` and
-   `CURRENT_PROJECT_VERSION` in the project file.
+   `CURRENT_PROJECT_VERSION` in the project file. Keep Version equal to
+   `version` in package.json (and `versionName` in android/app/build.gradle):
+   the legend shows the package.json one, so the store and the app agree.
 2. **Archive.** Set the device menu to *Any iOS Device (arm64)*, then
    Product → **Archive**. When the Organizer window opens: *Distribute App* →
    *App Store Connect* → *Upload*, accept the defaults. Uploads take a few

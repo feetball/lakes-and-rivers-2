@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { GaugeStatus } from '@/lib/types';
-
 // The website, which opens this gauge's sheet from ?gauge=ID (see MapView). The
 // apps share the same link: it works for anyone, with or without the app.
-const SHARE_ORIGIN = 'https://txfloods.kuecker.us';
+import { SITE_ORIGIN as SHARE_ORIGIN } from '@/lib/externalLink';
 
 type Result = 'idle' | 'copied' | 'manual';
 

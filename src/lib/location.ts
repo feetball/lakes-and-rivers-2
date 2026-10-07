@@ -7,7 +7,11 @@
 // for it on first use.
 //
 // A position fetched here is used on the device (to centre the map, to sort gauges by
-// distance) and is never sent anywhere or written to storage.
+// distance) and is never sent to our server. Two indirect traces, which the privacy policy
+// (/privacy) and the iOS permission text must stay consistent with: after "centre on me"
+// the map loads basemap tiles for that area like for any other view, and the map's
+// last view (centre + zoom) is remembered in localStorage on the device (MapView's
+// ViewPersister).
 
 export interface DevicePosition {
   lat: number;

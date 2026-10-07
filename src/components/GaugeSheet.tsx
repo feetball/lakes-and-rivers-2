@@ -5,6 +5,7 @@ import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, displayCate
 import { risingQuicklyRate } from '@/lib/gaugeDetail';
 import type { GaugeStatus } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
+import { onExternalLinkClick } from '@/lib/externalLink';
 import { useGaugeDetail } from '@/hooks/useGaugeDetail';
 import GaugeDetailSections from './GaugeDetailSections';
 import GaugeNeighbor from './GaugeNeighbor';
@@ -290,7 +291,7 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) 
         <GaugeDetailSections gauge={gauge} />
 
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Hydrograph</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Hydrograph <span style={{ fontSize: 11 }}>· graph by NOAA/NWS, shown unaltered</span></div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`https://water.noaa.gov/resources/hydrographs/${gauge.id.toLowerCase()}_hg.png`}
@@ -312,6 +313,7 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) 
           href={`https://water.noaa.gov/gauges/${gauge.id}`}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={onExternalLinkClick}
           style={{
             display: 'inline-block', marginTop: 14,
             color: '#60a5fa', fontSize: 13, textDecoration: 'none',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createHash, randomUUID } from 'node:crypto';
-import { recordEvents, analyticsEnabled, type TrackEvent } from '@/lib/analytics-store';
+import { recordEvents, analyticsEnabled, getDailySalt, type TrackEvent } from '@/lib/analytics-store';
 
 // Public, unauthenticated event sink for self-hosted analytics. The client
 // batches small events (pageview, gauge_open) client-side and posts them here
@@ -23,11 +23,12 @@ function clientIp(req: Request): string {
   return req.headers.get('x-real-ip') ?? 'unknown';
 }
 
-// Stable-per-day, non-reversible visitor id. Salting with the UTC day means the
-// hash rotates every 24h, so it can count daily uniques but isn't a durable
-// cross-day tracker. No IP or UA is ever persisted.
-function visitorHash(ip: string, ua: string, day: string): string {
-  return createHash('sha256').update(`${ip}|${ua}|${day}`).digest('hex').slice(0, 16);
+// Stable-per-day visitor id for counting daily uniques. The salt is a random key
+// per UTC day (getDailySalt) that is deleted once the day is compacted, so the hash
+// rotates daily and cannot be recomputed from an IP afterwards; without it a hash of
+// ip+ua+day could be brute-forced over the IPv4 space. No IP or UA is ever persisted.
+function visitorHash(ip: string, ua: string, salt: string): string {
+  return createHash('sha256').update(`${salt}|${ip}|${ua}`).digest('hex').slice(0, 16);
 }
 
 // Reduce a referrer to its hostname; drop same-origin and empty referrers.
@@ -76,7 +77,10 @@ export async function POST(req: Request) {
       return null;
     }
   })();
-  const visitor = visitorHash(ip, ua, day);
+  // No salt (storage unreachable): record the events without a visitor id rather than
+  // fall back to a guessable hash.
+  const salt = await getDailySalt(day, randomUUID());
+  const visitor = salt ? visitorHash(ip, ua, salt) : undefined;
   const referrer = referrerHost(req.headers.get('referer'), selfHost);
 
   const events: TrackEvent[] = [];

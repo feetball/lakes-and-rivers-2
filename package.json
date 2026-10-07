@@ -1,6 +1,6 @@
 {
   "name": "texas-flood-map",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.5",
     "@capacitor/core": "^8.5.2",
     "@capacitor/geolocation": "^8.2.2",
     "@opennextjs/cloudflare": "^1.20.1",
