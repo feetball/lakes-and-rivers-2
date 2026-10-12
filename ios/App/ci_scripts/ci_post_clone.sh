@@ -33,3 +33,13 @@ pnpm install --frozen-lockfile
 
 echo "[ci] building web bundle + cap sync"
 pnpm mobile:build
+
+# Xcode Cloud builds with automatic package resolution turned off and fails
+# without a Package.resolved. We don't commit one: CapApp-SPM/Package.swift
+# points at version-stamped paths under node_modules/.pnpm, which only exist
+# after the pnpm install above. So resolve here instead. The one remote package
+# (capacitor-swift-pm) is pinned with `exact:`, which keeps this reproducible.
+echo "[ci] resolving Swift packages"
+xcodebuild -resolvePackageDependencies \
+  -project "$REPO_ROOT/ios/App/App.xcodeproj" \
+  -scheme App

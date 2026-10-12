@@ -126,6 +126,41 @@ Plug the phone in, trust the computer, pick the phone in the device menu,
 and press ⌘R. The first time, Xcode needs a signing team (next section) and
 the phone needs Developer Mode on (Settings → Privacy & Security).
 
+## Xcode Cloud
+
+Xcode Cloud builds the iOS app on Apple's own Macs whenever you push or start a
+build, and sends it to TestFlight. The repo is ready for it:
+
+- `ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme` is a shared
+  scheme. Xcode Cloud only sees shared schemes.
+- `ios/App/ci_scripts/ci_post_clone.sh` installs Node and pnpm, builds the web
+  bundle, runs `cap sync`, then resolves the Swift packages. Xcode Cloud needs
+  a `Package.resolved`, and we can't commit one because
+  `CapApp-SPM/Package.swift` points into `node_modules`.
+
+**One-time setup (needs the Xcode window, on any Mac, including a rented cloud Mac):**
+
+1. Open `ios/App/App.xcodeproj`, sign in under Xcode → Settings → Accounts, and
+   check that *Signing & Capabilities* shows the team and `com.texasfloodmap.app`.
+2. Product → Xcode Cloud → **Create Workflow**, and pick the *App* product.
+3. Grant access to GitHub when App Store Connect opens in the browser. Install
+   the Xcode Cloud GitHub app on `feetball/lakes-and-rivers-2`.
+4. Edit the default workflow:
+   - Start condition: branch changes on `main` (or manual only).
+   - Action: **Archive**, platform iOS, deployment *TestFlight (Internal Testing Only)*.
+   - Post-action: TestFlight Internal Testing, with your tester group.
+   - Environment: latest Xcode, and optionally `MOBILE_API_BASE` (see *Building*).
+5. Start the first build.
+
+After that, edit workflows on the web too: App Store Connect → the app →
+*Xcode Cloud* → *Manage Workflows*.
+
+**Build numbers.** Xcode Cloud stamps its own build number on every archive
+and ignores `CURRENT_PROJECT_VERSION`. It must be higher than every build
+already uploaded (by hand, NoMac or the GitHub Actions workflow). Set it once in
+App Store Connect → the app → *Xcode Cloud* → *Settings* → *Build Number*,
+with a next build number above the latest one under *TestFlight*.
+
 ## Accounts, signing and ownership
 
 The **owner** of the app on both stores should be the person who is selling
