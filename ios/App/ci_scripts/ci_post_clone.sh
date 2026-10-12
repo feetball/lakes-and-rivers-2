@@ -47,7 +47,15 @@ pnpm mobile:build
 # points at version-stamped paths under node_modules/.pnpm, which only exist
 # after the pnpm install above. So resolve here instead. The one remote package
 # (capacitor-swift-pm) is pinned with `exact:`, which keeps this reproducible.
+# Xcode Cloud's strict setting applies to this xcodebuild too (it refuses with
+# exit 74 when there's no Package.resolved), so turn it off just for this
+# resolve and put it back afterwards; the real build then finds the file.
 echo "[ci] resolving Swift packages"
+defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool NO
+defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile -bool NO
 xcodebuild -resolvePackageDependencies \
   -project "$REPO_ROOT/ios/App/App.xcodeproj" \
   -scheme App
+defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool YES
+defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile -bool YES
+test -f "$REPO_ROOT/ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
