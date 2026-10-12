@@ -20,9 +20,17 @@ cd "$REPO_ROOT"
 
 echo "[ci] installing Node + pnpm"
 export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1
-command -v node >/dev/null 2>&1 || brew install node
-corepack enable
-corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+# Xcode Cloud images have no Node. Use node@22 to match the GitHub Actions build,
+# and install pnpm with npm: Homebrew's current `node` (25+) no longer bundles
+# corepack, so `corepack enable` fails with exit 127.
+if ! command -v node >/dev/null 2>&1; then
+  brew install node@22
+  export PATH="$(brew --prefix node@22)/bin:$PATH"
+fi
+node --version
+PNPM_SPEC="$(node -p "require('./package.json').packageManager.split('+')[0]")"
+command -v pnpm >/dev/null 2>&1 && [ "pnpm@$(pnpm --version)" = "$PNPM_SPEC" ] || npm install -g "$PNPM_SPEC"
+pnpm --version
 
 [ -n "${MOBILE_API_BASE:-}" ] || echo "[ci] WARNING: MOBILE_API_BASE unset; using the default from next.config.mjs"
 # Tile settings are validated by `pnpm mobile:build` below (scripts/build-mobile.mjs): it

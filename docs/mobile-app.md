@@ -133,7 +133,8 @@ build, and sends it to TestFlight. The repo is ready for it:
 
 - `ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme` is a shared
   scheme. Xcode Cloud only sees shared schemes.
-- `ios/App/ci_scripts/ci_post_clone.sh` installs Node and pnpm, builds the web
+- `ios/App/ci_scripts/ci_post_clone.sh` installs Node 22 (Homebrew `node@22`) and
+  pnpm (with npm, not corepack, which Homebrew's newer `node` no longer ships), builds the web
   bundle, runs `cap sync`, then resolves the Swift packages. Xcode Cloud needs
   a `Package.resolved`, and we can't commit one because
   `CapApp-SPM/Package.swift` points into `node_modules`.
