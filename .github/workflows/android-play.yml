@@ -41,8 +41,11 @@ on:
       - pnpm-lock.yaml
       - .github/workflows/android-play.yml
 
+# Releases share one group whatever branch they run from: each upload opens and
+# commits a Play edit for the app, and overlapping edits fail each other.
+# Pull-request checks get a group per branch and cancel superseded runs.
 concurrency:
-  group: android-play-${{ github.event_name }}-${{ github.ref }}
+  group: ${{ github.event_name == 'workflow_dispatch' && 'android-play-release' || format('android-play-pr-{0}', github.ref) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -59,7 +62,7 @@ jobs:
         with:
           node-version: 22
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
