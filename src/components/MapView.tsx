@@ -540,12 +540,20 @@ export default function MapView() {
   // canvas paths every tick).
   const gaugeMapRef = useRef(gaugeMap);
   gaugeMapRef.current = gaugeMap;
+  // The moment the readings on screen describe: now, or the time of the timeline snapshot.
+  // Colours use it to gray out readings too old to stand for that moment (displayCategory).
+  // Live, it steps every 15 minutes, not with each one-minute tick: each step restyles every
+  // river path, and 15 minutes is nothing against the 6-hour cutoff.
+  const snapshotMs = !live && gaugeData?.updatedAt ? Date.parse(gaugeData.updatedAt) : NaN;
+  const readingsMs = Number.isFinite(snapshotMs) ? snapshotMs : now - (now % (15 * 60_000));
+  const readingsMsRef = useRef(readingsMs);
+  readingsMsRef.current = readingsMs;
 
   const styleFeature = (feature?: Feature<Geometry, WaterwayProperties>): PathOptions => {
     const gid = feature?.properties?.gaugeId;
     const g = gid ? gaugeMapRef.current[gid] : undefined;
     const isWaterbody = feature?.geometry?.type === 'Polygon' || feature?.geometry?.type === 'MultiPolygon';
-    const color = colorFor(g && displayCategory(g));
+    const color = colorFor(g && displayCategory(g, readingsMsRef.current));
     return isWaterbody
       ? { color, weight: 1, fillColor: color, fillOpacity: 0.55 }
       : { color, weight: 2.5, opacity: 0.9 };
@@ -562,11 +570,11 @@ export default function MapView() {
       const gid = f?.properties?.gaugeId;
       const name = f?.properties?.name ?? 'Unnamed waterway';
       const g = gid ? gaugeMap[gid] : undefined;
-      const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g)]}` : name;
+      const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g, readingsMs)]}` : name;
       const tip = (child as any).getTooltip?.();
       if (tip) tip.setContent(label);
     });
-  }, [gaugeMap]);
+  }, [gaugeMap, readingsMs]);
 
   // Drop tiny/minor stream segments below STREAM_MIN_ZOOM. Lakes always
   // render — they're cheap (one polygon each) and provide context.
@@ -581,7 +589,7 @@ export default function MapView() {
     const gid = feature.properties?.gaugeId;
     const name = feature.properties?.name ?? 'Unnamed waterway';
     const g = gid ? gaugeMapRef.current[gid] : undefined;
-    const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g)]}` : name;
+    const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g, readingsMsRef.current)]}` : name;
     layer.bindTooltip(label, { sticky: true, direction: 'top', opacity: 0.9 });
     layer.on('click', (e: LeafletMouseEvent) => {
       const live = gid ? gaugeMapRef.current[gid] : undefined;
@@ -623,9 +631,9 @@ export default function MapView() {
     const counts: Record<DisplayCategory, number> = {
       not_defined: 0, no_stages: 0, no_flooding: 0, action: 0, minor: 0, moderate: 0, major: 0,
     };
-    for (const g of gaugeList) counts[displayCategory(g)]++;
+    for (const g of gaugeList) counts[displayCategory(g, readingsMs)]++;
     return counts;
-  }, [gaugeList]);
+  }, [gaugeList, readingsMs]);
 
   // Age of the live snapshot being displayed. Only meaningful in live mode —
   // historical/forecast snapshots are old by design. SWR re-polls live data
@@ -699,7 +707,7 @@ export default function MapView() {
             pathOptions={{
               color: '#0b1220',
               weight: GAUGE_OUTLINE,
-              fillColor: colorFor(displayCategory(g)),
+              fillColor: colorFor(displayCategory(g, readingsMs)),
               fillOpacity: 1,
             }}
             eventHandlers={{
@@ -727,7 +735,7 @@ export default function MapView() {
           >
             {/* Tip 1 px inside the top edge of the dot, whatever its size (-4 at radius 5). */}
             <Tooltip direction="top" offset={[0, 1 - GAUGE_RADIUS]}>
-              {g.name} — {CATEGORY_LABELS[displayCategory(g)]}
+              {g.name} — {CATEGORY_LABELS[displayCategory(g, readingsMs)]}
             </Tooltip>
           </CircleMarker>
         ))}
@@ -947,6 +955,7 @@ export default function MapView() {
       {selected && (
         <GaugeSheet
           gauge={selected}
+          readingsMs={live ? undefined : readingsMs}
           onClose={() => setSelected(null)}
           neighbor={(() => {
             const n = riverNeighbor ? gaugeMap[riverNeighbor.id] : undefined;

@@ -3,7 +3,7 @@
 // runs under node:test (tests/gaugeList.test.mjs).
 
 import type { GaugeStatus } from './types.ts';
-import { CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, type DisplayCategory } from './floodStatus.ts';
+import { CATEGORY_LABELS, NO_RECENT_READING_MS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, type DisplayCategory } from './floodStatus.ts';
 
 export interface LatLon {
   lat: number;
@@ -93,10 +93,12 @@ export function readingAgeMs(gauge: Pick<GaugeStatus, 'observedAt'>, nowMs: numb
  * with a reading but no flood stages is "no flood stages", not "no data"), with one more
  * exception: "Normal" needs a reading behind it, so a gauge that reports nothing is
  * listed as "no data" instead of looking all clear. A flood category is never downgraded.
+ * With `nowMs`, a "Normal" or "No flood stages" reading too old to colour the map is "no data"
+ * here too (displayCategory).
  */
-export function listCategory(gauge: GaugeStatus): DisplayCategory {
+export function listCategory(gauge: GaugeStatus, nowMs?: number): DisplayCategory {
   if (!Object.hasOwn(STATUS_RANK, gauge.category)) return 'not_defined';
-  const category = displayCategory(gauge);
+  const category = displayCategory(gauge, nowMs);
   return category === 'no_flooding' && !hasReading(gauge) ? 'not_defined' : category;
 }
 
@@ -124,7 +126,7 @@ export function toListItem(gauge: GaugeStatus, nowMs: number, from: LatLon | nul
   const ageMs = readingAgeMs(gauge, nowMs);
   return {
     gauge,
-    category: listCategory(gauge),
+    category: listCategory(gauge, nowMs),
     hasReading: reading,
     hasStages: hasFloodStages(gauge),
     ageMs,
@@ -316,7 +318,7 @@ export function searchGauges(
   const hits: { entry: GaugeSearchEntry; score: number; rank: number }[] = [];
   for (const entry of index) {
     const score = scoreTokens(typed, entry.tokens);
-    if (score > 0) hits.push({ entry, score, rank: statusRank(listCategory(entry.gauge)) });
+    if (score > 0) hits.push({ entry, score, rank: statusRank(listCategory(entry.gauge, nowMs)) });
   }
   hits.sort(
     (a, b) =>
@@ -389,6 +391,10 @@ function statusPiece(item: GaugeListItem, snapshot: boolean): Piece {
       return snapshot
         ? { text: 'No reading for this time', spoken: 'no reading for this time' }
         : { text: 'No current reading', spoken: 'no current reading' };
+    }
+    // A reading too old to stand for now (see displayCategory); whenPiece says how old.
+    if (!snapshot && (item.ageMs === null || item.ageMs > NO_RECENT_READING_MS)) {
+      return { text: 'No recent reading', spoken: 'no recent reading' };
     }
     return { text: 'Flood stages not defined', spoken: 'flood stages not defined' };
   }

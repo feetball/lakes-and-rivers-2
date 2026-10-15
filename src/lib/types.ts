@@ -24,6 +24,8 @@ export interface GaugeForecast {
   issuedAt?: string | null;
 }
 
+export type GaugeSource = 'nws' | 'usgs';
+
 export interface GaugeStatus {
   id: string;
   name: string;
@@ -39,6 +41,11 @@ export interface GaugeStatus {
     moderate: number | null;
     major: number | null;
   } | null;
+  // Where observedStage came from: 'nws' = the National Weather Service's NWPS feed
+  // (which carries USGS and partner gauges), 'usgs' = USGS Water Data directly, used
+  // while NWPS is down. Absent on readings from snapshots stored before it existed and
+  // on gauges with no reading.
+  source?: GaugeSource;
   // Present only while NWS has a current forecast for this gauge (about 90 of
   // 723 Texas gauges at any time). Absent means "none in this snapshot" - not
   // proof that none exists: snapshots built without NWPS (the USGS fallback,

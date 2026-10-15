@@ -13,6 +13,7 @@ import { IS_MOBILE } from '@/lib/api';
 export const SITE_ORIGIN = 'https://txfloods.kuecker.us';
 export const PRIVACY_URL = `${SITE_ORIGIN}/privacy`;
 export const SUPPORT_URL = `${SITE_ORIGIN}/support`;
+export const TERMS_URL = `${SITE_ORIGIN}/terms`;
 
 export async function openExternal(url: string): Promise<void> {
   if (IS_MOBILE) {

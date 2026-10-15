@@ -113,6 +113,7 @@ export function gaugeFromNwpsEntry(g: NwpsRow, meta: GaugeMetaEntry | undefined)
     unit: nonEmpty(obs?.primaryUnit) ?? nonEmpty(g.flood?.stageUnits) ?? meta?.unit ?? null,
     thresholds,
   };
+  if (stage !== null) status.source = 'nws';
   const forecast = extractForecast(g.status?.forecast, thresholds);
   // Omitted rather than null when there is none: it keeps the snapshot ~10 KB
   // smaller (about 630 gauges), and the client treats "absent" as "none".

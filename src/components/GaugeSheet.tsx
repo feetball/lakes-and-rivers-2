@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, hasValidThresholds } from '@/lib/floodStatus';
+import { CATEGORY_COLORS, CATEGORY_LABELS, NO_RECENT_READING_MS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, hasValidThresholds, isValidStage } from '@/lib/floodStatus';
 import { risingQuicklyRate } from '@/lib/gaugeDetail';
 import type { GaugeStatus } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
@@ -15,6 +15,8 @@ import FavoriteStar from './FavoriteStar';
 interface Props {
   gauge: GaugeStatus;
   onClose: () => void;
+  /** While the map shows a timeline snapshot: the moment its readings describe. Absent = live (now). */
+  readingsMs?: number;
   /** A USGS river camera at this gauge's site, when the app knows of one that is online. */
   webcam?: { name: string; onOpen: () => void };
   /**
@@ -60,8 +62,16 @@ function formatPeakDate(raw: string): string {
   return raw;
 }
 
-export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) {
-  const kind = displayCategory(gauge);
+// Where a reading came from (GaugeStatus.source). NWPS carries USGS and partner gauges too;
+// 'usgs' means USGS Water Data directly, while the NWS feed is down.
+const SOURCE_TEXT: Record<NonNullable<GaugeStatus['source']>, string> = {
+  nws: 'NOAA / National Weather Service',
+  usgs: 'USGS Water Data',
+};
+
+export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsMs }: Props) {
+  const refMs = readingsMs ?? Date.now();
+  const kind = displayCategory(gauge, refMs);
   const color = CATEGORY_COLORS[kind];
   const observedAt = gauge.observedAt
     ? new Date(gauge.observedAt).toLocaleString([], {
@@ -70,7 +80,7 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) 
     : null;
   // A stale observation must not masquerade as a confident current status —
   // e.g. a day-old "Normal" on a lake that has since risen past Action stage.
-  const obsAge = dataAgeMs(gauge.observedAt);
+  const obsAge = dataAgeMs(gauge.observedAt, refMs);
   const obsStale = obsAge !== null && obsAge > STALE_DATA_MS;
 
   // No category has two reasons and two looks: tan "No flood stages" (a reading, but NWS
@@ -80,7 +90,11 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) 
   // build-time list), which proves nothing either way.
   const noFloodStages = !!gauge.thresholds && !hasValidThresholds(gauge.thresholds);
   const noStagesNote = noFloodStages && (kind === 'no_stages' || kind === 'not_defined');
-  const statusLabel = CATEGORY_LABELS[kind];
+  // Gray because the reading is too old to colour the map (displayCategory), not because there
+  // is none: say that, and let the warning below give its age.
+  const tooOld = kind === 'not_defined' && isValidStage(gauge.observedStage) &&
+    (obsAge === null || obsAge > NO_RECENT_READING_MS);
+  const statusLabel = tooOld ? 'No recent reading' : CATEGORY_LABELS[kind];
 
   // A fast rise is the one warning sign that needs no flood stage, so it is said up here, not
   // only in the Outlook section below. Same cached request as that section (SWR dedupes it).
@@ -201,6 +215,9 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) 
             <div style={{ fontSize: 14, marginTop: 4 }}>
               Observed: <strong>{gauge.observedStage} {gauge.unit ?? ''}</strong>
               {observedAt && <span style={{ color: '#9ca3af', marginLeft: 6 }}>· {observedAt}</span>}
+              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+                Source: {gauge.source ? SOURCE_TEXT[gauge.source] : 'NOAA / NWS or USGS'} · provisional data, subject to revision
+              </div>
             </div>
           )}
           {risingRate !== null && (

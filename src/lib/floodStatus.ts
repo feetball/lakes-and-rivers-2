@@ -96,13 +96,33 @@ export function categorizeByStage(stage: number, t: Thresholds): FloodCategory {
 // newer than the build-time list), which proves nothing either way, so those are left alone.
 // A "Normal" with no flood stages behind it is a statement about nothing, so it becomes
 // `no_stages` too. A flood category is never replaced.
-export function displayCategory(g: Pick<GaugeStatus, 'category' | 'observedStage' | 'thresholds'>): DisplayCategory {
-  if (
+//
+// With `refMs` (the moment the map shows: now, or the timeline's time) an old reading is
+// held to the legend's promise that blue and tan rest on a recent reading: a "Normal" or
+// "No flood stages" whose reading is older than NO_RECENT_READING_MS, or has no time at
+// all, is shown as gray "No data". A flood colour stays, however old: hiding a flood is
+// worse than showing an old one, and the sheet and the list say how old it is.
+export function displayCategory(
+  g: Pick<GaugeStatus, 'category' | 'observedStage' | 'thresholds' | 'observedAt'>,
+  refMs?: number,
+): DisplayCategory {
+  const shown: DisplayCategory =
     (g.category === 'not_defined' || g.category === 'no_flooding') &&
     g.thresholds && !hasValidThresholds(g.thresholds) && isValidStage(g.observedStage)
-  ) return 'no_stages';
-  return g.category;
+      ? 'no_stages'
+      : g.category;
+  if (refMs !== undefined && (shown === 'no_flooding' || shown === 'no_stages')) {
+    const age = dataAgeMs(g.observedAt, refMs);
+    if (age === null || age > NO_RECENT_READING_MS) return 'not_defined';
+  }
+  return shown;
 }
+
+// How old a reading may be and still colour the map blue or tan. Longer than STALE_DATA_MS
+// (when the sheet and the list start warning) because many gauges report only every few
+// hours between storms; 6 h keeps those coloured from one report to the next, while a gauge
+// that has gone quiet, or a build-time reading carried over while NWPS is down, turns gray.
+export const NO_RECENT_READING_MS = 6 * 60 * 60 * 1000;
 
 // Live gauge data refreshes every ~30 min; past a few missed cycles a reading
 // can no longer be trusted to reflect current conditions — a lake can climb

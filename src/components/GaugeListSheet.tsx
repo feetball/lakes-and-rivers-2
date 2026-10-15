@@ -59,6 +59,10 @@ export default function GaugeListSheet({
     const t = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(t);
   }, []);
+  // Rows are judged against the moment their readings describe: now, or the time of the
+  // timeline snapshot the map is showing (so a snapshot's "Normal" is not grayed as old).
+  const snapshotMs = snapshot && updatedAt ? Date.parse(updatedAt) : NaN;
+  const readingsNow = Number.isFinite(snapshotMs) ? snapshotMs : now;
 
   // The parent re-renders often and passes a new onClose each time; going through a ref keeps
   // this effect (which moves focus) to once per open.
@@ -172,14 +176,14 @@ export default function GaugeListSheet({
         />
 
         <div id="gl-panel" role="tabpanel" aria-labelledby={`gl-tab-${tab}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain' }}>
-          {hasData && tab === 'favorites' && <FavoritesPanel gauges={gauges ?? {}} now={now} snapshot={snapshot} onPick={pick} onGoSearch={() => setTab('search')} />}
-          {hasData && tab === 'near' && <NearPanel list={list} now={now} snapshot={snapshot} onPick={pick} />}
-          {hasData && tab === 'search' && <SearchPanel list={list} now={now} snapshot={snapshot} onPick={pick} onPickPlace={onPickPlace} />}
+          {hasData && tab === 'favorites' && <FavoritesPanel gauges={gauges ?? {}} now={readingsNow} snapshot={snapshot} onPick={pick} onGoSearch={() => setTab('search')} />}
+          {hasData && tab === 'near' && <NearPanel list={list} now={readingsNow} snapshot={snapshot} onPick={pick} />}
+          {hasData && tab === 'search' && <SearchPanel list={list} now={readingsNow} snapshot={snapshot} onPick={pick} onPickPlace={onPickPlace} />}
         </div>
 
         <p style={{ margin: '8px 0 0', fontSize: 11, lineHeight: 1.4, color: COLORS.muted }}>
-          Unofficial. Readings and flood categories are from NOAA / National Weather Service gauges
-          and are not an official warning.
+          Unofficial. Readings come from NOAA / National Weather Service and USGS gauges. They are
+          provisional, can be late or wrong, and are not an official warning.
         </p>
       </div>
     </>
