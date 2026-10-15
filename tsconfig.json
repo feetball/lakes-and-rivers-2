@@ -11,6 +11,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // Lets the pure modules that tests/*.test.mjs imports through Node's type
+    // stripping name their siblings with the .ts extension Node requires. Safe
+    // with noEmit: the bundler resolves the same files either way.
+    "allowImportingTsExtensions": true,
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],
@@ -19,5 +23,17 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // Imports the OpenNext-generated .open-next/worker.js, which only exists
+    // after `opennextjs-cloudflare build`; wrangler bundles it independently.
+    "worker.ts",
+    ".open-next",
+    // Separate Worker project (own package.json/tsconfig): see tiles-worker/README.md
+    "tiles-worker",
+    // Mobile: static export + native projects (Capacitor)
+    "out",
+    "ios",
+    "android"
+  ]
 }

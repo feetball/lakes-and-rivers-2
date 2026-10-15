@@ -1,51 +1,81 @@
 {
   "name": "texas-flood-map",
-  "version": "0.1.2",
+  "version": "1.0.2",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "node .next/standalone/server.js",
-    "postbuild": "cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
+    "postbuild": "node scripts/postbuild.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
     "data:build": "node scripts/build-waterways-data.mjs",
     "data:build:refresh": "node scripts/build-waterways-data.mjs --refresh",
     "data:refresh-list": "node scripts/refresh-gauges-list.mjs",
+    "data:places": "node scripts/build-places-data.mjs",
     "data:cache:clear": "rm -rf data-cache/gauges",
     "data:cache:pack": "node scripts/pack-cache.mjs",
     "data:cache:unpack": "node scripts/unpack-cache.mjs",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "mobile:build": "node scripts/build-mobile.mjs",
+    "mobile:export": "node scripts/build-mobile.mjs --no-sync",
+    "mobile:sync": "cap sync",
+    "mobile:ios": "cap open ios",
+    "mobile:android": "cap open android",
+    "mobile:assets": "capacitor-assets generate --ios --android --iconBackgroundColor \"#0b1220\" --iconBackgroundColorDark \"#0b1220\" --splashBackgroundColor \"#0b1220\" --splashBackgroundColorDark \"#0b1220\"",
     "prebuild": "node scripts/build-waterways-data.mjs --if-missing",
     "release": "pnpm version patch -m \"chore(release): %s\" && git push --follow-tags"
   },
   "dependencies": {
-    "@vercel/blob": "^2.5.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/geolocation": "^8.2.3",
+    "@opennextjs/cloudflare": "^1.20.10",
+    "@vercel/blob": "^2.8.1",
     "leaflet": "^1.9.4",
-    "next": "^15.5.21",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "next": "^15.5.27",
+    "protomaps-leaflet": "^5.1.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "react-leaflet": "^5.0.0",
-    "swr": "^2.3.0"
+    "swr": "^2.5.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.2.0",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "@eslint/eslintrc": "^3.3.7",
     "@types/geojson": "^7946.0.16",
-    "@types/leaflet": "^1.9.16",
-    "@types/node": "^22.10.7",
-    "@types/react": "^19.0.7",
-    "@types/react-dom": "^19.0.3",
-    "eslint": "^9.18.0",
-    "eslint-config-next": "^15.5.19",
-    "typescript": "^5.7.3"
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.27",
+    "sharp": "^0.35.5",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.149.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "esbuild",
       "sharp",
-      "unrs-resolver"
+      "unrs-resolver",
+      "workerd"
     ],
     "overrides": {
-      "postcss@<8.5.10": ">=8.5.10"
+      "postcss@<8.5.10": ">=8.5.10",
+      "glob@10.3.3": "^10.5.0",
+      "sharp@<0.35.5": "^0.35.5",
+      "tar@<7.5.22": "^7.5.22",
+      "uuid@<11.1.1": "^11.1.1"
     }
   }
 }

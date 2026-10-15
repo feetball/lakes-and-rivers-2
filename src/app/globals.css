@@ -35,3 +35,44 @@ button {
 
 /* Hide Leaflet default marker shadow; we use a custom circle marker. */
 .leaflet-marker-shadow { display: none; }
+
+/* Current-location marker (MapView USER_ICON): violet core + pulsing halo, so
+   it can't be mistaken for a gauge dot. */
+.user-location { position: relative; background: none; border: 0; }
+.user-location__halo,
+.user-location__dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.user-location__halo {
+  width: 36px;
+  height: 36px;
+  background: rgba(139, 92, 246, 0.28);
+  border: 1.5px solid rgba(139, 92, 246, 0.6);
+  animation: user-location-pulse 2.4s ease-out infinite;
+}
+.user-location__dot {
+  width: 14px;
+  height: 14px;
+  background: #8b5cf6;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(11, 18, 32, 0.5), 0 2px 6px rgba(0, 0, 0, 0.45);
+  box-sizing: content-box;
+}
+@keyframes user-location-pulse {
+  0%   { transform: translate(-50%, -50%) scale(0.45); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1);    opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-location__halo { animation: none; }
+}
+
+/* The map credit (OpenStreetMap + Protomaps) is a licence requirement: keep it
+   above the iPhone home indicator instead of inside its inset. No effect where
+   the inset is zero. */
+.leaflet-container .leaflet-bottom .leaflet-control-attribution {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}

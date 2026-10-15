@@ -28,6 +28,7 @@ Requires **pnpm 10** (pinned via `packageManager` in `package.json`; run `corepa
 | `pnpm data:cache:clear` | Remove all cached per-gauge bundles. |
 | `pnpm lint` | ESLint (flat config, `eslint-config-next`). |
 | `pnpm typecheck` | `tsc --noEmit` across the project. |
+| `pnpm test` | Unit tests for the basemap fallback logic (`tests/`). Needs Node 22.18+ (it runs the `.ts` source directly). The tile server has its own tests: `cd tiles-worker && pnpm test`. |
 
 Useful env vars for `data:build`:
 
@@ -105,6 +106,14 @@ Import the repo; the defaults work. Notes:
 - **Function limits:** route `maxDuration` is 60 s (Hobby cap) and the upstream fetch is bounded by `NWPS_TIMEOUT_MS` (45 s) so background warming completes within budget.
 - **Admin force refresh:** set **`ADMIN_PASSWORD`** to enable an in-app **Admin** login in the legend. Once signed in, a **Force refresh data** button invalidates the shared gauge cache and pulls fresh NWPS data on demand (same effect as the cron, but session-gated via a signed HTTP-only cookie). The session is signed with `SESSION_SECRET` (falls back to `ADMIN_PASSWORD`).
 
+## Deploying to Cloudflare
+
+Cloudflare **Pages** can't host this app (its Next.js adapter is deprecated and was Edge-runtime-only), but Cloudflare **Workers** via the OpenNext adapter is fully wired up: `wrangler.jsonc` + `open-next.config.ts` configure the Worker (R2-backed data cache, D1-backed tag cache, a 30-min Cron Trigger), and the data routes read `public/data/*` through the assets binding instead of `fs` at runtime. Quick start: `npx wrangler login`, create the R2 bucket + D1 database, then `pnpm cf:deploy`. See [docs/deploying-to-cloudflare.md](docs/deploying-to-cloudflare.md) for the beginner-friendly step-by-step guide (account setup, secrets, custom domains, costs).
+
+## Mobile apps (iOS and Android)
+
+The same source ships as native iOS and Android apps via Capacitor: `pnpm mobile:build` produces a static export of the map (with the river/lake geometry bundled in the binary) and syncs it into the Xcode project in `ios/` and the Android Studio project in `android/`. The apps have no server of their own — they call the hosted API (`MOBILE_API_BASE`, the Cloudflare Worker by default), which sends the CORS headers they need. See [docs/mobile-app.md](docs/mobile-app.md) for the build, signing and store-submission walkthrough, and [docs/mobile-data-strategy.md](docs/mobile-data-strategy.md) for where the data comes from, what it costs, and the basemap-tile decision that has to be made before a store release.
+
 ## Configuration
 
 | Env var | Used by | Description |
@@ -114,6 +123,10 @@ Import the repo; the defaults work. Notes:
 | `SESSION_SECRET` | `/api/admin/*` | HMAC key for signing the admin session cookie. Optional — falls back to `ADMIN_PASSWORD`; set it to rotate sessions independently of the password. |
 | `NEXT_PUBLIC_APP_VERSION` | UI footer | Optional version label shown in the legend. |
 | `NWPS_TIMEOUT_MS` | `/api/gauges`, `/api/cron` | Per-attempt upstream fetch timeout (default 45000). |
+| `MOBILE_API_BASE` | `pnpm mobile:build` | Origin the mobile apps call for `/api/*` (baked in at build time). |
+| `NEXT_PUBLIC_VECTOR_TILE_URL` | any build | Vector basemap served by [`tiles-worker/`](tiles-worker/README.md). Defaults to `https://tiles.kuecker.us/texas/{z}/{x}/{y}.mvt` (see `src/lib/api.ts`), so the website, `pnpm dev` and the apps use it without any setting. An empty value (`NEXT_PUBLIC_VECTOR_TILE_URL= pnpm dev`) means raster tiles only. |
+| `NEXT_PUBLIC_TILE_URL`, `NEXT_PUBLIC_TILE_ATTRIBUTION` | any build | The raster layer (OpenStreetMap by default): the automatic fallback while the tile server is failing, and the only layer if the vector URL is empty. |
+| `NEXT_PUBLIC_TILE_FALLBACK` | any build | `off` = never fall back to the raster layer. |
 | `CACHE_TTL_DAYS`, `OUTPUT_COORD_DP`, `NHD_CONCURRENCY`, `GAUGE_LIMIT`, `REFRESH` | `data:build` | See *Scripts*. |
 
 ## License

@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { apiUrl } from '@/lib/api';
 
 interface SessionState {
   authed: boolean;
@@ -17,13 +18,13 @@ const sessionFetcher = async (url: string): Promise<SessionState> => {
 // login/logout helpers. Revalidates on focus so a session that expires (or a
 // logout in another tab) is reflected.
 export function useAdmin() {
-  const { data, mutate, isLoading } = useSWR<SessionState>('/api/admin/session', sessionFetcher, {
+  const { data, mutate, isLoading } = useSWR<SessionState>(apiUrl('/api/admin/session'), sessionFetcher, {
     revalidateOnFocus: true,
     dedupingInterval: 30 * 1000,
   });
 
   async function login(password: string): Promise<{ ok: boolean; error?: string }> {
-    const res = await fetch('/api/admin/login', {
+    const res = await fetch(apiUrl('/api/admin/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password }),
@@ -37,7 +38,7 @@ export function useAdmin() {
   }
 
   async function logout(): Promise<void> {
-    await fetch('/api/admin/logout', { method: 'POST' });
+    await fetch(apiUrl('/api/admin/logout'), { method: 'POST' });
     await mutate();
   }
 

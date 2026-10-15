@@ -1,0 +1,604 @@
+{
+ "gauges": [
+  {
+   "lid": "AMAT2",
+   "name": "Canadian River at Amarillo",
+   "rfc": {
+    "abbreviation": "ABRFC",
+    "name": "Arkansas-Red Basin RFC"
+   },
+   "wfo": {
+    "abbreviation": "AMA",
+    "name": "Amarillo"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 35.470277777778,
+   "longitude": -101.87916666667,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 3.88,
+     "primaryUnit": "ft",
+     "secondary": 0.912,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "no_flooding",
+     "validTime": "2026-10-02T11:15:00Z"
+    },
+    "forecast": {
+     "primary": 7.5,
+     "primaryUnit": "ft",
+     "secondary": 3.59,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "minor",
+     "validTime": "2026-10-03T06:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "HNFT2",
+   "name": "North Fork Guadalupe River near Hunt",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "EWX",
+    "name": "New Braunfels"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 30.063888888889,
+   "longitude": -99.386666666667,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": ""
+   },
+   "status": {
+    "observed": {
+     "primary": 1.77,
+     "primaryUnit": "ft",
+     "secondary": 0.0347,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "not_defined",
+     "validTime": "2026-10-02T10:45:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "GRHT2",
+   "name": "Guadalupe River above Bear Creek at Kerrville",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "EWX",
+    "name": "New Braunfels"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 30.069444444444,
+   "longitude": -99.195,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": ""
+   },
+   "status": {
+    "observed": {
+     "primary": 3.48,
+     "primaryUnit": "ft",
+     "secondary": 0.169,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "not_defined",
+     "validTime": "2026-10-02T11:20:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "LNXT2",
+   "name": "South Fork Guadalupe River at Lynx Haven Crossing near Hunt, TX",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "EWX",
+    "name": "New Braunfels"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 29.980181,
+   "longitude": -99.4423,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": ""
+   },
+   "status": {
+    "observed": {
+     "primary": 4.6,
+     "primaryUnit": "ft",
+     "secondary": -999,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "not_defined",
+     "validTime": "2026-10-02T11:05:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "BCVT2",
+   "name": "Cow Bayou at I-10",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "LCH",
+    "name": "Lake Charles"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 30.1306,
+   "longitude": -93.9163,
+   "pedts": {
+    "observed": "HGIRA",
+    "forecast": ""
+   },
+   "status": {
+    "observed": {
+     "primary": 2.09,
+     "primaryUnit": "ft",
+     "secondary": -999,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "no_flooding",
+     "validTime": "2026-10-02T11:15:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "NFLT2",
+   "name": "North Floodway at Llano Grande",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "BRO",
+    "name": "Brownsville"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 26.127778,
+   "longitude": -97.934167,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 52.59,
+     "primaryUnit": "ft",
+     "secondary": -999,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "not_defined",
+     "validTime": "2026-10-02T11:00:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "CDPT2",
+   "name": "Pease River at Childress 17SE",
+   "rfc": {
+    "abbreviation": "ABRFC",
+    "name": "Arkansas-Red Basin RFC"
+   },
+   "wfo": {
+    "abbreviation": "LUB",
+    "name": "Lubbock"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 34.2275,
+   "longitude": -100.07333333333,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "obs_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "BDLT2",
+   "name": "North Texas Lakes at Lake Daniel",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "FWD",
+    "name": "Fort Worth"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 32.647777777778,
+   "longitude": -98.869166666667,
+   "pedts": {
+    "observed": "HPIRG",
+    "forecast": "HPIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "out_of_service",
+     "validTime": "0001-01-01T00:00:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "out_of_service",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "BKCT2",
+   "name": "Devils River at Bakers Crossing near Juno",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "EWX",
+    "name": "New Braunfels"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 29.95,
+   "longitude": -101.13027777778,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 7.08,
+     "primaryUnit": "ft",
+     "secondary": 3.55,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "minor",
+     "validTime": "2026-10-02T11:15:00Z"
+    },
+    "forecast": {
+     "primary": 4.9,
+     "primaryUnit": "ft",
+     "secondary": 1.07,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "action",
+     "validTime": "2026-10-02T12:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "BOQT2",
+   "name": "Rio Grande at Boquillas Crossing",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "MAF",
+    "name": "Midland"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 29.1835386,
+   "longitude": -102.9754409,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 24.67,
+     "primaryUnit": "ft",
+     "secondary": 50.7,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "major",
+     "validTime": "2026-10-02T10:45:00Z"
+    },
+    "forecast": {
+     "primary": 3.7,
+     "primaryUnit": "ft",
+     "secondary": 0.298,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "no_flooding",
+     "validTime": "2026-10-02T21:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "KRRT2",
+   "name": "Guadalupe River at Kerrville",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "EWX",
+    "name": "New Braunfels"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 30.053055555556,
+   "longitude": -99.163055555556,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 1.75,
+     "primaryUnit": "ft",
+     "secondary": 0.329,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "no_flooding",
+     "validTime": "2026-10-02T11:05:00Z"
+    },
+    "forecast": {
+     "primary": 2.4,
+     "primaryUnit": "ft",
+     "secondary": 0.799,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "no_flooding",
+     "validTime": "2026-10-02T12:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "ANPT2",
+   "name": "Tide Gauge above Aransas Pass",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "CRP",
+    "name": "Corpus Christi"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 27.837,
+   "longitude": -97.039,
+   "pedts": {
+    "observed": "HMIRG",
+    "forecast": "HMIFA"
+   },
+   "status": {
+    "observed": {
+     "primary": 2.24,
+     "primaryUnit": "ft",
+     "secondary": -999,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "not_defined",
+     "validTime": "2026-10-02T11:24:00Z"
+    },
+    "forecast": {
+     "primary": 2.05,
+     "primaryUnit": "ft",
+     "secondary": -999,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "not_defined",
+     "validTime": "2026-10-03T06:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "ABIT2",
+   "name": "West Central Texas Lakes at Lake Abilene",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "SJT",
+    "name": "San Angelo"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 32.234444444444,
+   "longitude": -99.888611111111,
+   "pedts": {
+    "observed": "HPIRG",
+    "forecast": "HPIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 1991.55,
+     "primaryUnit": "ft",
+     "secondary": -999,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "no_flooding",
+     "validTime": "2026-10-02T10:30:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "CMKT2",
+   "name": "Devils River at Pafford Crossing near Comstock",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "EWX",
+    "name": "New Braunfels"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 29.676388888889,
+   "longitude": -101,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 6.06,
+     "primaryUnit": "ft",
+     "secondary": 25.6,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "moderate",
+     "validTime": "2026-10-02T11:15:00Z"
+    },
+    "forecast": {
+     "primary": 6.8,
+     "primaryUnit": "ft",
+     "secondary": 33.7,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "moderate",
+     "validTime": "2026-10-02T12:00:00Z"
+    }
+   }
+  },
+  {
+   "lid": "BRPT2",
+   "name": "Big Sandy Creek (Trinity River Basin) near Bridgeport",
+   "rfc": {
+    "abbreviation": "WGRFC",
+    "name": "West Gulf River Forecast Center"
+   },
+   "wfo": {
+    "abbreviation": "FWD",
+    "name": "Fort Worth"
+   },
+   "state": {
+    "abbreviation": "TX",
+    "name": "Texas"
+   },
+   "latitude": 33.231666666667,
+   "longitude": -97.694444444444,
+   "pedts": {
+    "observed": "HGIRG",
+    "forecast": "HGIFF"
+   },
+   "status": {
+    "observed": {
+     "primary": 1.74,
+     "primaryUnit": "ft",
+     "secondary": 0.0411,
+     "secondaryUnit": "kcfs",
+     "floodCategory": "low_threshold",
+     "validTime": "2026-10-02T11:15:00Z"
+    },
+    "forecast": {
+     "primary": -999,
+     "primaryUnit": "",
+     "secondary": -999,
+     "secondaryUnit": "",
+     "floodCategory": "fcst_not_current",
+     "validTime": "0001-01-01T00:00:00Z"
+    }
+   }
+  }
+ ]
+}

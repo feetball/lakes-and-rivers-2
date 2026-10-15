@@ -1,12 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge } from '@/lib/floodStatus';
+import { CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, hasValidThresholds } from '@/lib/floodStatus';
+import { risingQuicklyRate } from '@/lib/gaugeDetail';
 import type { GaugeStatus } from '@/lib/types';
+import { apiUrl } from '@/lib/api';
+import { onExternalLinkClick } from '@/lib/externalLink';
+import { useGaugeDetail } from '@/hooks/useGaugeDetail';
+import GaugeDetailSections from './GaugeDetailSections';
+import GaugeNeighbor from './GaugeNeighbor';
+import GaugeShareButton from './GaugeShareButton';
+import FavoriteStar from './FavoriteStar';
 
 interface Props {
   gauge: GaugeStatus;
   onClose: () => void;
+  /** A USGS river camera at this gauge's site, when the app knows of one that is online. */
+  webcam?: { name: string; onOpen: () => void };
+  /**
+   * For a gauge without flood stages: the nearest gauge with them on the same river
+   * (src/lib/riverNeighbor.ts), if the map's river data finds one. `snapshot` is true while
+   * the map shows a timeline snapshot instead of live data.
+   */
+  neighbor?: { gauge: GaugeStatus; snapshot: boolean; onOpen: () => void };
 }
 
 interface FloodRecord {
@@ -44,8 +60,9 @@ function formatPeakDate(raw: string): string {
   return raw;
 }
 
-export default function GaugeSheet({ gauge, onClose }: Props) {
-  const color = CATEGORY_COLORS[gauge.category];
+export default function GaugeSheet({ gauge, onClose, webcam, neighbor }: Props) {
+  const kind = displayCategory(gauge);
+  const color = CATEGORY_COLORS[kind];
   const observedAt = gauge.observedAt
     ? new Date(gauge.observedAt).toLocaleString([], {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -56,6 +73,20 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
   const obsAge = dataAgeMs(gauge.observedAt);
   const obsStale = obsAge !== null && obsAge > STALE_DATA_MS;
 
+  // No category has two reasons and two looks: tan "No flood stages" (a reading, but NWS
+  // defines no stages to compare it with) and gray "No data" (no reading), so a reading
+  // without flood stages never reads as a status. An all-empty thresholds object is NWS's
+  // "none defined"; null thresholds only mean we do not have them (a gauge newer than the
+  // build-time list), which proves nothing either way.
+  const noFloodStages = !!gauge.thresholds && !hasValidThresholds(gauge.thresholds);
+  const noStagesNote = noFloodStages && (kind === 'no_stages' || kind === 'not_defined');
+  const statusLabel = CATEGORY_LABELS[kind];
+
+  // A fast rise is the one warning sign that needs no flood stage, so it is said up here, not
+  // only in the Outlook section below. Same cached request as that section (SWR dedupes it).
+  const { data: detail } = useGaugeDetail(gauge.id);
+  const risingRate = risingQuicklyRate(detail, Date.now());
+
   const [records, setRecords] = useState<FloodRecord[]>([]);
 
   useEffect(() => {
@@ -64,7 +95,7 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
 
     (async () => {
       try {
-        const res = await fetch(`/api/gauges/${encodeURIComponent(gauge.id)}/records`, {
+        const res = await fetch(apiUrl(`/api/gauges/${encodeURIComponent(gauge.id)}/records`), {
           signal: controller.signal,
         });
         if (!res.ok) return;
@@ -79,6 +110,26 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
   }, [gauge.id]);
 
   const record = records.find(r => r.isRecord);
+
+  const recordRow = record && (
+    <div
+      style={{
+        display: 'flex', justifyContent: 'space-between',
+        background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 13,
+        borderLeft: `3px solid ${CATEGORY_COLORS.major}`,
+        gridColumn: '1 / -1',
+      }}
+    >
+      <span>
+        <span style={{ color: CATEGORY_COLORS.major, marginRight: 6, fontSize: 11 }}>
+          Record
+        </span>
+        {formatPeakDate(record.date)}
+      </span>
+      <span>{record.stage} ft</span>
+    </div>
+  
+  );
 
   return (
     <>
@@ -124,12 +175,13 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, lineHeight: 1.25 }}>{gauge.name}</h2>
             <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>Site ID: {gauge.id}</div>
           </div>
+          <FavoriteStar id={gauge.id} name={gauge.name} />
           <button
             onClick={onClose}
             aria-label="Close"
             style={{
               background: 'transparent', border: 'none', color: '#9ca3af',
-              fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: 4,
+              fontSize: 22, lineHeight: 1, cursor: 'pointer', minWidth: 44, minHeight: 44,
             }}
           >×</button>
         </div>
@@ -144,11 +196,25 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
           }}
         >
           <div style={{ fontSize: 12, color: '#9ca3af' }}>Status</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color }}>{CATEGORY_LABELS[gauge.category]}</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color }}>{statusLabel}</div>
           {gauge.observedStage !== null && (
             <div style={{ fontSize: 14, marginTop: 4 }}>
               Observed: <strong>{gauge.observedStage} {gauge.unit ?? ''}</strong>
               {observedAt && <span style={{ color: '#9ca3af', marginLeft: 6 }}>· {observedAt}</span>}
+            </div>
+          )}
+          {risingRate !== null && (
+            <div
+              role="status"
+              style={{
+                marginTop: 8, padding: '6px 8px', borderRadius: 6,
+                background: '#78350f55', border: '1px solid #b4530988',
+                color: '#fbbf24', fontSize: 12, lineHeight: 1.4,
+              }}
+            >
+              <strong>▲ Rising quickly:</strong> about {risingRate.toFixed(1)} ft per hour over the last 3 hours.
+              {noFloodStages && ' NWS defines no flood stages for this gauge, so there is no official level to compare it with.'}
+              {' '}A fast rise can mean flooding is starting. Not an official warning: check weather.gov and local officials.
             </div>
           )}
           {obsStale && obsAge !== null && (
@@ -165,7 +231,40 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
           )}
         </div>
 
-        {gauge.thresholds && (
+        {webcam && (
+          <button
+            onClick={webcam.onOpen}
+            style={{
+              width: '100%', minHeight: 44, textAlign: 'left', marginBottom: 14,
+              background: '#1f2937', border: '1px solid #374151', borderRadius: 8,
+              color: '#e5e7eb', fontSize: 14, padding: '8px 12px', cursor: 'pointer',
+            }}
+          >
+            📷 River camera at this site: {webcam.name} →
+          </button>
+        )}
+
+        {noStagesNote && (
+          <div
+            style={{
+              background: '#1f2937', borderRadius: 8, padding: '8px 10px', fontSize: 13, lineHeight: 1.45,
+            }}
+          >
+            NWS has not defined flood stages for this gauge, so it has no flood category.
+            A reading here does not mean conditions are normal.
+          </div>
+        )}
+        {noStagesNote && neighbor && (
+          <GaugeNeighbor
+            neighbor={neighbor.gauge}
+            from={gauge}
+            snapshot={neighbor.snapshot}
+            onOpen={neighbor.onOpen}
+          />
+        )}
+        {noFloodStages && recordRow && <div style={{ marginTop: 8 }}>{recordRow}</div>}
+
+        {!noFloodStages && gauge.thresholds && (
           <div>
             <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Flood stage thresholds</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
@@ -184,30 +283,15 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
                   </div>
                 );
               })}
-              {record && (
-                <div
-                  style={{
-                    display: 'flex', justifyContent: 'space-between',
-                    background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 13,
-                    borderLeft: `3px solid ${CATEGORY_COLORS.major}`,
-                    gridColumn: '1 / -1',
-                  }}
-                >
-                  <span>
-                    <span style={{ color: CATEGORY_COLORS.major, marginRight: 6, fontSize: 11 }}>
-                      Record
-                    </span>
-                    {formatPeakDate(record.date)}
-                  </span>
-                  <span>{record.stage} ft</span>
-                </div>
-              )}
+              {recordRow}
             </div>
           </div>
         )}
 
+        <GaugeDetailSections gauge={gauge} />
+
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Hydrograph</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Hydrograph <span style={{ fontSize: 11 }}>· graph by NOAA/NWS, shown unaltered</span></div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`https://water.noaa.gov/resources/hydrographs/${gauge.id.toLowerCase()}_hg.png`}
@@ -229,6 +313,7 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
           href={`https://water.noaa.gov/gauges/${gauge.id}`}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={onExternalLinkClick}
           style={{
             display: 'inline-block', marginTop: 14,
             color: '#60a5fa', fontSize: 13, textDecoration: 'none',
@@ -236,6 +321,7 @@ export default function GaugeSheet({ gauge, onClose }: Props) {
         >
           Full hydrograph on water.noaa.gov →
         </a>
+        <GaugeShareButton gauge={gauge} />
       </div>
     </>
   );

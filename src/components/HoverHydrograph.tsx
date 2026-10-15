@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { GaugeStatus } from '@/lib/types';
-import { CATEGORY_LABELS } from '@/lib/floodStatus';
+import { CATEGORY_LABELS, displayCategory } from '@/lib/floodStatus';
 
 interface Props { gauge: GaugeStatus; x: number; y: number; }
 
@@ -47,7 +47,7 @@ export default function HoverHydrograph({ gauge, x, y }: Props) {
       }}
     >
       <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-        {gauge.name} · <span style={{ color: '#9ca3af', fontWeight: 400 }}>{CATEGORY_LABELS[gauge.category]}</span>
+        {gauge.name} · <span style={{ color: '#9ca3af', fontWeight: 400 }}>{CATEGORY_LABELS[displayCategory(gauge)]}</span>
       </div>
       <div style={{ position: 'relative', height: 200, background: '#0b1220', borderRadius: 4 }}>
         {!loaded && !errored && (

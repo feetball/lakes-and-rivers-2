@@ -34,11 +34,58 @@ function loadPos(key: string): SavedPos | null {
   return null;
 }
 
+const EDGE_GAP = 4;
+
+// The device's safe-area insets (notch / Dynamic Island / home indicator) in
+// px. A panel dragged into the top inset ends up under the status bar, where
+// iOS swallows touches, so its handle could never be grabbed again.
+function safeInsets() {
+  if (typeof document === 'undefined') return { top: 0, right: 0, bottom: 0, left: 0 };
+  const probe = document.createElement('div');
+  probe.style.cssText =
+    'position:fixed;visibility:hidden;pointer-events:none;' +
+    'padding-top:env(safe-area-inset-top,0px);padding-right:env(safe-area-inset-right,0px);' +
+    'padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const insets = {
+    top: parseFloat(cs.paddingTop) || 0,
+    right: parseFloat(cs.paddingRight) || 0,
+    bottom: parseFloat(cs.paddingBottom) || 0,
+    left: parseFloat(cs.paddingLeft) || 0,
+  };
+  probe.remove();
+  return insets;
+}
+
+// Keep a panel of size w×h fully inside the visible, touchable area.
+function clampPos(x: number, y: number, w: number, h: number): SavedPos {
+  const s = safeInsets();
+  const minX = s.left + EDGE_GAP;
+  const minY = s.top + EDGE_GAP;
+  const maxX = Math.max(minX, window.innerWidth - s.right - w - EDGE_GAP);
+  const maxY = Math.max(minY, window.innerHeight - s.bottom - h - EDGE_GAP);
+  return { x: Math.max(minX, Math.min(maxX, x)), y: Math.max(minY, Math.min(maxY, y)) };
+}
+
 export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 1000, onHide, children }: Props) {
   const [pos, setPos] = useState<SavedPos | null>(() => loadPos(storageKey));
   const elRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  // Rescue a position saved before the safe-area clamp existed (or on a
+  // different screen) that would leave the panel out of reach.
+  useEffect(() => {
+    setPos(p => {
+      const el = elRef.current;
+      if (!p || !el) return p;
+      const c = clampPos(p.x, p.y, el.offsetWidth, el.offsetHeight);
+      if (c.x === p.x && c.y === p.y) return p;
+      try { window.localStorage.setItem(storageKey, JSON.stringify(c)); } catch {}
+      return c;
+    });
+  }, [storageKey]);
 
   // Clamp the persisted position into view when the window resizes (e.g.
   // a panel parked in the bottom-right corner shouldn't disappear when
@@ -49,13 +96,8 @@ export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 100
         if (!p) return p;
         const el = elRef.current;
         if (!el) return p;
-        const w = el.offsetWidth;
-        const h = el.offsetHeight;
-        const maxX = Math.max(4, window.innerWidth - w - 4);
-        const maxY = Math.max(4, window.innerHeight - h - 4);
-        const x = Math.max(4, Math.min(p.x, maxX));
-        const y = Math.max(4, Math.min(p.y, maxY));
-        return x === p.x && y === p.y ? p : { x, y };
+        const c = clampPos(p.x, p.y, el.offsetWidth, el.offsetHeight);
+        return c.x === p.x && c.y === p.y ? p : c;
       });
     };
     window.addEventListener('resize', onResize);
@@ -84,13 +126,12 @@ export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 100
     if (!d) return;
     e.preventDefault();
     const el = elRef.current;
-    const w = el?.offsetWidth ?? 0;
-    const h = el?.offsetHeight ?? 0;
-    const maxX = Math.max(4, window.innerWidth - w - 4);
-    const maxY = Math.max(4, window.innerHeight - h - 4);
-    const nx = Math.max(4, Math.min(maxX, d.origX + (e.clientX - d.startX)));
-    const ny = Math.max(4, Math.min(maxY, d.origY + (e.clientY - d.startY)));
-    setPos({ x: nx, y: ny });
+    setPos(clampPos(
+      d.origX + (e.clientX - d.startX),
+      d.origY + (e.clientY - d.startY),
+      el?.offsetWidth ?? 0,
+      el?.offsetHeight ?? 0,
+    ));
   };
 
   const endDrag = (e: React.PointerEvent) => {

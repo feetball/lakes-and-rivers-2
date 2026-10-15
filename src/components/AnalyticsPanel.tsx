@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiUrl } from '@/lib/api';
 
 // Reads the self-hosted analytics summary from /api/admin/analytics (admin
 // cookie required) and renders it inside the admin section of the Legend.
@@ -43,7 +44,7 @@ export default function AnalyticsPanel({ gaugeNames }: Props) {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch('/api/admin/analytics', { cache: 'no-store' });
+      const res = await fetch(apiUrl('/api/admin/analytics'), { cache: 'no-store' });
       const body = (await res.json().catch(() => ({}))) as Summary;
       if (res.ok && body.ok) setData(body);
       else setErr(body.error || `failed (${res.status})`);

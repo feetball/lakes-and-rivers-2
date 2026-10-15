@@ -1,22 +1,17 @@
 import { NextResponse } from 'next/server';
-import { readFile, stat } from 'fs/promises';
-import { resolve } from 'path';
+import { createHash } from 'crypto';
 import { gunzipSync } from 'zlib';
+import { IS_WORKERD, readPublicData } from '@/lib/data-assets';
 
 // Serves public/data/waterways.geojson with brotli/gzip negotiated from
 // precompressed artifacts written at build time (see build-waterways-data.mjs).
 // Primarily a fallback for self-hosted standalone (whose server only gzips
-// static files) — the client prefers the static CDN asset on Vercel. The route
-// reads request headers (Accept-Encoding / If-None-Match) so it's dynamic, but
-// we set CDN-Cache-Control with s-maxage so Vercel's edge caches the response
-// per-encoding and we don't pay a Lambda on every request. ETag (file
-// size+mtime) gives cheap 304 revalidation. We deliberately don't set
-// `dynamic = 'force-dynamic'` — that opts the response out of the edge cache.
-
-const DATA_DIR = resolve(process.cwd(), 'public/data');
-const BASE = resolve(DATA_DIR, 'waterways.geojson');
-
-type Variant = { path: string; encoding: string };
+// static files) — the client prefers the static CDN asset on Vercel/Cloudflare.
+// The route reads request headers (Accept-Encoding / If-None-Match) so it's
+// dynamic, but we set CDN-Cache-Control with s-maxage so the edge caches the
+// response per-encoding and we don't pay a function invocation on every
+// request. ETag (content hash) gives cheap 304 revalidation. We deliberately
+// don't set `dynamic = 'force-dynamic'` — that opts out of the edge cache.
 
 // In-memory per-instance cache of the encoded payloads + ETag. The files are
 // immutable for the life of a deploy, so read them once. `identity` is the
@@ -37,30 +32,35 @@ function identityBody(data: NonNullable<typeof cached>): Buffer | null {
 async function load() {
   if (cached) return cached;
   const variants: Record<string, Buffer> = {};
-  let etagSource = '';
-  for (const v of [
-    { path: `${BASE}.br`, encoding: 'br' },
-    { path: `${BASE}.gz`, encoding: 'gzip' },
-  ] as Variant[]) {
-    try {
-      const [buf, st] = await Promise.all([readFile(v.path), stat(v.path)]);
-      variants[v.encoding] = buf;
-      etagSource += `${v.encoding}:${st.size}:${st.mtimeMs};`;
-    } catch {
-      // artifact missing — fall through to the raw file
-    }
-  }
+  // Hash the actual bytes for the ETag — works identically on Node (fs) and
+  // Cloudflare (ASSETS binding), where there are no mtimes to key off.
+  const hash = createHash('sha1');
   let raw: Buffer | null = null;
-  if (!etagSource) {
-    try {
-      const [buf, st] = await Promise.all([readFile(BASE), stat(BASE)]);
-      raw = buf;
-      etagSource = `raw:${st.size}:${st.mtimeMs}`;
-    } catch {
-      raw = null;
+  if (IS_WORKERD) {
+    // workerd owns response compression: a hand-rolled Content-Encoding on a
+    // pre-compressed body is ignored/stripped (encodeBody defaults to
+    // 'automatic'), so clients would receive compressed bytes labeled
+    // identity. Serve the uncompressed body and let the runtime negotiate
+    // gzip/brotli with the client itself. (This route barely runs on
+    // Cloudflare anyway — the client prefers the static /data asset.)
+    raw = await readPublicData('waterways.geojson');
+    if (raw) hash.update('raw').update(raw);
+  } else {
+    for (const v of [
+      { file: 'waterways.geojson.br', encoding: 'br' },
+      { file: 'waterways.geojson.gz', encoding: 'gzip' },
+    ]) {
+      const buf = await readPublicData(v.file);
+      if (!buf) continue; // artifact missing — fall through to the raw file
+      variants[v.encoding] = buf;
+      hash.update(v.encoding).update(buf);
+    }
+    if (Object.keys(variants).length === 0) {
+      raw = await readPublicData('waterways.geojson');
+      if (raw) hash.update('raw').update(raw);
     }
   }
-  cached = { etag: `"${Buffer.from(etagSource).toString('base64url').slice(0, 27)}"`, variants, raw };
+  cached = { etag: `"${hash.digest('base64url').slice(0, 27)}"`, variants, raw };
   return cached;
 }
 

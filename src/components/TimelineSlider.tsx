@@ -184,7 +184,10 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
         >
           <SkipForwardIcon />
         </button>
-        <span style={{ fontWeight: 600, minWidth: 130 }}>{label}</span>
+        {/* The fixed width stops the row jumping as the time label changes; in the
+            narrowest windows (320 px iPad Slide Over) it gives way so Speed / Live stay
+            inside the panel, together with the hidden "Speed" word below. */}
+        <span style={{ fontWeight: 600, minWidth: 'min(130px, 30vw)' }}>{label}</span>
         {loading && <LoadingDot />}
         <div style={{ flex: 1 }} />
         <SpeedSelect speed={speed} onChange={setSpeed} />
@@ -256,7 +259,8 @@ function SpeedSelect({ speed, onChange }: { speed: Speed; onChange: (s: Speed) =
       }}
       title="Playback speed (1× = 1 hour of gauge data per 5 s)"
     >
-      <span>Speed</span>
+      <span className="tfm-speed-word">Speed</span>
+      <style>{`@media (max-width: 359px) { .tfm-speed-word { display: none } }`}</style>
       <select
         value={speed}
         onChange={(e) => onChange(Number(e.target.value) as Speed)}
