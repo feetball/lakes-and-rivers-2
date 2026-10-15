@@ -33,3 +33,9 @@ tsconfig.tsbuildinfo
 # carry their own .gitignore for Pods, build/ and the copied web assets.
 out/
 src/app/_api.mobile-hidden/
+
+# Signing keys (Android upload keystore, iOS/App Store Connect API keys). The
+# repo is public: these live in a password manager and in CI secrets only.
+*.jks
+*.keystore
+*.p8

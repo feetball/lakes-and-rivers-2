@@ -246,15 +246,31 @@ Upload, add the build to a new version in App Store Connect, submit.
    the `android/` folder). Let Gradle sync finish (first time downloads a lot).
 2. **Test** on the emulator (Device Manager → create a Pixel with API 36 → ▶)
    or a phone with USB debugging on.
-3. **Versions.** In `android/app/build.gradle`: `versionCode` (integer, must
-   increase every upload) and `versionName` (what users see).
-4. **Signing key.** Build → *Generate Signed App Bundle / APK* → *Android
-   App Bundle* → *Create new…* keystore. Store the `.jks` file and both
-   passwords somewhere safe (a password manager) — **losing it means never
-   being able to update the app** unless Play App Signing is on, which the
-   console offers during the first upload; accept it.
-5. **Build the bundle** (release, `.aab`). It lands in
-   `android/app/release/` or the path the dialog shows.
+3. **Versions.** `versionName` (what users see) is in
+   `android/app/build.gradle`. `versionCode` (an integer that must rise on
+   every upload) is set by the *Android Play* workflow from its run number;
+   a local build uses 1.
+4. **Upload key.** Create it once, on any computer with a JDK (Android
+   Studio ships one; on a Mac use
+   `"/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/keytool"`):
+
+   ```bash
+   keytool -genkeypair -v -keystore upload-keystore.jks -alias upload \
+     -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+   Store the `.jks` file and its password in a password manager. With Play App
+   Signing (accept it at the first upload) this is only the *upload* key:
+   Google holds the real signing key, and a lost upload key can be reset
+   from Play Console.
+5. **Build the bundle with GitHub Actions.** Add the repository secrets listed
+   at the top of `.github/workflows/android-play.yml` (the keystore as base64:
+   `base64 -i upload-keystore.jks | pbcopy` on a Mac). Then Actions →
+   *Android Play* → *Run workflow*. Every run keeps the signed `.aab` as a
+   run artifact for 30 days. Once `PLAY_SERVICE_ACCOUNT_JSON` is set (after
+   step 8), the workflow also uploads the bundle to the chosen track.
+   (By hand instead: Android Studio → Build → *Generate Signed App Bundle /
+   APK* with the same keystore.)
 6. **Play Console** → *Create app*: name, default language, **App** (not
    game), **Paid**. Note: a paid app can later become free, but a free app
    can never become paid.
@@ -265,7 +281,13 @@ Upload, add the build to a new version in App Store Connect, submit.
    (screenshots of a phone, a 1024 × 500 feature graphic, icon 512 × 512 —
    `resources/icon-512.png` is exactly that), pricing **US $0.99**.
 8. **Testing track first**: *Testing → Closed testing* → create a release,
-   upload the `.aab`, add testers by email. Personal accounts must keep 12+
+   upload the `.aab` from the workflow artifact (Play only accepts a new
+   app's first bundle in the browser), add testers by email. Then let CI
+   upload later builds: *Setup → API access* → create a service account,
+   grant it *Release* permissions for this app in *Users and permissions*,
+   and paste its JSON key into the `PLAY_SERVICE_ACCOUNT_JSON` secret. Run the
+   workflow with status **draft** until the app has been published once,
+   then **completed**. Personal accounts must keep 12+
    testers opted in for 14 days (see above) before *Production* unlocks.
 9. **Production**: create a release, upload, roll out. Review takes hours to
    a few days.
