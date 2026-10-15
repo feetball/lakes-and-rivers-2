@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, type DisplayCategory } from '@/lib/floodStatus';
-import { onExternalLinkClick, PRIVACY_URL, SUPPORT_URL } from '@/lib/externalLink';
+import { onExternalLinkClick, PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/externalLink';
 import { analyticsOptedOut, setAnalyticsOptOut } from '@/lib/track';
 import LegendLayers, { AlertsLegendLayer, WebcamsLegendLayer, type AlertsLegendProps, type WebcamsLegendProps } from './LegendLayers';
 
@@ -174,6 +174,9 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
             </a>
             <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" onClick={onExternalLinkClick} style={footerLink}>
               Support
+            </a>
+            <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" onClick={onExternalLinkClick} style={footerLink}>
+              Terms
             </a>
             {process.env.NEXT_PUBLIC_APP_VERSION && <span>v{process.env.NEXT_PUBLIC_APP_VERSION}</span>}
           </div>

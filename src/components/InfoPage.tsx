@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 
-// Plain text pages on the website (/privacy, /support). The store listings link to them
+// Plain text pages on the website (/privacy, /support, /terms). The store listings link to them
 // and the apps open them in the in-app browser (src/lib/externalLink.ts), so they are
 // static, readable on a phone and need no JavaScript.
 

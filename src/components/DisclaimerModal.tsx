@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { onExternalLinkClick, PRIVACY_URL } from '@/lib/externalLink';
+import { onExternalLinkClick, PRIVACY_URL, TERMS_URL } from '@/lib/externalLink';
 
 // One-time liability disclaimer shown on a visitor's first arrival. Acceptance
 // is remembered in localStorage so returning visitors aren't nagged. Bump
 // STORAGE_KEY's version suffix to force the disclaimer to re-show everyone
 // (e.g. after a material wording change).
-const STORAGE_KEY = 'tx-flood-map:disclaimer-accepted:v2';
+// v3: the Terms of use were added (2026-10-15); everyone sees the disclaimer once more.
+const STORAGE_KEY = 'tx-flood-map:disclaimer-accepted:v3';
 
 export default function DisclaimerModal() {
   // Start hidden and decide on mount: localStorage isn't available during SSR,
@@ -101,6 +102,17 @@ export default function DisclaimerModal() {
             and your local emergency authorities.
           </p>
           <p style={{ margin: '12px 0 0', fontSize: 12, color: '#94a3b8' }}>
+            By continuing you agree to the{' '}
+            <a
+              href={TERMS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onExternalLinkClick}
+              style={{ color: '#94a3b8' }}
+            >
+              Terms of use
+            </a>
+            . See also the{' '}
             <a
               href={PRIVACY_URL}
               target="_blank"
@@ -110,6 +122,7 @@ export default function DisclaimerModal() {
             >
               Privacy policy
             </a>
+            .
           </p>
         </div>
         <button

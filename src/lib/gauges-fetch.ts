@@ -192,6 +192,7 @@ async function fetchViaUsgsIv(): Promise<GaugesResponse> {
         observedStage: live.value,
         observedAt: live.dateTime,
         unit: g.unit, thresholds: g.thresholds,
+        source: 'usgs',
       };
     } else {
       gauges[g.id] = {
@@ -200,6 +201,9 @@ async function fetchViaUsgsIv(): Promise<GaugesResponse> {
         observedStage: g.observedStage ?? null,
         observedAt: g.observedAt ?? null,
         unit: g.unit, thresholds: g.thresholds,
+        // Build-time reading from NWPS, with its real (old) observedAt: the client
+        // grays it out once it is too old to stand for current conditions.
+        ...(g.observedStage != null ? { source: 'nws' as const } : {}),
       };
     }
   }
@@ -277,6 +281,7 @@ export async function fallbackFromMeta(): Promise<GaugesResponse> {
       observedStage: g.observedStage ?? null,
       observedAt: g.observedAt ?? null,
       unit: g.unit, thresholds: g.thresholds,
+      ...(g.observedStage != null ? { source: 'nws' as const } : {}),
     };
   }
   // observationsAt — the most recent observation time captured at build —

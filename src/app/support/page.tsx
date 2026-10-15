@@ -44,6 +44,7 @@ export default function SupportPage() {
       <p><strong>The locate button does not work.</strong> The app needs location access while you are using it. On iPhone, go to Settings &rarr; Privacy &amp; Security &rarr; Location Services &rarr; Texas Flood Map and choose &ldquo;While Using the App&rdquo;.</p>
       <p><strong>Does the app send me flood alerts?</strong> No. It does not send notifications. Use your phone&apos;s emergency alerts and the National Weather Service for warnings.</p>
       <p><strong>What data does the app collect?</strong> Only anonymous usage counts, which you can switch off. See the <Link href="/privacy">privacy policy</Link>.</p>
+      <p><strong>What are the terms for using it?</strong> See the <Link href="/terms">terms of use</Link>, including where the data comes from.</p>
     </InfoPage>
   );
 }
