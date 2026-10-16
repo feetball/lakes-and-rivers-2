@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CATEGORY_COLORS, CATEGORY_LABELS, NO_RECENT_READING_MS, STALE_DATA_MS, dataAgeMs, displayCategory, formatAge, hasValidThresholds, isValidStage } from '@/lib/floodStatus';
+import { CATEGORY_COLORS, CATEGORY_LABELS, NO_RECENT_READING_MS, OLD_READING_STYLE, dataAgeMs, displayCategory, formatAge, hasValidThresholds, isOldReading, isValidStage } from '@/lib/floodStatus';
 import { risingQuicklyRate } from '@/lib/gaugeDetail';
 import type { GaugeStatus } from '@/lib/types';
 import { apiUrl } from '@/lib/api';
@@ -79,10 +79,15 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsM
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
       })
     : null;
-  // A stale observation must not masquerade as a confident current status —
-  // e.g. a day-old "Normal" on a lake that has since risen past Action stage.
+  // An old observation must not masquerade as a confident current status — e.g. a day-old
+  // "Normal" on a lake that has since risen past Action stage. The banner says so first.
   const obsAge = dataAgeMs(gauge.observedAt, refMs);
-  const obsStale = obsAge !== null && obsAge > STALE_DATA_MS;
+  const old = isOldReading(gauge, refMs);
+  // On the timeline the age is measured from the picked time, not from now.
+  const snapshot = readingsMs !== undefined;
+  const ageText = obsAge === null || obsAge < 0 ? null
+    : snapshot ? `${formatAge(obsAge)} before the picked time`
+    : obsAge < 60_000 ? 'just now' : `${formatAge(obsAge)} ago`;
 
   // No category has two reasons and two looks: tan "No flood stages" (a reading, but NWS
   // defines no stages to compare it with) and gray "No data" (no reading), so a reading
@@ -179,13 +184,23 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsM
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#374151' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'start', gap: 12, marginBottom: 12 }}>
-          <span
-            style={{
-              display: 'inline-block', width: 14, height: 14, borderRadius: 7,
-              background: color, marginTop: 6, flexShrink: 0,
-              boxShadow: `0 0 0 3px ${color}33`,
-            }}
-          />
+          {old ? (
+            // Same look as the map's dot for an old reading: faded, with a dashed ring.
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden style={{ marginTop: 6, flexShrink: 0 }}>
+              <circle
+                cx="7" cy="7" r="6" fill={color} fillOpacity={OLD_READING_STYLE.fillOpacity}
+                stroke="#e5e7eb" strokeWidth="1.5" strokeDasharray={OLD_READING_STYLE.dashArray}
+              />
+            </svg>
+          ) : (
+            <span
+              style={{
+                display: 'inline-block', width: 14, height: 14, borderRadius: 7,
+                background: color, marginTop: 6, flexShrink: 0,
+                boxShadow: `0 0 0 3px ${color}33`,
+              }}
+            />
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, lineHeight: 1.25 }}>{gauge.name}</h2>
             <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>Site ID: {gauge.id}</div>
@@ -201,6 +216,34 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsM
           >×</button>
         </div>
 
+        {old && (
+          <div
+            role="alert"
+            style={{
+              background: '#78350f', border: '1px solid #f59e0b', borderRadius: 10,
+              padding: '10px 12px', marginBottom: 10,
+              color: '#fef3c7', fontSize: 13, lineHeight: 1.45,
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fde68a', marginBottom: 2 }}>
+              ⚠ OLD READING{obsAge !== null ? ` · ${formatAge(obsAge)} old` : ' · time unknown'}
+            </div>
+            {snapshot
+              ? 'It was already this old at the time picked on the timeline. '
+              : 'The water may have risen or fallen a lot since it was taken. '}
+            Do not treat the status below as current: check the{' '}
+            <a
+              href={`https://water.noaa.gov/gauges/${gauge.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onExternalLinkClick}
+              style={{ color: '#fde68a', fontWeight: 600 }}
+            >
+              live gauge page on water.noaa.gov
+            </a>{' '}
+            and follow local officials.
+          </div>
+        )}
         <div
           style={{
             background: `${color}22`,
@@ -210,12 +253,17 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsM
             marginBottom: 14,
           }}
         >
-          <div style={{ fontSize: 12, color: '#9ca3af' }}>Status</div>
+          <div style={{ fontSize: 12, color: '#9ca3af' }}>{old ? 'Last reported status (old)' : 'Status'}</div>
           <div style={{ fontSize: 16, fontWeight: 600, color }}>{statusLabel}</div>
           {gauge.observedStage !== null && (
             <div style={{ fontSize: 14, marginTop: 4 }}>
               Observed: <strong>{gauge.observedStage} {gauge.unit ?? ''}</strong>
               {observedAt && <span style={{ color: '#9ca3af', marginLeft: 6 }}>· {observedAt}</span>}
+              {(ageText || old) && (
+                <span style={old ? { color: '#fbbf24', fontWeight: 700, marginLeft: 6 } : { color: '#9ca3af', marginLeft: 6 }}>
+                  ({ageText ?? 'time unknown'})
+                </span>
+              )}
               <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
                 Source: {gauge.source ? SOURCE_TEXT[gauge.source] : 'NOAA / NWS or USGS'} · provisional data, subject to revision
               </div>
@@ -233,18 +281,6 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsM
               <strong>▲ Rising quickly:</strong> about {risingRate.toFixed(1)} ft per hour over the last 3 hours.
               {noFloodStages && ' NWS defines no flood stages for this gauge, so there is no official level to compare it with.'}
               {' '}A fast rise can mean flooding is starting. Not an official warning: check weather.gov and local officials.
-            </div>
-          )}
-          {obsStale && obsAge !== null && (
-            <div
-              style={{
-                marginTop: 8, padding: '6px 8px', borderRadius: 6,
-                background: '#78350f55', border: '1px solid #b4530988',
-                color: '#fbbf24', fontSize: 12, lineHeight: 1.4,
-              }}
-            >
-              ⚠ This reading is {formatAge(obsAge)} old — the status above may not
-              reflect current conditions. Check the live hydrograph below.
             </div>
           )}
         </div>
@@ -340,6 +376,11 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsM
           Full hydrograph on water.noaa.gov →
         </a>
         <GaugeShareButton gauge={gauge} />
+        <p style={{ margin: '14px 0 0', fontSize: 11, lineHeight: 1.45, color: '#9ca3af' }}>
+          Unofficial, and not a warning service: this app sends no alerts. Readings are provisional
+          and can be late, wrong or missing, and a gauge measures one spot only. Never drive or walk
+          into flood water. In an emergency call 911 and follow local officials.
+        </p>
       </div>
     </>
   );

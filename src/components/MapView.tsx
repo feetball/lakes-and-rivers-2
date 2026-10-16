@@ -11,7 +11,7 @@ import { useSegmentedWaterways } from '@/hooks/useSegmentedWaterways';
 import { findStagedNeighbor } from '@/lib/riverNeighbor';
 import { hasFloodStages } from '@/lib/riverSegments';
 import useWebcamData from '@/hooks/useWebcamData';
-import { colorFor, displayCategory, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, formatAge, type DisplayCategory } from '@/lib/floodStatus';
+import { colorFor, displayCategory, isOldReading, oldReadingNote, CATEGORY_LABELS, OLD_READING_STYLE, STALE_DATA_MS, dataAgeMs, formatAge, type DisplayCategory } from '@/lib/floodStatus';
 import { apiUrl, IS_MOBILE } from '@/lib/api';
 import { camerasNear, partitionWebcams, webcamStatus, type Webcam } from '@/lib/webcams';
 import { CHIP_PX, layoutCameras, offsetOf, type CameraOffset } from '@/lib/cameraLayout';
@@ -543,11 +543,12 @@ export default function MapView() {
   const gaugeMapRef = useRef(gaugeMap);
   gaugeMapRef.current = gaugeMap;
   // The moment the readings on screen describe: now, or the time of the timeline snapshot.
-  // Colours use it to gray out readings too old to stand for that moment (displayCategory).
-  // Live, it steps every 15 minutes, not with each one-minute tick: each step restyles every
-  // river path, and 15 minutes is nothing against the 6-hour cutoff.
+  // Colours use it to gray out readings too old to stand for that moment (displayCategory)
+  // and to mark old ones (isOldReading). Live, it steps every 5 minutes, not with each
+  // one-minute tick: each step restyles every river path, and 5 minutes is small against the
+  // 90-minute and 6-hour cutoffs.
   const snapshotMs = !live && gaugeData?.updatedAt ? Date.parse(gaugeData.updatedAt) : NaN;
-  const readingsMs = Number.isFinite(snapshotMs) ? snapshotMs : now - (now % (15 * 60_000));
+  const readingsMs = Number.isFinite(snapshotMs) ? snapshotMs : now - (now % (5 * 60_000));
   const readingsMsRef = useRef(readingsMs);
   readingsMsRef.current = readingsMs;
 
@@ -556,9 +557,11 @@ export default function MapView() {
     const g = gid ? gaugeMapRef.current[gid] : undefined;
     const isWaterbody = feature?.geometry?.type === 'Polygon' || feature?.geometry?.type === 'MultiPolygon';
     const color = colorFor(g && displayCategory(g, readingsMsRef.current));
+    // A stretch coloured by an old reading is dashed and paler, like its gauge's dot.
+    const old = !!g && isOldReading(g, readingsMsRef.current);
     return isWaterbody
-      ? { color, weight: 1, fillColor: color, fillOpacity: 0.55 }
-      : { color, weight: 2.5, opacity: 0.9 };
+      ? { color, weight: 1, fillColor: color, fillOpacity: old ? 0.25 : 0.55, dashArray: old ? '4 3' : undefined }
+      : { color, weight: 2.5, opacity: old ? 0.6 : 0.9, dashArray: old ? '6 5' : undefined };
   };
 
   // Push fresh styles into the existing layer when gauge categories change,
@@ -572,7 +575,7 @@ export default function MapView() {
       const gid = f?.properties?.gaugeId;
       const name = f?.properties?.name ?? 'Unnamed waterway';
       const g = gid ? gaugeMap[gid] : undefined;
-      const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g, readingsMs)]}` : name;
+      const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g, readingsMs)]}${oldReadingNote(g, readingsMs)}` : name;
       const tip = (child as any).getTooltip?.();
       if (tip) tip.setContent(label);
     });
@@ -591,7 +594,7 @@ export default function MapView() {
     const gid = feature.properties?.gaugeId;
     const name = feature.properties?.name ?? 'Unnamed waterway';
     const g = gid ? gaugeMapRef.current[gid] : undefined;
-    const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g, readingsMsRef.current)]}` : name;
+    const label = g ? `${name} — ${CATEGORY_LABELS[displayCategory(g, readingsMsRef.current)]}${oldReadingNote(g, readingsMsRef.current)}` : name;
     layer.bindTooltip(label, { sticky: true, direction: 'top', opacity: 0.9 });
     layer.on('click', (e: LeafletMouseEvent) => {
       const live = gid ? gaugeMapRef.current[gid] : undefined;
@@ -636,6 +639,10 @@ export default function MapView() {
     for (const g of gaugeList) counts[displayCategory(g, readingsMs)]++;
     return counts;
   }, [gaugeList, readingsMs]);
+  const oldReadingCount = useMemo(
+    () => gaugeList.filter(g => isOldReading(g, readingsMs)).length,
+    [gaugeList, readingsMs],
+  );
 
   // Age of the live snapshot being displayed. Only meaningful in live mode —
   // historical/forecast snapshots are old by design. SWR re-polls live data
@@ -710,7 +717,9 @@ export default function MapView() {
               color: '#0b1220',
               weight: GAUGE_OUTLINE,
               fillColor: colorFor(displayCategory(g, readingsMs)),
-              fillOpacity: 1,
+              // An old reading keeps its colour (an old flood must still show) but is drawn
+              // faded with a dashed ring, so it never passes for a current status.
+              ...(isOldReading(g, readingsMs) ? OLD_READING_STYLE : { fillOpacity: 1, dashArray: undefined }),
             }}
             eventHandlers={{
               click: (e) => {
@@ -737,7 +746,7 @@ export default function MapView() {
           >
             {/* Tip 1 px inside the top edge of the dot, whatever its size (-4 at radius 5). */}
             <Tooltip direction="top" offset={[0, 1 - GAUGE_RADIUS]}>
-              {g.name} — {CATEGORY_LABELS[displayCategory(g, readingsMs)]}
+              {g.name} — {CATEGORY_LABELS[displayCategory(g, readingsMs)]}{oldReadingNote(g, readingsMs)}
             </Tooltip>
           </CircleMarker>
         ))}
@@ -829,6 +838,7 @@ export default function MapView() {
           <Legend
             maxHeight={legendMaxHeight(legendBottomPx)}
             counts={categoryCounts}
+            oldReadings={oldReadingCount}
             updatedAt={gaugeData?.updatedAt}
             onRefresh={() => { refreshGauges(); }}
             refreshing={gaugesValidating}

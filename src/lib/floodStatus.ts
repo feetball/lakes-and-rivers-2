@@ -130,6 +130,27 @@ export const NO_RECENT_READING_MS = 6 * 60 * 60 * 1000;
 // day-old "Normal" is actively misleading. 90 min = 3 missed refresh cycles.
 export const STALE_DATA_MS = 90 * 60 * 1000;
 
+// A reading too old to stand for conditions at `refMs` (now, or the timeline's time): older
+// than STALE_DATA_MS, or with no usable time. False when there is no reading at all. The map
+// draws such a gauge faded with a dashed ring (OLD_READING_STYLE) and dashes its river, and
+// the sheet, the list and the tooltips give its age, so an old flood colour never passes for
+// a current one.
+export function isOldReading(g: Pick<GaugeStatus, 'observedStage' | 'observedAt'>, refMs: number): boolean {
+  if (!isValidStage(g.observedStage)) return false;
+  const age = dataAgeMs(g.observedAt, refMs);
+  return age === null || age > STALE_DATA_MS;
+}
+
+// " · reading 3 hours old" for a tooltip, or "" when the reading is not old.
+export function oldReadingNote(g: Pick<GaugeStatus, 'observedStage' | 'observedAt'>, refMs: number): string {
+  if (!isOldReading(g, refMs)) return '';
+  const age = dataAgeMs(g.observedAt, refMs);
+  return age === null ? ' · reading time unknown' : ` · reading ${formatAge(age)} old`;
+}
+
+// The look of an old reading wherever a gauge dot is drawn (map, legend, sheet, list).
+export const OLD_READING_STYLE = { fillOpacity: 0.35, dashArray: '2.5 2' } as const;
+
 // Age of an ISO timestamp in ms, or null when there's nothing meaningful to
 // measure (missing, unparsable, or the epoch-0 "no data yet" sentinel).
 export function dataAgeMs(iso: string | null | undefined, nowMs = Date.now()): number | null {
