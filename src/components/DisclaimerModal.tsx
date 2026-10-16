@@ -41,107 +41,121 @@ export default function DisclaimerModal() {
         // fixed (not absolute) so the overlay covers the whole viewport — <main>
         // establishes no positioning context, and this is a full-screen blocker.
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-        zIndex: 1400, display: 'grid', placeItems: 'center', padding: 16,
+        zIndex: 1400, overflowY: 'auto', overscrollBehavior: 'contain',
       }}
     >
+      {/* Keeps the card clear of the status bar / notch and the home indicator /
+          gesture bar on every side. Android scales the text with the system font
+          size, so the card can be taller than the screen: it then starts at the
+          top and the overlay scrolls, keeping "I understand" reachable. */}
       <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="disclaimer-title"
-        aria-describedby="disclaimer-body"
         style={{
-          maxWidth: 460,
-          width: '100%',
-          background: '#111827',
-          color: '#e5e7eb',
-          borderRadius: 16,
-          padding: '22px 22px calc(env(safe-area-inset-bottom, 0) + 22px)',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.55)',
-          border: '1px solid #1f2937',
+          minHeight: '100%', display: 'flex',
+          padding: 'calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 16px)',
         }}
       >
-        <h2 id="disclaimer-title" style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 600 }}>
-          Before you continue
-        </h2>
-        <div id="disclaimer-body" style={{ fontSize: 14, lineHeight: 1.55, color: '#cbd5e1' }}>
-          <p style={{ margin: '0 0 12px' }}>
-            This map is provided for general informational purposes only. The
-            operator is <strong>not liable</strong> for any data shown here, and
-            makes no warranty as to its accuracy, completeness, or timeliness.
-            Gauge readings may be delayed, incorrect, or unavailable.
-          </p>
-          <p style={{ margin: '0 0 12px' }}>
-            This is an independent app. It is <strong>not affiliated with or
-            endorsed by</strong> NOAA, the National Weather Service, USGS, or
-            any government agency; it displays their public data.
-          </p>
-          <p style={{ margin: 0 }}>
-            Use this map as a <strong>supplement, never your only source</strong>.
-            Gauge readings and the warnings shown here can be late, wrong or
-            missing. In an emergency call 911. For official flood information
-            check the{' '}
-            <a
-              href="https://www.weather.gov/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onExternalLinkClick}
-              style={{ color: '#60a5fa' }}
-            >
-              National Weather Service
-            </a>
-            ,{' '}
-            <a
-              href="https://water.noaa.gov/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onExternalLinkClick}
-              style={{ color: '#60a5fa' }}
-            >
-              NOAA / National Water Prediction Service
-            </a>{' '}
-            and your local emergency authorities.
-          </p>
-          <p style={{ margin: '12px 0 0', fontSize: 12, color: '#94a3b8' }}>
-            By continuing you agree to the{' '}
-            <a
-              href={TERMS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onExternalLinkClick}
-              style={{ color: '#94a3b8' }}
-            >
-              Terms of use
-            </a>
-            . See also the{' '}
-            <a
-              href={PRIVACY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onExternalLinkClick}
-              style={{ color: '#94a3b8' }}
-            >
-              Privacy policy
-            </a>
-            .
-          </p>
-        </div>
-        <button
-          onClick={accept}
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="disclaimer-title"
+          aria-describedby="disclaimer-body"
           style={{
-            marginTop: 20,
+            // auto margins centre the card when it fits and, unlike
+            // align-items: center, never push its top out of reach when it doesn't.
+            margin: 'auto',
+            maxWidth: 460,
             width: '100%',
-            background: '#2563eb',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            padding: '12px 16px',
-            fontSize: 15,
-            fontWeight: 600,
-            cursor: 'pointer',
+            background: '#111827',
+            color: '#e5e7eb',
+            borderRadius: 16,
+            padding: 22,
+            boxShadow: '0 10px 40px rgba(0,0,0,0.55)',
+            border: '1px solid #1f2937',
           }}
         >
-          I understand
-        </button>
+          <h2 id="disclaimer-title" style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 600 }}>
+            Before you continue
+          </h2>
+          <div id="disclaimer-body" style={{ fontSize: 14, lineHeight: 1.55, color: '#cbd5e1' }}>
+            <p style={{ margin: '0 0 12px' }}>
+              This map is provided for general informational purposes only. The
+              operator is <strong>not liable</strong> for any data shown here, and
+              makes no warranty as to its accuracy, completeness, or timeliness.
+              Gauge readings may be delayed, incorrect, or unavailable.
+            </p>
+            <p style={{ margin: '0 0 12px' }}>
+              This is an independent app. It is <strong>not affiliated with or
+              endorsed by</strong> NOAA, the National Weather Service, USGS, or
+              any government agency; it displays their public data.
+            </p>
+            <p style={{ margin: 0 }}>
+              Use this map as a <strong>supplement, never your only source</strong>.
+              Gauge readings and the warnings shown here can be late, wrong or
+              missing. In an emergency call 911. For official flood information
+              check the{' '}
+              <a
+                href="https://www.weather.gov/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onExternalLinkClick}
+                style={{ color: '#60a5fa' }}
+              >
+                National Weather Service
+              </a>
+              ,{' '}
+              <a
+                href="https://water.noaa.gov/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onExternalLinkClick}
+                style={{ color: '#60a5fa' }}
+              >
+                NOAA / National Water Prediction Service
+              </a>{' '}
+              and your local emergency authorities.
+            </p>
+            <p style={{ margin: '12px 0 0', fontSize: 12, color: '#94a3b8' }}>
+              By continuing you agree to the{' '}
+              <a
+                href={TERMS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onExternalLinkClick}
+                style={{ color: '#94a3b8' }}
+              >
+                Terms of use
+              </a>
+              . See also the{' '}
+              <a
+                href={PRIVACY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onExternalLinkClick}
+                style={{ color: '#94a3b8' }}
+              >
+                Privacy policy
+              </a>
+              .
+            </p>
+          </div>
+          <button
+            onClick={accept}
+            style={{
+              marginTop: 20,
+              width: '100%',
+              background: '#2563eb',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              padding: '12px 16px',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            I understand
+          </button>
+        </div>
       </div>
     </div>
   );
