@@ -11,6 +11,7 @@ import GaugeDetailSections from './GaugeDetailSections';
 import GaugeNeighbor from './GaugeNeighbor';
 import GaugeShareButton from './GaugeShareButton';
 import FavoriteStar from './FavoriteStar';
+import { SHEET_LEFT, SHEET_RIGHT, sheetHeight } from './sheetLayout';
 
 interface Props {
   gauge: GaugeStatus;
@@ -159,11 +160,11 @@ export default function GaugeSheet({ gauge, onClose, webcam, neighbor, readingsM
         aria-label={`Gauge detail: ${gauge.name}`}
         style={{
           position: 'absolute',
-          left: 0, right: 0,
+          left: SHEET_LEFT, right: SHEET_RIGHT,
           bottom: 0,
           maxWidth: 560,
           marginInline: 'auto',
-          maxHeight: '70dvh',
+          maxHeight: sheetHeight(70),
           background: '#111827',
           color: '#e5e7eb',
           borderTopLeftRadius: 16,

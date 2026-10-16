@@ -21,6 +21,7 @@ import type { GaugeStatus } from '@/lib/types';
 import type { GaugeListData } from './GaugeListControl';
 import GaugeListRow from './GaugeListRow';
 import { COLORS } from './gaugeListTheme';
+import { SHEET_LEFT, SHEET_RIGHT, sheetHeight } from './sheetLayout';
 
 interface Props extends GaugeListData {
   onClose: () => void;
@@ -125,8 +126,8 @@ export default function GaugeListSheet({
         tabIndex={-1}
         onKeyDown={onKeyDown}
         style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, maxWidth: 560, marginInline: 'auto',
-          height: '80dvh', display: 'flex', flexDirection: 'column',
+          position: 'absolute', left: SHEET_LEFT, right: SHEET_RIGHT, bottom: 0, maxWidth: 560, marginInline: 'auto',
+          height: sheetHeight(80), display: 'flex', flexDirection: 'column',
           background: COLORS.panel, color: COLORS.text, outline: 'none',
           borderTopLeftRadius: 16, borderTopRightRadius: 16,
           padding: '12px 18px calc(env(safe-area-inset-bottom, 0px) + 12px)',

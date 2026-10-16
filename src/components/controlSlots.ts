@@ -12,6 +12,10 @@ const SLOT_PITCH_PX = 52;
 // iPhone in landscape puts the notch / Dynamic Island (or the home indicator) on that side.
 export const EDGE_LEFT = 'max(12px, env(safe-area-inset-left, 0px))';
 export const EDGE_RIGHT = 'max(12px, env(safe-area-inset-right, 0px))';
+/** `maxWidth` for a box centred on the screen (left: 50%, translateX(-50%)): keeps the
+ *  edge margin on both sides even when only one side has an inset (Android's 3-button
+ *  navigation bar in landscape). */
+export const CENTERED_MAX_WIDTH = 'calc(100vw - 2 * max(12px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)))';
 /** `right` for a banner that must stay clear of the 44 px control column. */
 export const CLEAR_OF_CONTROLS_RIGHT = `calc(${EDGE_RIGHT} + 56px)`;
 
