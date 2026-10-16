@@ -391,7 +391,8 @@ export default function MapView() {
   const openWebcam = selectedWebcam
     ? webcamData?.webcams.find(w => w.id === selectedWebcam.id) ?? selectedWebcam
     : null;
-  const [webcamsVisible, setWebcamsVisible] = useState<boolean>(() => loadVisible(WEBCAMS_VISIBLE_KEY, false));
+  // On by default (2026-10-16); someone who switched the layer off keeps it off.
+  const [webcamsVisible, setWebcamsVisible] = useState<boolean>(() => loadVisible(WEBCAMS_VISIBLE_KEY));
   const webcamsActive = webcamsVisible && live;
   // Leaving live (timeline on another time) hides the live-only layers, so their sheets go too.
   useEffect(() => {

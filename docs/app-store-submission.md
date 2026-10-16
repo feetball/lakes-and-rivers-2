@@ -95,8 +95,9 @@ Things to try:
 2. Drag the timeline at the bottom back up to 7 days, or press play.
 3. Tap the list button (top right) for Favorites, Near me and Search. Near me
    asks for location only at that moment (When In Use).
-4. In the legend, open "Layers" to show NWS flood warnings/watches and USGS
-   river camera photos.
+4. NWS flood warnings/watches and USGS river camera photos are on by
+   default; tap a camera icon for its latest photo. Switch either off in the
+   legend under "Layers".
 
 Native features: CoreLocation for the locate button and Near me; external
 pages open in SFSafariViewController; the complete Texas river and lake map
