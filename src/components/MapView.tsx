@@ -17,7 +17,7 @@ import { camerasNear, partitionWebcams, webcamStatus, type Webcam } from '@/lib/
 import { CHIP_PX, layoutCameras, offsetOf, type CameraOffset } from '@/lib/cameraLayout';
 import Basemap from '@/components/Basemap';
 import type { GaugeStatus, WaterwayProperties } from '@/lib/types';
-import Legend from './Legend';
+import Legend, { legendMaxHeight } from './Legend';
 import LocateButton from './LocateButton';
 import GaugeSheet from './GaugeSheet';
 import GaugeListControl from './GaugeListControl';
@@ -36,7 +36,7 @@ import AlertsLayer from './AlertsLayer';
 import AlertSheet from './AlertSheet';
 import AlertsListSheet from './AlertsListSheet';
 import AlertsStatusChip from './AlertsStatusChip';
-import { CLEAR_OF_CONTROLS_RIGHT, EDGE_LEFT, EDGE_RIGHT } from './controlSlots';
+import { CENTERED_MAX_WIDTH, CLEAR_OF_CONTROLS_RIGHT, EDGE_LEFT, EDGE_RIGHT } from './controlSlots';
 import type { AlertLevel, NwsAlert } from '@/lib/types';
 
 // Below this zoom, hide stream/river lines and only paint waterbodies.
@@ -501,6 +501,8 @@ export default function MapView() {
   const [legendVisible, setLegendVisible] = useState<boolean>(() => loadVisible(LEGEND_VISIBLE_KEY));
   const [timelineVisible, setTimelineVisible] = useState<boolean>(() => loadVisible(TIMELINE_VISIBLE_KEY));
   const narrowScreen = useNarrowScreen();
+  // The legend's bottom edge, above the bottom safe-area inset (see its DraggablePanel).
+  const legendBottomPx = narrowScreen && timelineVisible ? LEGEND_ABOVE_TIMELINE_PX : 12;
   const hideLegend = () => { setLegendVisible(false); saveVisible(LEGEND_VISIBLE_KEY, false); };
   const showLegend = () => { setLegendVisible(true); saveVisible(LEGEND_VISIBLE_KEY, true); };
   // Hiding the timeline also snaps back to live — otherwise the map could be
@@ -819,12 +821,13 @@ export default function MapView() {
             // sit on top of the legend (hiding its last rows, the layer toggles and
             // the "Updated" line), so the legend starts above it. Beside it, or
             // alone, it keeps the corner.
-            bottom: `calc(env(safe-area-inset-bottom, 0) + ${narrowScreen && timelineVisible ? LEGEND_ABOVE_TIMELINE_PX : 12}px)`,
+            bottom: `calc(env(safe-area-inset-bottom, 0) + ${legendBottomPx}px)`,
             left: EDGE_LEFT,
           }}
           onHide={hideLegend}
         >
           <Legend
+            maxHeight={legendMaxHeight(legendBottomPx)}
             counts={categoryCounts}
             updatedAt={gaugeData?.updatedAt}
             onRefresh={() => { refreshGauges(); }}
@@ -928,7 +931,7 @@ export default function MapView() {
         <div
           style={{
             position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: '50%', transform: 'translateX(-50%)',
-            maxWidth: 'calc(100vw - 24px)',
+            maxWidth: CENTERED_MAX_WIDTH,
             background: 'rgba(120,53,15,0.92)', border: '1px solid #b45309',
             color: '#fde68a', padding: '8px 12px',
             borderRadius: 8, fontSize: 13, zIndex: 1000,

@@ -6,6 +6,7 @@ import { alertLevel } from '@/lib/alerts-fetch';
 import { ALERT_STYLE } from '@/lib/alertStyle';
 import { reflowNwsText, relativeTime, updatedText } from '@/lib/alerts-view';
 import { onExternalLinkClick } from '@/lib/externalLink';
+import { SHEET_LEFT, SHEET_RIGHT, sheetHeight } from './sheetLayout';
 
 interface Props {
   // Every alert at the tapped point, strongest first.
@@ -47,12 +48,12 @@ export default function AlertSheet({ alerts, ageMs, stale, onClose }: Props) {
         aria-label={`NWS flood warning or watch: ${alert.event}`}
         style={{
           position: 'absolute',
-          left: 0,
-          right: 0,
+          left: SHEET_LEFT,
+          right: SHEET_RIGHT,
           bottom: 0,
           maxWidth: 560,
           marginInline: 'auto',
-          maxHeight: '70dvh',
+          maxHeight: sheetHeight(70),
           background: '#111827',
           color: '#e5e7eb',
           borderTopLeftRadius: 16,

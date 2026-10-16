@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CENTERED_MAX_WIDTH } from './controlSlots';
 
 interface Props {
   // null = "live"; otherwise ISO of the selected historical moment.
@@ -131,7 +132,7 @@ export default function TimelineSlider({ value, onChange, loading }: Props) {
   return (
     <div
       style={{
-        width: 'min(620px, calc(100vw - 24px))',
+        width: `min(620px, ${CENTERED_MAX_WIDTH})`,
         background: 'rgba(17,24,39,0.92)',
         backdropFilter: 'blur(6px)',
         color: '#e5e7eb',

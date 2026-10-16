@@ -71,8 +71,10 @@ button {
 }
 
 /* The map credit (OpenStreetMap + Protomaps) is a licence requirement: keep it
-   above the iPhone home indicator instead of inside its inset. No effect where
-   the inset is zero. */
+   above the home indicator / gesture bar instead of inside its inset, and clear
+   of a landscape notch or Android's side navigation bar. No effect where the
+   insets are zero. */
 .leaflet-container .leaflet-bottom .leaflet-control-attribution {
   margin-bottom: env(safe-area-inset-bottom, 0px);
+  margin-right: env(safe-area-inset-right, 0px);
 }

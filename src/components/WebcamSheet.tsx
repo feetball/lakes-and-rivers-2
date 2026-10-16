@@ -10,6 +10,7 @@ import {
   webcamAgeMs,
   type Webcam,
 } from '@/lib/webcams';
+import { SHEET_LEFT, SHEET_RIGHT, sheetHeight } from './sheetLayout';
 
 interface Props {
   webcam: Webcam;
@@ -60,11 +61,11 @@ export default function WebcamSheet({ webcam, gaugeName, onOpenGauge, siblings =
         aria-label={`River camera: ${webcam.name}`}
         style={{
           position: 'absolute',
-          left: 0, right: 0,
+          left: SHEET_LEFT, right: SHEET_RIGHT,
           bottom: 0,
           maxWidth: 560,
           marginInline: 'auto',
-          maxHeight: '85dvh',
+          maxHeight: sheetHeight(85),
           background: '#111827',
           color: '#e5e7eb',
           borderTopLeftRadius: 16,

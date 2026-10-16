@@ -89,7 +89,8 @@ export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 100
 
   // Clamp the persisted position into view when the window resizes (e.g.
   // a panel parked in the bottom-right corner shouldn't disappear when
-  // the user shrinks the window).
+  // the user shrinks the window) or the panel itself grows (the legend
+  // expanding would otherwise slide under the home indicator / gesture bar).
   useEffect(() => {
     const onResize = () => {
       setPos(p => {
@@ -101,7 +102,12 @@ export default function DraggablePanel({ storageKey, defaultAnchor, zIndex = 100
       });
     };
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onResize);
+    if (elRef.current) observer?.observe(elRef.current);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      observer?.disconnect();
+    };
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {

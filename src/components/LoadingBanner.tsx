@@ -1,5 +1,7 @@
 'use client';
 
+import { CENTERED_MAX_WIDTH } from './controlSlots';
+
 interface Props { label: string; sublabel?: string; }
 
 // Prominent status banner shown at top-center while initial data is loading.
@@ -12,7 +14,7 @@ export default function LoadingBanner({ label, sublabel }: Props) {
         top: 'calc(env(safe-area-inset-top, 0) + 16px)',
         left: '50%',
         transform: 'translateX(-50%)',
-        maxWidth: 'calc(100vw - 24px)',
+        maxWidth: CENTERED_MAX_WIDTH,
         background: 'rgba(17,24,39,0.96)',
         backdropFilter: 'blur(8px)',
         color: '#f9fafb',

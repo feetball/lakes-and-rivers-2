@@ -6,6 +6,7 @@ import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAg
 import { onExternalLinkClick, PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/externalLink';
 import { analyticsOptedOut, setAnalyticsOptOut } from '@/lib/track';
 import LegendLayers, { AlertsLegendLayer, WebcamsLegendLayer, type AlertsLegendProps, type WebcamsLegendProps } from './LegendLayers';
+import { EDGE_LEFT, EDGE_RIGHT } from './controlSlots';
 
 // The admin login is an operator tool for the web deploy. In the store apps this is
 // `null` and the import is dropped at build time, so the login UI and its endpoints are
@@ -27,9 +28,18 @@ interface Props {
   // Optional map layers, rendered in one "Layers" section. Omitted = no row.
   alertsLayer?: AlertsLegendProps;
   webcams?: WebcamsLegendProps;
+  // CSS max-height; see legendMaxHeight.
+  maxHeight?: string;
 }
 
-export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames, alertsLayer, webcams }: Props) {
+// With both optional layers on the panel is tall. Sitting `bottomPx` above the bottom
+// safe-area inset, it may grow until its top (with the 14 px drag handle above it) is
+// 114 px below the top inset: clear of the status bar / notch and below the map buttons.
+export function legendMaxHeight(bottomPx: number): string {
+  return `calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - ${bottomPx + 14 + 114}px)`;
+}
+
+export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames, alertsLayer, webcams, maxHeight = legendMaxHeight(12) }: Props) {
   const [open, setOpen] = useState(true);
   // Read after mount: localStorage does not exist during the static prerender.
   const [statsOn, setStatsOn] = useState(true);
@@ -64,9 +74,8 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
         borderBottomRightRadius: 10,
         padding: open ? '10px 12px' : '8px 12px',
         boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-        maxWidth: 'calc(100vw - 24px)',
-        // With both optional layers on the panel is tall: never taller than the screen below the map buttons.
-        maxHeight: 'calc(100dvh - 140px)',
+        maxWidth: `calc(100vw - ${EDGE_LEFT} - ${EDGE_RIGHT})`,
+        maxHeight,
         overflowY: 'auto',
         fontSize: 13,
       }}
