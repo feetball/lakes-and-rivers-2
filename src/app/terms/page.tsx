@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <InfoPage title="Terms of use" updated="October 15, 2026">
+    <InfoPage title="Terms of use" updated="October 16, 2026">
       <p>
         These terms cover the Texas Flood Map app and the website at txfloods.kuecker.us. Texas
         Flood Map is an independent project by Daniel Kuecker (&ldquo;we&rdquo;, &ldquo;us&rdquo;).
@@ -31,13 +31,23 @@ export default function TermsPage() {
         </li>
         <li>
           Gauge readings, flood categories, forecasts, warnings and camera photos shown here can
-          be late, wrong or missing, and the app or the website can stop working at any time,
-          including during a flood.
+          be hours old, wrong or missing, and the app or the website can stop working at any time,
+          including during a flood. Gauges themselves can fail or stop reporting in a flood.
+        </li>
+        <li>
+          A gauge measures the water at one spot. Flash floods can rise in minutes on creeks and
+          low-water crossings with no gauge, so no color or status on the map, &ldquo;Normal&rdquo;
+          included, means that an area is safe.
+        </li>
+        <li>
+          The app sends no alerts or notifications and does not watch conditions for you. We do
+          not undertake to warn you of anything. Keep your phone&apos;s emergency alerts on and use
+          NOAA Weather Radio and your local alert system.
         </li>
         <li>
           In an emergency call 911. Follow the instructions of local officials and the official
           warnings from the <a href="https://www.weather.gov/">National Weather Service</a>. Never
-          drive or walk into flood water.
+          drive or walk into flood water, and follow evacuation orders right away.
         </li>
       </ul>
 
@@ -66,16 +76,27 @@ export default function TermsPage() {
       </ul>
       <p>
         Real-time gauge data is <strong>provisional</strong>: the agencies publish it before it is
-        reviewed and may revise it later. A gauge&apos;s details show when its reading was taken
-        and where it came from, and a reading too old to stand for current conditions is shown
-        gray on the map, not as a status. Flood categories compare a reading with the flood stages the National
-        Weather Service publishes for that gauge; many gauges have none.
+        reviewed and may revise it later. A gauge&apos;s details show when its reading was taken,
+        how old it is and where it came from. A reading more than 90 minutes old is drawn faded
+        with a dashed ring and marked as old, and a &ldquo;Normal&rdquo; reading more than 6 hours
+        old is shown gray, not as a status. Flood categories compare a reading with the flood
+        stages the National Weather Service publishes for that gauge; many gauges have none.
       </p>
       <p>
-        Texas Flood Map is not affiliated with or endorsed by NOAA, the National Weather Service,
-        the U.S. Geological Survey or any government agency.
+        Texas Flood Map is an independent app from a private developer. It does not represent any
+        government entity and is not affiliated with or endorsed by NOAA, the National Weather
+        Service, the U.S. Geological Survey, the State of Texas or any government agency.
       </p>
 
+      <h2>Your own risk</h2>
+      {/* Conspicuous on purpose: under Texas law a release of a party's own negligence must
+          say so expressly and stand out (fair notice). DRAFT: have an attorney review. */}
+      <p>
+        <strong>
+          YOU USE THE APP, THE WEBSITE AND THEIR DATA AT YOUR OWN RISK. You alone are responsible
+          for decisions about your safety, your property and the safety of anyone with you.
+        </strong>
+      </p>
       <h2>No warranty</h2>
       <p>
         The app and the website are provided &ldquo;as is&rdquo; and &ldquo;as available&rdquo;.
@@ -84,12 +105,15 @@ export default function TermsPage() {
         be available or free of errors, or that it is fit for any particular purpose.
       </p>
 
-      <h2>Limits on our liability</h2>
+      <h2>Release and limits on our liability</h2>
       <p>
-        To the fullest extent the law allows, we are not liable for any loss, damage or injury
-        that results from using or relying on the app, the website or the data they show, or from
-        their being unavailable, late or wrong. That includes indirect, incidental, special and
-        consequential damages. If we are found liable anyway, our total liability is limited to
+        <strong>
+          TO THE FULLEST EXTENT THE LAW ALLOWS, YOU RELEASE US FROM, AND AGREE THAT WE ARE NOT
+          LIABLE FOR, ANY CLAIM FOR LOSS, DAMAGE, INJURY OR DEATH THAT ARISES FROM USING OR
+          RELYING ON THE APP, THE WEBSITE OR THE DATA THEY SHOW, OR FROM THEIR BEING UNAVAILABLE,
+          LATE OR WRONG, INCLUDING ANY CLAIM BASED ON OUR OWN NEGLIGENCE.
+        </strong>{' '}
+        That includes indirect, incidental, special and consequential damages. If we are found liable anyway, our total liability is limited to
         the amount you paid for the app. Some laws do not allow some of these limits; where they
         do not, the limits apply only as far as the law allows.
       </p>

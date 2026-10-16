@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import './helpers/ts-imports.mjs';
 
-const { NO_RECENT_READING_MS, STALE_DATA_MS, displayCategory } = await import('../src/lib/floodStatus.ts');
+const { NO_RECENT_READING_MS, STALE_DATA_MS, displayCategory, isOldReading, oldReadingNote } = await import('../src/lib/floodStatus.ts');
 const { describeItem, listCategory, searchGauges, buildGaugeIndex, toListItem } = await import('../src/lib/gaugeList.ts');
 const { gaugeFromNwpsEntry, repairMetaEntry } = await import('../src/lib/gaugeStatus.ts');
 
@@ -59,6 +59,38 @@ test('timeline: judged against the snapshot time, and forecast times (in the fut
   const forecast = g('KRRT2', { observedAt: new Date(NOW + 30 * HOUR).toISOString() });
   assert.equal(displayCategory(forecast, NOW + 30 * HOUR), 'no_flooding');
   assert.equal(displayCategory(forecast, NOW), 'no_flooding');
+});
+
+test('old reading: past STALE_DATA_MS or untimed is old, whatever the colour; no reading is not old', () => {
+  assert.equal(isOldReading(g('KRRT2', { observedAt: at(STALE_DATA_MS) }), NOW), false);
+  assert.equal(isOldReading(g('KRRT2', { observedAt: at(STALE_DATA_MS + 60_000) }), NOW), true);
+  assert.equal(isOldReading(g('KRRT2', { observedAt: null }), NOW), true);
+  // An old flood keeps its colour (above) but is still marked old.
+  assert.equal(isOldReading(g('DALT2', { category: 'major', observedAt: at(3 * HOUR) }), NOW), true);
+  // No reading: gray "No data", not an old reading.
+  assert.equal(isOldReading(g('KRRT2', { observedStage: null, observedAt: at(3 * HOUR) }), NOW), false);
+  assert.equal(isOldReading(g('KRRT2', { observedStage: -999, observedAt: at(3 * HOUR) }), NOW), false);
+});
+
+test('old reading: judged against the timeline time; forecasts are never old', () => {
+  const snapshotMs = NOW - 3 * 24 * HOUR;
+  const then = g('KRRT2', { observedAt: new Date(snapshotMs - 20 * 60_000).toISOString() });
+  assert.equal(isOldReading(then, snapshotMs), false);
+  assert.equal(isOldReading(then, NOW), true);
+  assert.equal(isOldReading(g('KRRT2', { observedAt: new Date(NOW + 30 * HOUR).toISOString() }), NOW), false);
+});
+
+test('old reading: the tooltip note gives the age, or says the time is unknown', () => {
+  assert.equal(oldReadingNote(g('KRRT2', { observedAt: at(20 * 60_000) }), NOW), '');
+  assert.equal(oldReadingNote(g('KRRT2', { observedAt: at(3 * HOUR) }), NOW), ' · reading 3 hours old');
+  assert.equal(oldReadingNote(g('KRRT2', { observedAt: null }), NOW), ' · reading time unknown');
+});
+
+test('old reading: the list flags exactly the readings the map marks', () => {
+  for (const ms of [20 * 60_000, STALE_DATA_MS + 60_000, 3 * HOUR, 30 * HOUR]) {
+    const gauge = g('KRRT2', { observedAt: at(ms) });
+    assert.equal(toListItem(gauge, NOW).stale, isOldReading(gauge, NOW), `${ms} ms`);
+  }
 });
 
 test('list: an old "Normal" is listed gray as "No recent reading" with its age', () => {

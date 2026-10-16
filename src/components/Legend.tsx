@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, STALE_DATA_MS, dataAgeMs, type DisplayCategory } from '@/lib/floodStatus';
+import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_LABELS, OLD_READING_STYLE, STALE_DATA_MS, dataAgeMs, type DisplayCategory } from '@/lib/floodStatus';
 import { onExternalLinkClick, PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/externalLink';
 import { analyticsOptedOut, setAnalyticsOptOut } from '@/lib/track';
 import LegendLayers, { AlertsLegendLayer, WebcamsLegendLayer, type AlertsLegendProps, type WebcamsLegendProps } from './LegendLayers';
@@ -18,6 +18,8 @@ const footerLink = { color: '#9ca3af', textDecoration: 'underline', padding: '4p
 
 interface Props {
   counts: Record<DisplayCategory, number>;
+  // Gauges whose reading is old (isOldReading); they are also counted in `counts`.
+  oldReadings?: number;
   updatedAt?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -39,7 +41,7 @@ export function legendMaxHeight(bottomPx: number): string {
   return `calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - ${bottomPx + 14 + 114}px)`;
 }
 
-export default function Legend({ counts, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames, alertsLayer, webcams, maxHeight = legendMaxHeight(12) }: Props) {
+export default function Legend({ counts, oldReadings, updatedAt, onRefresh, refreshing, onForceRefreshed, gaugeNames, alertsLayer, webcams, maxHeight = legendMaxHeight(12) }: Props) {
   const [open, setOpen] = useState(true);
   // Read after mount: localStorage does not exist during the static prerender.
   const [statsOn, setStatsOn] = useState(true);
@@ -114,10 +116,25 @@ export default function Legend({ counts, updatedAt, onRefresh, refreshing, onFor
               <span style={{ color: '#9ca3af', minWidth: 24, textAlign: 'right' }}>{counts[cat]}</span>
             </div>
           ))}
-          {/* Neither gray nor tan may read as "safe": NWS publishes no flood stages for a
-              third of Texas gauges, and others simply have no recent reading. */}
+          {oldReadings !== undefined && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+              {/* The map's old-reading dot: faded fill, dashed ring (OLD_READING_STYLE). */}
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden style={{ flexShrink: 0 }}>
+                <circle
+                  cx="7" cy="7" r="5.5" fill="#94a3b8" fillOpacity={OLD_READING_STYLE.fillOpacity}
+                  stroke="#e5e7eb" strokeWidth="1.5" strokeDasharray={OLD_READING_STYLE.dashArray}
+                />
+              </svg>
+              <span style={{ flex: 1 }}>Faded, dashed: reading over {STALE_DATA_MS / 60_000} min old</span>
+              <span style={{ color: oldReadings ? '#fbbf24' : '#9ca3af', minWidth: 24, textAlign: 'right' }}>{oldReadings}</span>
+            </div>
+          )}
+          {/* No colour may read as "safe": a gauge measures one spot, flash floods hit creeks
+              with no gauge, NWS publishes no flood stages for a third of Texas gauges, and
+              others simply have no recent reading. */}
           <div style={{ color: '#9ca3af', fontSize: 11, lineHeight: 1.35, maxWidth: 190 }}>
-            Gray and tan are not an all-clear: no recent reading, or NWS defines no flood stages to compare against
+            Even &ldquo;Normal&rdquo; is not an all-clear: flooding can happen where there is no
+            gauge. Gray and tan: no recent reading, or NWS defines no flood stages to compare against
           </div>
           <div
             style={{

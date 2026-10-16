@@ -1,6 +1,6 @@
 'use client';
 
-import { CATEGORY_COLORS } from '@/lib/floodStatus';
+import { CATEGORY_COLORS, OLD_READING_STYLE } from '@/lib/floodStatus';
 import { describeItem, type GaugeListItem } from '@/lib/gaugeList';
 import { useFavorites } from '@/hooks/useFavorites';
 import FavoriteStar from './FavoriteStar';
@@ -31,13 +31,23 @@ export default function GaugeListRow({ item, snapshot, onPick }: Props) {
           color: COLORS.text, textAlign: 'left', cursor: 'pointer', font: 'inherit',
         }}
       >
-        <span
-          aria-hidden
-          style={{
-            width: 16, height: 16, borderRadius: 8, flexShrink: 0, boxSizing: 'border-box',
-            background: CATEGORY_COLORS[item.category], border: `2px solid ${COLORS.dotRing}`,
-          }}
-        />
+        {item.stale && !snapshot ? (
+          // The map's look for an old reading: faded, with a dashed ring.
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden style={{ flexShrink: 0 }}>
+            <circle
+              cx="8" cy="8" r="7" fill={CATEGORY_COLORS[item.category]} fillOpacity={OLD_READING_STYLE.fillOpacity}
+              stroke={COLORS.dotRing} strokeWidth="2" strokeDasharray={OLD_READING_STYLE.dashArray}
+            />
+          </svg>
+        ) : (
+          <span
+            aria-hidden
+            style={{
+              width: 16, height: 16, borderRadius: 8, flexShrink: 0, boxSizing: 'border-box',
+              background: CATEGORY_COLORS[item.category], border: `2px solid ${COLORS.dotRing}`,
+            }}
+          />
+        )}
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 15, fontWeight: 600, lineHeight: 1.25 }}>{item.gauge.name}</span>
           <span style={{ display: 'block', fontSize: 13, lineHeight: 1.35, marginTop: 2, color: COLORS.muted }}>
