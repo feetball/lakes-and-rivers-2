@@ -36,7 +36,7 @@ export default function TermsPage() {
         </li>
         <li>
           A gauge measures the water at one spot. Flash floods can rise in minutes on creeks and
-          low-water crossings with no gauge, so no colour or status on the map, &ldquo;Normal&rdquo;
+          low-water crossings with no gauge, so no color or status on the map, &ldquo;Normal&rdquo;
           included, means that an area is safe.
         </li>
         <li>

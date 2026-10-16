@@ -94,7 +94,7 @@ export default function DisclaimerModal() {
               </li>
               <li>
                 <strong>&ldquo;Normal&rdquo; does not mean safe, and neither does any other
-                colour.</strong> A gauge measures one spot. Flash floods can rise in minutes on creeks and low-water crossings that have
+                color.</strong> A gauge measures one spot. Flash floods can rise in minutes on creeks and low-water crossings that have
                 no gauge.
               </li>
               <li>
